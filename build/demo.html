@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test harness for extend()</title>
+
+    <script src="filter-tree.js"></script>
+
+    <script>
+var filterTree, body;
+
+window.onload = function() {
+    body = document.getElementsByTagName('body')[0];
+    filterTree = new FilterTree(fieldNames);//, getJSON());
+    body.appendChild(filterTree.el);
+};
+
+var fieldNames = [
+    { options: ['LastName', 'FirstName'], label: "Names" },
+    'BirthState',
+    { value:'DOB', text: 'Date Of Birth'}
+];
+
+function getJSON() {
+    try {
+        return JSON.parse(document.querySelector('textarea').value);
+    } catch(e) {
+        alert('Bad JSON!');
+    }
+}
+
+function toJSON() {
+    this.nextElementSibling.innerHTML = JSON.stringify(filterTree, null, 3)
+}
+
+function fromJSON() {
+    var oldTree = filterTree;
+    filterTree = new FilterTree(fieldNames, getJSON());
+    body.replaceChild(filterTree.el, oldTree.el);
+}
+    </script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: white;
+            line-height: 1.5em;
+        }
+        pre {
+            line-height: 1.25em;
+        }
+        em { padding: 0 .5em; }
+        ol { margin-top:0 }
+        .filter-tree-default > * { margin: 0 .4em; }
+        .filter-tree-remove, .filter-tree-add-filter, .filter-tree-add {
+            cursor: pointer;
+        }
+        .filter-tree-add-filter, .filter-tree-add {
+            font-size: smaller;
+            font-style: italic;
+            margin-left: 3em;
+        }
+        .filter-tree-add-filter:hover, .filter-tree-add:hover {
+            text-decoration: underline;
+        }
+        .filter-tree-add > div, .filter-tree-add-filter > div, .filter-tree-remove {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 8px;
+            background-color: #8c8;
+            font-size: 11.5px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            line-height: normal;
+            font-style: normal;
+            font-family: sans-serif;
+            text-shadow: 0 0 1.5px grey;
+            margin-right: 4px;
+        }
+        .filter-tree-add > div:before, .filter-tree-add-filter > div:before {
+            content: '\ff0b';
+        }
+        .filter-tree-remove {
+            background-color: #e88;
+            border: 0;
+        }
+        .filter-tree-remove:before {
+            content: '\2212';
+        }
+        .filter-tree li::after {
+            font-size: 70%;
+            font-style: italic;
+            font-weight: bold;
+            color: #900;
+        }
+
+        .filter-tree > ol > li:last-child::after { display: none }
+
+        .op-or > ol > li::after {
+            content: '\A0— OR —';
+        }
+        .op-and > ol > li::after {
+            content: '\A0— AND —';
+        }
+        .op-nor > ol > li::after {
+            content: '\A0— NOR —';
+        }
+    </style>
+</head>
+<body>
+    <input type="button" value="toJSON()" onclick="toJSON()" />
+    <textarea style="display:block; margin:1em 0; height:8em; width:30em">{
+   "operator": "op-and",
+   "children": [
+      {
+         "field": "LastName",
+         "operator": "=",
+         "argument": "Clinton"
+      },
+      {
+         "operator": "op-or",
+         "children": [
+            {
+               "field": "DOB",
+               "operator": "<",
+               "argument": "1990"
+            },
+            {
+               "field": "BirthState",
+               "operator": "≠",
+               "argument": "Arkansas"
+            }
+         ]
+      }
+   ]
+}</textarea>
+    <input type="button" value="fromJSON()" onclick="fromJSON()" />
+    <hr>
+</body>
+</html>

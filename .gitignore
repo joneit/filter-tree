@@ -1,0 +1,6 @@
+.DS_Store
+/build/extend-me.js
+/build/extend-me.min.js
+/.idea
+/doc
+/node_modules
