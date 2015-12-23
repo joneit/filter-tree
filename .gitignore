@@ -4,3 +4,4 @@
 /.idea
 /doc
 /node_modules
+/src/index.js

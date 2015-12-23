@@ -11,21 +11,16 @@ extend.debug = true;
 
 var FilterNode = Base.extend({
 
-    initialize: function(fieldNames, json, parent) {
-        if (!(fieldNames instanceof Array)) {
-            // 1st param `fieldNames` omitted; shift other params
-            parent = json;
-            json = fieldNames;
-            fieldNames = undefined;
-        }
+    initialize: function(options) {
+        var parent = this.parent = options && options.parent,
+            json = this.json = options && options.json;
 
-        this.parent = parent;
+        this.fields =
+            options && options.fields ||
+            json && json.fields ||
+            parent && parent.fields;
 
-        this.fieldNames = fieldNames ||
-            json && json.fieldNames ||
-            parent && parent.fieldNames;
-
-        if (!this.fieldNames) {
+        if (!this.fields) {
             throw this.Error('No field names list.');
         }
 
@@ -49,9 +44,7 @@ var FilterNode = Base.extend({
 
     CHILDREN_TAG: 'OL',
     CHILD_TAG: 'LI',
-    CSS_CLASS_NAME: 'filter-tree',
-
-    filters: { }
+    CSS_CLASS_NAME: 'filter-tree'
 
 });
 

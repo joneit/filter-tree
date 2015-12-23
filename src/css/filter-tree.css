@@ -1,0 +1,72 @@
+.filter-tree {
+    font-family: sans-serif;
+    line-height: 1.5em;
+}
+.filter-tree ol { margin-top: 0 }
+
+.filter-tree-remove, .filter-tree-add-filter, .filter-tree-add {
+    cursor: pointer;
+}
+.filter-tree-add-filter, .filter-tree-add {
+    font-size: smaller;
+    font-style: italic;
+    margin-left: 3em;
+}
+.filter-tree-add-filter:hover, .filter-tree-add:hover {
+    text-decoration: underline;
+}
+.filter-tree-add > div, .filter-tree-add-filter > div, .filter-tree-remove {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border-radius: 8px;
+    background-color: #8c8;
+    font-size: 11.5px;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    line-height: normal;
+    font-style: normal;
+    font-family: sans-serif;
+    text-shadow: 0 0 1.5px grey;
+    margin-right: 4px;
+}
+.filter-tree-add > div:before, .filter-tree-add-filter > div:before {
+    content: '\ff0b';
+}
+.filter-tree-remove {
+    background-color: #e88;
+    border: 0;
+}
+.filter-tree-remove:before {
+    content: '\2212';
+}
+.filter-tree li::after {
+    font-size: 70%;
+    font-style: italic;
+    font-weight: bold;
+    color: #900;
+}
+
+.filter-tree > ol > li:last-child::after { display: none }
+
+.op-or > ol > li::after {
+    content: '\A0— OR —';
+}
+.op-and > ol > li::after {
+    content: '\A0— AND —';
+}
+.op-nor > ol > li::after {
+    content: '\A0— NOR —';
+}
+
+/* Remaining rules are for the default filter editor and the filter editor chooser */
+
+.filter-tree-default > * { margin: 0 .4em; }
+
+.filter-tree-chooser {
+    position: absolute;
+    font-style: italic;
+    background-color: yellow;
+    box-shadow: 5px 5px 10px grey;
+}

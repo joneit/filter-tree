@@ -5,7 +5,10 @@ var gulp        = require('gulp'),
     runSequence = require('run-sequence'),
     browserSync = require('browser-sync').create(),
     exec        = require('child_process').exec,
-    path        = require('path');
+    path        = require('path'),
+    escapeStr   = require('js-string-escape'),
+    CleanCss    = require("clean-css"),
+    pipe        = require('multipipe');
 
 var name     = 'filter-tree',
     global   = 'FilterTree',
@@ -18,11 +21,8 @@ var name     = 'filter-tree',
 gulp.task('lint', lint);
 gulp.task('test', test);
 gulp.task('doc', doc);
-gulp.task('browserify', function(callback) {
-    browserify();
-    browserifyMin();
-    callback();
-});
+gulp.task('browserify', browserify);
+gulp.task('serve', browserSyncLaunchServer);
 
 gulp.task('build', function(callback) {
     clearBashScreen();
@@ -40,13 +40,37 @@ gulp.task('reload', function() {
 });
 
 gulp.task('watch', function () {
-    gulp.watch([srcDir + '**', testDir + '**', buildDir + 'demo.html'], ['build']);
-    gulp.watch([buildDir + name + '.js'], ['reload']);
+    gulp.watch([
+        srcDir + '**',
+        '!' + srcDir + 'index.js',
+        testDir + '**',
+        buildDir + 'demo.html'
+    ], [
+        'build'
+    ]);
+    gulp.watch([
+        buildDir + name + '.js'
+    ], [
+        'reload'
+    ]);
 });
 
 gulp.task('default', ['build', 'watch'], browserSyncLaunchServer);
 
 //  //  //  //  //  //  //  //  //  //  //  //
+
+function cssToJsFn(filePath, file) {
+    var STYLE_HEADER = 'css = \'',
+        STYLE_FOOTER = '\';';
+
+    var css = new CleanCss({})
+        .minify(file.contents.toString())
+        .styles;
+
+    file.contents = new Buffer(STYLE_HEADER + escapeStr(css) + STYLE_FOOTER);
+
+    return file.contents.toString('utf8');
+}
 
 function lint() {
     return gulp.src(srcDir + '**/*.js')
@@ -72,29 +96,55 @@ function browserSyncLaunchServer() {
     });
 }
 
-function browserify() {
-    return gulp.src(srcDir + 'index.js')
-        .pipe($$.replace(
-            'module.exports =',
-            'window.' + global + ' ='
-        ))
-        .pipe($$.browserify({ debug: true }))
-        .on('error', $$.util.log)
-        .pipe($$.rename(name + '.js'))
-        .pipe(gulp.dest(buildDir));
-}
+function browserify(callback) {
+    var source = gulp.src(srcDir + 'css/' + name + '.css'),
+        destination = gulp.dest(srcDir);
 
-function browserifyMin() {
-    return gulp.src(srcDir + 'index.js')
-        .pipe($$.replace(
-            'module.exports =',
-            'window.' + global + ' ='
-        ))
-        .pipe($$.browserify())
-        .pipe($$.uglify())
-        .on('error', $$.util.log)
-        .pipe($$.rename(name + '.min.js'))
-        .pipe(gulp.dest(buildDir));
+    var cssInjectedIntoSource = gulp.src(srcDir + 'js/' + global + '.js')
+        .pipe($$.inject(source, {
+            transform: cssToJsFn,
+            starttag: '/* {{name}}:{{ext}} */',
+            endtag: '/* endinject */'
+        }))
+        .pipe($$.mirror(
+            pipe(
+                $$.rename('index.js'),
+                $$.replace(
+                    'require(\'./',
+                    'require(\'./js/'
+                ),
+                $$.replace(
+                    'require(\'../',
+                    'require(\'./'
+                ),
+                gulp.dest(srcDir)
+            ),
+            pipe(
+                $$.replace(
+                    'module.exports =',
+                    'window.' + global + ' ='
+                ),
+                $$.mirror(
+                    pipe(
+                        $$.rename(name + '.js'),
+                        $$.browserify({ debug: true })
+                    ),
+                    pipe(
+                        $$.rename(name + '.min.js'),
+                        $$.browserify(),
+                        $$.uglify()
+                    )
+                ),
+                gulp.dest(buildDir)
+            )
+        ));
+
+    //cssInjectedIntoSource
+    //    .pipe($$.rename('index.js'))
+    //    .pipe(gulp.dest(srcDir));
+
+
+    callback();
 }
 
 function doc(callback) {

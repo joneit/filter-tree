@@ -4,8 +4,16 @@
 
 var FilterNode = require('./FilterNode');
 
-/** A "filter leaf" is a terminal node in a filter tree and represents a conditional expression.
- *
+var operators = ['=', '≠', '<', '>', '≤', '≥'];
+var opToSQL = {
+    '≠': '<>',
+    '≤': '<=',
+    '≥': '>='
+};
+
+/** @constructor
+ * @summary A terminal node in a filter tree, representing a conditional expression.
+ * @desc Also known as a "filter."
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
@@ -14,8 +22,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         root.className = 'filter-tree-default';
 
         this.bindings = {
-            field: makeElement(root, this.fieldNames),
-            operator: makeElement(root, ['=', '≠', '<', '>', '≤', '≥']),
+            field: makeElement(root, this.fields),
+            operator: makeElement(root, operators),
             argument: makeElement(root)
         };
 
@@ -23,41 +31,90 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     fromJSON: function(json) {
+        var value, element, i;
         if (json) {
             for (var key in json) {
-                this.bindings[key].value = json[key];
+                value = json[key];
+                element = this.bindings[key];
+                switch (element.type) {
+                    case 'checkbox':
+                    case 'radio':
+                        element = document.querySelectorAll('input[name=\'' + element.name + '\']');
+                        for (i = 0; i < element.length; i++) {
+                            element[i].checked = value.indexOf(element[i].value) >= 0;
+                        }
+                        break;
+                    case 'select-multiple':
+                        element = element.options;
+                        for (i = 0; i < element.length; i++) {
+                            element[i].selected = value.indexOf(element[i].value) >= 0;
+                        }
+                        break;
+                    default:
+                        element.value = value;
+                }
             }
         }
     },
 
     toJSON: function() {
-        var json = {};
-        for (var key in this.bindings) {
-            json[key] = this.bindings[key].value;
+        var element, value, i, key, json = {};
+        for (key in this.bindings) {
+            element = this.bindings[key];
+            switch (element.type) {
+                case 'checkbox':
+                case 'radio':
+                    element = document.querySelectorAll('input[name=\'' + element.name + '\']:enabled:checked');
+                    for (value = [], i = 0; i < element.length; i++) {
+                        value.push(element[i].value);
+                    }
+                    break;
+                case 'select-multiple':
+                    element = element.options;
+                    for (value = [], i = 0; i < element.length; i++) {
+                        if (!element.disabled && element.selected) {
+                            value.push(element[i].value);
+                        }
+                    }
+                    break;
+                default:
+                    value = element.value;
+            }
+            json[key] = value;
         }
         return json;
+    },
+
+    toSQL: function() {
+        return [
+            this.bindings.field.value,
+            opToSQL[this.bindings.operator.value] || this.bindings.operator.value,
+            ' \'' + this.bindings.argument.value.replace(/'/g, '\'\'') + '\''
+        ].join(' ');
     }
 });
 
-FilterNode.prototype.filters.Default = FilterLeaf;
-
 /** @typedef valueOption
- * @param value
- * @param text
+ * @property {string} value
+ * @property {string} text
  */
 /** @typedef optionGroup
- * @param {string} label
- * @param {fieldOption[]} options
+ * @property {string} label
+ * @property {fieldOption[]} options
  */
 /** @typedef {string|valueOption|optionGroup|string[]} fieldOption
  * @desc If a simple array of string, you must add a `label` property to the array.
  */
 /**
- *
- * @param {Element} container
- * @param name
- * @param {fieldOption[]} options
- * @param {null|string} [prompt] - If omitted, blank prompt implied. `null` suppresses prompt altogether.
+ * @summary HTML form control factory.
+ * @desc Creates and appends a text box or a drop-down.
+ * @returns The new element.
+ * @param {Element} container - An element to which to append the new element.
+ * @param {fieldOption|fieldOption[]} [options] - Overloads:
+ * * If omitted, will create an `<input/>` (text box) element.
+ * * If a single option (either as a scalar or as the only element in an array), will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
+ * * Otherwise, creates a `<select>...</select>` element with these strings added as `<option>...</option>` elements. Option groups may be specified as nested arrays.
+ * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
  */
 function makeElement(container, options, prompt) {
     var el,
@@ -79,6 +136,16 @@ function makeElement(container, options, prompt) {
     return el;
 }
 
+/**
+ * @summary Creates a new element and adds options to it.
+ * @param {string} tagName - Must be one of:
+ * * `'input'` for a text box
+ * * `'select'` for a drop-down
+ * * `'optgroup'` (for internal use only)
+ * @param {fieldOption[]} [options] - Strings to add as `<option>...</option>` elements. Omit when creating a text box.
+ * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with `text` this value in parentheses, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
+ * @returns {Element} Either a `<select>` or `<optgroup>` element.
+ */
 function addOptions(tagName, options, prompt) {
     var el = document.createElement(tagName);
     if (options) {
@@ -86,7 +153,7 @@ function addOptions(tagName, options, prompt) {
         if (tagName === 'select') {
             add = el.add;
             if (prompt !== null) {
-                el.add(new Option(prompt ? '(' + prompt + ')' : ''));
+                el.add(new Option(prompt ? '(' + prompt + ')' : ''), '');
             }
         } else {
             add = el.appendChild;
