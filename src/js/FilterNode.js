@@ -19,8 +19,8 @@ var FilterNode = Base.extend({
             options && (options.nodeFields || options.nodeFields);
 
         this.fields =
-            json && (json.fields || json.fields) ||
-            options && (options.fields || options.fields) ||
+            json && json.fields ||
+            options && options.fields ||
             parent && parent.fields;
 
         if (!(this.nodeFields || this.fields)) {

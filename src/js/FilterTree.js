@@ -192,10 +192,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     test: function(string) {
-        var number = Number(string),
-            methodName = isNaN(number) ? 'testString' : 'testNumber';
-
-        return test.call(this, string, number, methodName);
+        var number = Number(string);
+        return test.call(this, string, number, isNaN(number));
     },
 
     toJSON: function toJSON() {
@@ -253,7 +251,7 @@ function catchClick(evt) {
     }
 }
 
-function test(s, n, methodName) {
+function test(s, n, textCompare) {
     var operator = operators[this.operator],
         result = operator.seed;
 
@@ -262,8 +260,8 @@ function test(s, n, methodName) {
             isTerminalNode = !(child instanceof FilterTree);
 
         if (isTerminalNode || child.children.length) {
-            var method = isTerminalNode ? child[methodName] : test;
-            result = operator.reduce(result, method.call(child, s, n));
+            var method = isTerminalNode ? child.test : test;
+            result = operator.reduce(result, method.call(child, s, n, textCompare));
         }
     }
 

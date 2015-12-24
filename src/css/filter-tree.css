@@ -2,6 +2,13 @@
     font-family: sans-serif;
     line-height: 1.5em;
 }
+.filter-tree label {
+    font-weight: normal; /* damn you, bootstrap! */
+}
+.filter-tree radio {
+    left: 3px; /* damn you, bootstrap! */
+    margin-right: 3px; /* damn you, bootstrap! */
+}
 .filter-tree ol { margin-top: 0 }
 
 .filter-tree-remove, .filter-tree-add-filter, .filter-tree-add {

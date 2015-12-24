@@ -61,16 +61,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
     },
 
-    testString: function(s) {
-        return operators[this.bindings.operator.value].test(s, this.bindings.argument.value);
-    },
-
-    testNumber: function(Ls, Ln) {
+    test: function(Ls, Ln, textCompare) {
         var test = operators[this.bindings.operator.value].test,
             Rs = this.bindings.argument.value,
             Rn;
 
-        return isNaN(Ln) || isNaN(Rn = Number(Rs)) ? test(Ls, Rs) : test(Ln, Rn);
+        return textCompare || isNaN(Rn = Number(Rs)) ? test(Ls, Rs) : test(Ln, Rn);
     },
 
     toJSON: function() {
