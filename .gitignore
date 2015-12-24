@@ -1,6 +1,6 @@
 .DS_Store
-/build/extend-me.js
-/build/extend-me.min.js
+/build/filter-tree.js
+/build/filter-tree.min.js
 /.idea
 /doc
 /node_modules
