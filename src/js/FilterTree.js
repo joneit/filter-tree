@@ -199,7 +199,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     toJSON: function toJSON() {
-        var result = {
+        var json = {
             operator: this.operator,
             children: []
         };
@@ -207,30 +207,37 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.children.forEach(function(child) {
             var isTerminalNode = !(child instanceof FilterTree);
             if (isTerminalNode || child.children.length) {
-                result.children.push(isTerminalNode ? child : toJSON.call(child));
+                json.children.push(isTerminalNode ? child : toJSON.call(child));
             }
         });
 
-        return result;
+        var tree = this;
+        ['fields', 'nodeFields'].forEach(function(prop) {
+            if (!tree.parent || tree[prop] && tree[prop] !== tree.parent[prop]) {
+                json[prop] = tree[prop];
+            }
+        });
+
+        return json;
     },
 
     toSQL: function toSQL() {
-        var SQL = operators[this.operator].SQL,
-            result = SQL.beg;
+        var lexeme = operators[this.operator].SQL,
+            where = lexeme.beg;
 
         this.children.forEach(function(child, idx) {
             var isTerminalNode = !(child instanceof FilterTree);
             if (isTerminalNode || child.children.length) {
                 if (idx) {
-                    result += ' ' + SQL.op + ' ';
+                    where += ' ' + lexeme.op + ' ';
                 }
-                result += isTerminalNode ? child.toSQL() : toSQL.call(child);
+                where += isTerminalNode ? child.toSQL() : toSQL.call(child);
             }
         });
 
-        result += SQL.end;
+        where += lexeme.end;
 
-        return result;
+        return where;
     }
 
 });

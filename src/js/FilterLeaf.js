@@ -101,6 +101,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
             json[key] = value;
         }
+        if (!this.parent.nodeFields && this.fields !== this.parent.fields) {
+            json.fields = this.fields;
+        }
         return json;
     },
 
