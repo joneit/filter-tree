@@ -5,7 +5,7 @@
 .filter-tree label {
     font-weight: normal; /* damn you, bootstrap! */
 }
-.filter-tree radio {
+.filter-tree input[type=radio], .filter-tree input[type=checkbox] {
     left: 3px; /* damn you, bootstrap! */
     margin-right: 3px; /* damn you, bootstrap! */
 }
