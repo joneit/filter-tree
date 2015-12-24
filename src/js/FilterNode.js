@@ -15,14 +15,20 @@ var FilterNode = Base.extend({
         var parent = this.parent = options && options.parent,
             json = this.json = options && options.json;
 
+        this.nodeFields = json && json.nodeFields ||
+            options && (options.nodeFields || options.nodeFields);
+
         this.fields =
-            options && options.fields ||
-            json && json.fields ||
+            json && (json.fields || json.fields) ||
+            options && (options.fields || options.fields) ||
             parent && parent.fields;
 
-        if (!this.fields) {
-            throw this.Error('No field names list.');
+        if (!(this.nodeFields || this.fields)) {
+            throw this.Error('Expected a fields list.');
         }
+
+        this.type = json && json.type ||
+            options && options.type;
 
         this.newView();
         this.fromJSON(json);
@@ -39,7 +45,7 @@ var FilterNode = Base.extend({
     },
 
     Error: function(msg) {
-        return new Error('FilterTree: ' + msg);
+        return new Error('filter-tree: ' + msg);
     },
 
     CHILDREN_TAG: 'OL',

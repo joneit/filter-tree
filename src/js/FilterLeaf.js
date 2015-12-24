@@ -4,11 +4,13 @@
 
 var FilterNode = require('./FilterNode');
 
-var operators = ['=', '≠', '<', '>', '≤', '≥'];
-var opToSQL = {
-    '≠': '<>',
-    '≤': '<=',
-    '≥': '>='
+var operators = {
+    '<': { test: function(a, b) { return a < b; } },
+    '≤': { test: function(a, b) { return a <= b; }, SQL: '<=' },
+    '=': { test: function(a, b) { return a === b; } },
+    '≥': { test: function(a, b) { return a >= b; }, SQL: '>=' },
+    '>': { test: function(a, b) { return a > b; } },
+    '≠': { test: function(a, b) { return a !== b; }, SQL: '<>' }
 };
 
 /** @constructor
@@ -22,8 +24,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         root.className = 'filter-tree-default';
 
         this.bindings = {
-            field: makeElement(root, this.fields),
-            operator: makeElement(root, operators),
+            field: makeElement(root, this.parent.nodeFields || this.fields),
+            operator: makeElement(root, Object.keys(operators)),
             argument: makeElement(root)
         };
 
@@ -34,31 +36,48 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         var value, element, i;
         if (json) {
             for (var key in json) {
-                value = json[key];
-                element = this.bindings[key];
-                switch (element.type) {
-                    case 'checkbox':
-                    case 'radio':
-                        element = document.querySelectorAll('input[name=\'' + element.name + '\']');
-                        for (i = 0; i < element.length; i++) {
-                            element[i].checked = value.indexOf(element[i].value) >= 0;
-                        }
-                        break;
-                    case 'select-multiple':
-                        element = element.options;
-                        for (i = 0; i < element.length; i++) {
-                            element[i].selected = value.indexOf(element[i].value) >= 0;
-                        }
-                        break;
-                    default:
-                        element.value = value;
+                if (key !== 'fields' && key !== 'type') {
+                    value = json[key];
+                    element = this.bindings[key];
+                    switch (element.type) {
+                        case 'checkbox':
+                        case 'radio':
+                            element = document.querySelectorAll('input[name=\'' + element.name + '\']');
+                            for (i = 0; i < element.length; i++) {
+                                element[i].checked = value.indexOf(element[i].value) >= 0;
+                            }
+                            break;
+                        case 'select-multiple':
+                            element = element.options;
+                            for (i = 0; i < element.length; i++) {
+                                element[i].selected = value.indexOf(element[i].value) >= 0;
+                            }
+                            break;
+                        default:
+                            element.value = value;
+                    }
                 }
             }
         }
     },
 
+    testString: function(s) {
+        return operators[this.bindings.operator.value].test(s, this.bindings.argument.value);
+    },
+
+    testNumber: function(Ls, Ln) {
+        var test = operators[this.bindings.operator.value].test,
+            Rs = this.bindings.argument.value,
+            Rn;
+
+        return isNaN(Ln) || isNaN(Rn = Number(Rs)) ? test(Ls, Rs) : test(Ln, Rn);
+    },
+
     toJSON: function() {
         var element, value, i, key, json = {};
+        if (this.type) {
+            json.type = this.type;
+        }
         for (key in this.bindings) {
             element = this.bindings[key];
             switch (element.type) {
@@ -88,7 +107,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     toSQL: function() {
         return [
             this.bindings.field.value,
-            opToSQL[this.bindings.operator.value] || this.bindings.operator.value,
+            operators[this.bindings.operator.value].SQL || this.bindings.operator.value,
             ' \'' + this.bindings.argument.value.replace(/'/g, '\'\'') + '\''
         ].join(' ');
     }

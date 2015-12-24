@@ -28,8 +28,8 @@ gulp.task('build', function(callback) {
     clearBashScreen();
     runSequence(
         'lint',
-        'test',
-        'doc',
+        //'test',
+        //'doc',
         'browserify',
         callback
     );
@@ -128,11 +128,13 @@ function browserify(callback) {
                     pipe(
                         $$.rename(name + '.js'),
                         $$.browserify({ debug: true })
+                            .on('error', $$.util.log)
                     ),
                     pipe(
                         $$.rename(name + '.min.js'),
                         $$.browserify(),
                         $$.uglify()
+                            .on('error', $$.util.log)
                     )
                 ),
                 gulp.dest(buildDir)

@@ -13,6 +13,10 @@ window.onload = function() {
     body = document.getElementsByTagName('body')[0];
     filterTree = new FilterTree({
         fields: fieldNames,
+//        editors: {
+//            Default: FilterTree.prototype.editors.Default,
+//            Bubbles: FilterTree.prototype.editors.Default,
+//        },
 //        json: getJSON(document.querySelector('textarea').value)
     });
     body.appendChild(filterTree.el);
@@ -33,26 +37,31 @@ function getJSON(el) {
 }
 
 function toJSON() {
-    this.nextElementSibling.value = JSON.stringify(filterTree, null, 3);
+    document.getElementById('JSON').value = JSON.stringify(filterTree, null, 3);
 }
 
 function fromJSON() {
     var oldTree = filterTree;
     filterTree = new FilterTree({
         fields: fieldNames,
-        json: getJSON(this.previousElementSibling.value)
+        json: getJSON(document.getElementById('JSON').value)
     });
     body.replaceChild(filterTree.el, oldTree.el);
 }
 
 function toSQL() {
-    this.nextElementSibling.value = filterTree.toSQL();
+    document.getElementById('SQL').value = filterTree.toSQL();
+}
+
+function test() {
+    document.getElementById('test-result').innerHTML = 'yields ' +
+        filterTree.test(document.getElementById('test-data').value);
 }
     </script>
 </head>
 <body>
 <input type="button" value="toJSON()" onclick="toJSON.call(this)" />
-    <textarea style="display:block; margin:1em 0; height:8em; width:30em">{
+    <textarea id="JSON" style="display:block; margin:1em 0; height:8em; width:30em">{
    "operator": "op-and",
    "children": [
       {
@@ -79,8 +88,12 @@ function toSQL() {
 }</textarea>
     <input type="button" value="fromJSON()" onclick="fromJSON.call(this)" />
     <hr/>
-    <input type="button" value="toSQL()" onclick="toSQL.call(this)" />
-    <textarea style="display:block; margin:1em 0; height:8em; width:30em"></textarea>
+    <input type="button" value="toSQL()" onclick="toSQL()" />
+    <input type="button" value="test()" onclick="test()" style="margin-left:10em"/>
+    <span id="test-result"></span>
+    <br/>
+    <textarea id="SQL" style="margin:1em 0; height:8em; width:14.5em"></textarea>
+    <textarea id="test-data" style="margin:1em 0; height:8em; width:14.5em">2300</textarea>
     <hr/>
 </body>
 </html>
