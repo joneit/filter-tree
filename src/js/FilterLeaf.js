@@ -3,6 +3,7 @@
 'use strict';
 
 var FilterNode = require('./FilterNode');
+var regExpLIKE = require('regexp-like').cached;
 
 var operators = {
     '<': { test: function(a, b) { return a < b; } },
@@ -10,7 +11,9 @@ var operators = {
     '=': { test: function(a, b) { return a === b; } },
     '≥': { test: function(a, b) { return a >= b; }, SQL: '>=' },
     '>': { test: function(a, b) { return a > b; } },
-    '≠': { test: function(a, b) { return a !== b; }, SQL: '<>' }
+    '≠': { test: function(a, b) { return a !== b; }, SQL: '<>' },
+    LIKE: { test: function(a, b) { return regExpLIKE(b).test(a); } },
+    'NOT LIKE': { test: function(a, b) { return !regExpLIKE(b).test(a); } }
 };
 
 /** @constructor
