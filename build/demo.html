@@ -4,28 +4,103 @@
     <meta charset="UTF-8">
     <title>Test harness for filter-tree.js</title>
 
+    <style>
+        * {
+            outline: none;
+        }
+        body {
+            font-family: sans-serif;
+        }
+        textarea {
+            display: block;
+            margin: 1em 0;
+            width: 100%;
+        }
+        input[type='button'] {
+            border: 0;
+            background-color: #555;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            padding: 4px 10px;
+            letter-spacing: 1px;
+            font-family: monospace;
+            border: 1px transparent solid;
+            box-sizing: border-box;
+        }
+        input[type='button']:active {
+            background-color: #bbb;
+            color: black;
+            border: 1px #555 solid;
+        }
+        fieldset {
+            margin-bottom: 1.5em;
+            background-color: #eee;
+            padding-top: .75em;
+            border-radius: 5px;
+            box-shadow: 4px 4px 10px #aaa;
+        }
+        legend {
+            font-size: smaller;
+            font-style: italic;
+            background-color: ivory;
+            border: 1px #555 solid;
+            padding: 3px 8px;
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px grey;
+        }
+        td {
+            vertical-align: top;
+            padding: .5em;
+            width: 50%;
+        }
+        fieldset > p {
+            font-style: italic;
+            font-size: smaller;
+            margin: .5em 0 0 0;
+        }
+        .false, .true {
+            font-weight: bold
+        }
+        .false:before {
+            color: #c00;
+            content: 'exclude';
+        }
+        .true:before {
+            color: #0a0;
+            content: 'include';
+        }
+    </style>
     <script src="filter-tree.js"></script>
 
     <script>
-var filterTree, body;
+var filterTree, body, content, options;
 
 window.onload = function() {
-    body = document.getElementsByTagName('body')[0];
-    filterTree = new FilterTree({
+    content = document.getElementById('filter');
+    fromJSON({
         fields: fieldNames,
-//        editors: {
-//            Default: FilterTree.prototype.editors.Default,
-//            Bubbles: FilterTree.prototype.editors.Default,
-//        },
-//        json: getJSON(document.querySelector('textarea').value)
+        datatypes: JSON.parse(document.getElementById('datatypes-json').value),
+        json: getJSON(document.getElementById('JSON').value)
     });
-    body.appendChild(filterTree.el);
+    content.appendChild(filterTree.el);
+    toSQL();
+    test();
+
 };
 
 var fieldNames = [
     { options: ['LastName', 'FirstName'], label: "Names" },
     'BirthState',
-    { value:'DOB', text: 'Date Of Birth'}
+    { identifier: 'DOB', alias: 'Date Of Birth'},
+    'Age'
+];
+
+var visibleFieldNames = [
+    { options: ['LastName', 'FirstName'], label: "Names" },
+    'BirthState',
+    { identifier: 'DOB', alias: 'Date Of Birth'},
+    'Age'
 ];
 
 function getJSON(el) {
@@ -36,32 +111,84 @@ function getJSON(el) {
     }
 }
 
-function toJSON() {
-    document.getElementById('JSON').value = JSON.stringify(filterTree, null, 3);
+function validate() {
+    return filterTree.validate();
 }
 
-function fromJSON() {
+function toJSON() {
+    var valid = !filterTree.validate();
+    if (valid) {
+        document.getElementById('JSON').value = JSON.stringify(filterTree, null, 3);
+    }
+    return valid;
+}
+
+function fromJSON(options) {
     var oldTree = filterTree;
     filterTree = new FilterTree({
         fields: fieldNames,
+        datatypes: JSON.parse(document.getElementById('datatypes-json').value),
         json: getJSON(document.getElementById('JSON').value)
     });
-    body.replaceChild(filterTree.el, oldTree.el);
+    if (oldTree) {
+        content.replaceChild(filterTree.el, oldTree.el);
+    }
 }
 
 function toSQL() {
-    document.getElementById('SQL').value = filterTree.toSQL();
+    var valid = !filterTree.validate();
+    if (valid) {
+        document.getElementById('SQL').value = filterTree.toSQL();
+    }
+    return valid;
 }
 
 function test() {
-    document.getElementById('test-result').innerHTML = 'yields ' +
-        filterTree.test(document.getElementById('test-data').value);
+    var valid = !filterTree.validate();
+    if (valid) {
+        document.getElementById('test-result').className =
+            filterTree.test(JSON.parse(document.getElementById('test-json').value));
+    }
+    return valid;
 }
+
+// You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
+
+var editors = FilterTree.prototype.editors,
+    DefaultEditor = editors.Default;
+
+editors.Field = DefaultEditor.extend({
+    newView() {
+        // Create and insert the three elements into .el
+        FilterLeaf.prototype.newView.call(this);
+
+        // Clone the 1st element and replace the 3rd element with the clone (there are no event listeners to worry about).
+        this.el.replaceChild(
+            this.bindings.argument = this.bindings.field.cloneNode(true),
+            this.el.children[2]
+        );
+    },
+    toSQL() {
+        var where = FilterLeaf.prototype.toSQL.call(this);
+        return where.replace(/'/g, '"');
+    },
+    test: function(Ls, Ln, textCompare) {
+        var test = this.operators[this.bindings.operator.value].test,
+            Rs = this.bindings.argument.value,
+            Rn;
+
+        return textCompare || isNaN(Rn = Number(Rs)) ? test(Ls, Rs) : test(Ln, Rn);
+    },
+});
     </script>
 </head>
 <body>
-<input type="button" value="toJSON()" onclick="toJSON.call(this)" />
-    <textarea id="JSON" style="display:block; margin:1em 0; height:8em; width:30em">{
+<table style="width:100%"><tr><td>
+<fieldset>
+    <legend>JSON filter expression</legend>
+    <input type="button" value="toJSON()" onclick="toJSON()" />
+    <input type="button" value="fromJSON()" onclick="fromJSON(options)" style="float:right" />
+    <textarea id="JSON" rows="6">{
    "operator": "op-and",
    "children": [
       {
@@ -74,26 +201,53 @@ function test() {
          "children": [
             {
                "field": "DOB",
-               "operator": "<",
-               "argument": "1990"
+               "operator": "=",
+               "argument": "1/19/1946"
+            },
+            {
+               "field": "Age",
+               "operator": "=",
+               "argument": "69"
             },
             {
                "field": "BirthState",
-               "operator": "≠",
+               "operator": "=",
                "argument": "Arkansas"
             }
          ]
       }
    ]
 }</textarea>
-    <input type="button" value="fromJSON()" onclick="fromJSON.call(this)" />
-    <hr/>
-    <input type="button" value="toSQL()" onclick="toSQL()" />
-    <input type="button" value="test()" onclick="test()" style="margin-left:10em"/>
-    <span id="test-result"></span>
-    <br/>
-    <textarea id="SQL" style="margin:1em 0; height:8em; width:14.5em"></textarea>
-    <textarea id="test-data" style="margin:1em 0; height:8em; width:14.5em">2300</textarea>
-    <hr/>
+</fieldset>
+<fieldset>
+    <legend>SQL WHERE clause filter expression</legend>
+    <input type="button" value="toSQL()" onclick="toSQL()" style="margin-right:10em" />
+    <textarea id="SQL" rows="3"></textarea>
+</fieldset>
+<fieldset>
+    <legend>Data row to test against</legend>
+    <input type="button" value="test()" onclick="test()" /> &#x27f9;
+    <span id="test-result"></span><br/>
+    <p>Column data:</p>
+    <textarea id="test-json" rows="6" style="margin-top:0">{
+    "LastName": "Clinton",
+    "DOB": "1/19/1946",
+    "Age": "69"
+}</textarea>
+    <p>Column types:</p>
+    <textarea id="datatypes-json" rows="6" style="margin-top:0">{
+    "LastName": "string",
+    "DOB": "date",
+    "Age": "number"
+}</textarea>
+</fieldset>
+</td>
+<td>
+    <fieldset id="filter" style="white-space:nowrap; height:635px">
+        <legend>Filter UI</legend>
+        <input type="button" value="validate()" onclick="validate()" style="float:right" />
+    </fieldset>
+</td>
+</tr></table>
 </body>
 </html>

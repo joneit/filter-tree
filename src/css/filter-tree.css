@@ -69,8 +69,15 @@
 
 /* Remaining rules are for the default filter editor and the filter editor chooser */
 
-.filter-tree-default > * { margin: 0 .4em; }
-
+.filter-tree-default > * {
+    margin: 0 .4em;
+}
+.filter-tree-default > input[type=text] {
+    width: 8em;
+}
+.filter-tree-default > *.error {
+    background-color: #ffc;
+}
 .filter-tree-chooser {
     position: absolute;
     font-style: italic;

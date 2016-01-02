@@ -10,9 +10,9 @@ var templates = {
         /*
         <span class="filter-tree"">
             Match
-            <label><input type="radio" class="filter-tree-choose-operator" name="treeOp{1}" value="op-or">any</label>
-            <label><input type="radio" class="filter-tree-choose-operator" name="treeOp{1}" value="op-and">all</label>
-            <label><input type="radio" class="filter-tree-choose-operator" name="treeOp{1}" value="op-nor">none</label>
+            <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-or">any</label>
+            <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-and">all</label>
+            <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
             of:<br/>
             <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
                 <div></div>conditional

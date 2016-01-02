@@ -15,8 +15,6 @@ var operators = require('./tree-operators');
 
 var ordinal = 0;
 
-var chooser;
-
 var css; // defined by code inserted by gulpfile between following comments
 /* inject:css */
 /* endinject */
@@ -31,7 +29,7 @@ var css; // defined by code inserted by gulpfile between following comments
  *
  * Each of the `children` can be either:
  *
- * * a terninal node `Filter` (or an object inheriting from `Filter`) representing a simple conditional expression; or
+ * * a terminal node `Filter` (or an object inheriting from `Filter`) representing a simple conditional expression; or
  * * a nested `FilterTree` representing a complex subexpression.
  *
  * The `operator` must be one of the {@link operators|tree operators} or may be left undefined iff there is only one child node.
@@ -42,9 +40,9 @@ var css; // defined by code inserted by gulpfile between following comments
  * 3. A nested `FilterTree` is distinguished in the JSON object from a `Filter` by the presence of a `children` member.
  * 4. Nesting a `FilterTree` containing a single child is valid (albeit pointless).
  *
- * @param {string[]} [localFields] - A list of field names for `Filter` objects to use. May be overridden by defining `json.localFields` here or in the `json` parameter of any descendant (including terminal nodes). If no such definition, will search up the tree for the first node with a defined `fields` member. In practice this parameter is not used herein; it may be used by the caller for the top-level (root) tree.
- * @param {JSON} [json] - If ommitted, loads an empty filter (a `FilterTree` consisting of a single terminal node and the default `operator` value (`'op-and'`).
- * @param {FilterTree} [parent] - Used internally to insert element when creating nested subtrees. For the top level tree, you don't give a value for `parent`; you are responsible for inserting the top-level `.el` into the DOM.
+ * See {@link FilterNode} for additional `options` properties.
+ *
+ * @param {object} [options.editors] - Editor hash to override prototype's. These are constructors for objects that extend from `FilterTree.prototype.editors.Default`. Typically, you would include the default editor itself: `{ Default: FilterTree.prototype.editors.Default, ... }`. Alternatively, before instantiating, you might add your additional editors to `FilterTree.prototype.editors` for use by all filter tree objects.
  *
  * @property {FilterTree} parent
  * @property {number} ordinal
@@ -58,15 +56,36 @@ var FilterTree = FilterNode.extend('FilterTree', {
         cssInjector(css, 'filter-tree-base', options && options.cssStylesheetReferenceElement);
 
         if (options.editors) {
-            FilterTree.prototype.editors = options.editors;
-            chooser = makeChooser();
-        } else if (!chooser) {
-            chooser = makeChooser();
+            this.editors = options.editors;
         }
+
+        if (!this.parent) {
+            // we are instantiating the root node
+            this.el.addEventListener('change', removeErrorClassAndMoveFocusToNextControl);
+            this.el.addEventListener('click', removeErrorClassAndMoveFocusToNextControl);
+        }
+    },
+
+    terminate: function() {
+        if (!this.parent) {
+            // we are instantiating the root node
+            this.el.removeEventListener('change', removeErrorClassAndMoveFocusToNextControl);
+            this.el.removeEventListener('click', removeErrorClassAndMoveFocusToNextControl);
+        }
+
+        detachChooser.call(this);
     },
 
     editors: {
         Default: DefaultFilter
+    },
+
+    addEditor: function(name, editor) {
+        if (editor) {
+            this.editors[name] = editor;
+        } else {
+            delete this.editors[name];
+        }
     },
 
     newView: function() {
@@ -126,7 +145,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         // simulate click on the operator to display strike-through and operator between filters
         var radioButton = this.el.querySelector('input[value=' + this.operator + ']');
         radioButton.checked = true;
-        this['filter-tree-choose-operator']({
+        this['filter-tree-op-choice']({
             target: radioButton
         });
 
@@ -142,13 +161,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
         FilterNode.prototype.render.call(this);
     },
 
-    'filter-tree-choose-operator': function(evt) {
+    'filter-tree-op-choice': function(evt) {
         var radioButton = evt.target;
 
         this.operator = radioButton.value;
 
         // display strike-through
-        var radioButtons = this.el.querySelectorAll('label>input.filter-tree-choose-operator[name=' + radioButton.name + ']');
+        var radioButtons = this.el.querySelectorAll('label>input.filter-tree-op-choice[name=' + radioButton.name + ']');
         Array.prototype.slice.call(radioButtons).forEach(function(radioButton) { // eslint-disable-line no-shadow
             radioButton.parentElement.style.textDecoration = radioButton.checked ? 'none' : 'line-through';
         });
@@ -160,7 +179,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.classList.add(this.operator);
     },
 
-    'filter-tree-add-filter': function(evt) { // eslint-disable-line
+    'filter-tree-add-filter': function(evt) {
         var filterEditorNames = Object.keys(this.editors);
         if (filterEditorNames.length === 1) {
             this.children.push(new this.editors[filterEditorNames[0]]({
@@ -191,9 +210,42 @@ var FilterTree = FilterNode.extend('FilterTree', {
         });
     },
 
-    test: function(string) {
-        var number = Number(string);
-        return test.call(this, string, number, isNaN(number));
+
+    /**
+     * @param {boolean} [noAlert=false] - Suppress alert.
+     * @returns {undefined|string} where `undefined` means valid and string contains error message.
+     */
+    validate: function(noAlert) {
+        var result;
+        try {
+            validate.call(this);
+        } catch (err) {
+            result = err.message;
+            if (!noAlert) {
+                alert(result); // eslint-disable-line no-alert
+            }
+        }
+        return result;
+    },
+
+    test: function test(dataRow) {
+        var operator = operators[this.operator],
+            result = operator.seed;
+
+        this.children.find(function(child) {
+            if (child) {
+                if (child instanceof DefaultFilter) {
+                    result = operator.reduce(result, child.test.call(child, dataRow));
+                } else if (child.children.length) {
+                    result = operator.reduce(result, test.call(child, dataRow));
+                }
+                return result === operator.abort;
+            }
+
+            return false;
+        });
+
+        return operator.negate ? !result : result;
     },
 
     toJSON: function toJSON() {
@@ -203,17 +255,18 @@ var FilterTree = FilterNode.extend('FilterTree', {
         };
 
         this.children.forEach(function(child) {
-            var isTerminalNode = !(child instanceof FilterTree);
-            if (isTerminalNode || child.children.length) {
-                json.children.push(isTerminalNode ? child : toJSON.call(child));
+            if (child) {
+                if (child instanceof DefaultFilter) {
+                    json.children.push(child);
+                } else if (child.children.length) {
+                    json.children.push(toJSON.call(child));
+                }
             }
         });
 
-        var tree = this;
-        ['fields', 'nodeFields'].forEach(function(prop) {
-            if (!tree.parent || tree[prop] && tree[prop] !== tree.parent[prop]) {
-                json[prop] = tree[prop];
-            }
+        var metadata = FilterNode.prototype.toJSON.call(this);
+        Object.keys(metadata).forEach(function(key) {
+            json[key] = metadata[key];
         });
 
         return json;
@@ -224,12 +277,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
             where = lexeme.beg;
 
         this.children.forEach(function(child, idx) {
-            var isTerminalNode = !(child instanceof FilterTree);
-            if (isTerminalNode || child.children.length) {
-                if (idx) {
-                    where += ' ' + lexeme.op + ' ';
+            var op = idx ? ' ' + lexeme.op + ' ' : '';
+            if (child) {
+                if (child instanceof DefaultFilter) {
+                    where += op + child.toSQL();
+                } else if (child.children.length) {
+                    where += op + toSQL.call(child);
                 }
-                where += isTerminalNode ? child.toSQL() : toSQL.call(child);
             }
         });
 
@@ -240,59 +294,63 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
 });
 
-function catchClick(evt) {
+/** `change` or `click` event handler for all form controls.
+ */
+function removeErrorClassAndMoveFocusToNextControl(evt) {
+    var el = evt.target;
+
+    if (
+        // click or change on a tree operator radio button
+        el.className === 'filter-tree-op-choice'
+            ||
+        // click on some a non-checkable el
+        evt.type === 'click' &&  !('checked' in el)
+            ||
+        // click on some a non-selectable el
+        evt.type === 'change' &&  el.tagName !== 'SELECT'
+    ) {
+        return; // ignore this `click` event
+    }
+
+    // remove `error` CSS class, which may have been added by `FilterLeaf.prototype.validate`
+    el.classList.remove('error');
+
+    // find next sibling control, if any
+    while ((el = el.nextElementSibling) && !('name' in el)); // eslint-disable-line curly
+
+    // and click in it (opens select list)
+    FilterNode.clickIn(el);
+}
+
+function catchClick(evt) { // must be called with context
     var elt = evt.target;
 
     var handler = this[elt.className] || this[elt.parentNode.className];
     if (handler) {
-        detachChooser();
+        if (this.detachChooser) {
+            this.detachChooser();
+        }
         handler.call(this, evt);
         evt.stopPropagation();
     }
 }
 
-function test(s, n, textCompare) {
-    var operator = operators[this.operator],
-        result = operator.seed;
+/**
+ * Either returns (valid) or throws error (invalid) which is caught by FilterTree.prototype.validate().
+ */
+function validate() { // must be called with context
+    if (this instanceof FilterTree && !this.children.length) {
+        throw new Error('Empty subexpression (no filters).');
+    }
 
-    for (var i = 0; i < this.children.length && result !== operator.abort; ++i) {
-        var child = this.children[i],
-            isTerminalNode = !(child instanceof FilterTree);
-
-        if (isTerminalNode || child.children.length) {
-            var method = isTerminalNode ? child.test : test;
-            result = operator.reduce(result, method.call(child, s, n, textCompare));
+    this.children.forEach(function(child) {
+        if (child) {
+            child.validate();
         }
-    }
-
-    if (operator.negate) {
-        result = !result;
-    }
-
-    return result;
-}
-
-function makeChooser() {
-    var $ = document.createElement('select'),
-        editors = Object.keys(FilterTree.prototype.editors);
-
-    $.className = 'filter-tree-chooser';
-    $.size = editors.length;
-
-    editors.forEach(function(key) {
-        $.add(new Option(key));
     });
-
-    $.onmouseover = function(evt) {
-        evt.target.selected = true;
-    };
-
-    return $;
 }
 
-var chooserParent;
-
-function attachChooser(evt) {
+function attachChooser(evt) { // must be called with context
     var tree = this,
         rect = evt.target.getBoundingClientRect();
 
@@ -304,10 +362,28 @@ function attachChooser(evt) {
         return;
     }
 
+    // Create it
+    var editors = Object.keys(FilterTree.prototype.editors),
+        chooser = this.chooser = document.createElement('select'),
+        target = this.chooserTarget = evt.target;
+
+    chooser.className = 'filter-tree-chooser';
+    chooser.size = editors.length;
+
+    editors.forEach(function(key) {
+        chooser.add(new Option(key));
+    });
+
+    chooser.onmouseover = function(evt) { // eslint-disable-line no-shadow
+        evt.target.selected = true;
+    };
+
+    // Position it
     chooser.style.left = rect.left + 19 + 'px';
     chooser.style.top = rect.bottom + 'px';
 
-    window.addEventListener('click', detachChooser); // detach chooser if click outside
+    this.detachChooser = detachChooser.bind(this);
+    window.addEventListener('click', this.detachChooser); // detach chooser if click outside
 
     chooser.onclick = function() {
         tree.children.push(new tree.editors[chooser.value]({
@@ -320,19 +396,24 @@ function attachChooser(evt) {
         chooser.selectedIndex = -1;
     };
 
-    chooserParent = this.el;
-    chooserParent.appendChild(chooser);
-    var link = chooserParent.querySelector('.filter-tree-add-filter');
-    link.style.backgroundColor = window.getComputedStyle(chooser).backgroundColor;
+    // Add it to the DOM
+    this.el.appendChild(chooser);
+
+    // Color the link similarly
+    target.style.backgroundColor = window.getComputedStyle(chooser).backgroundColor;
 }
 
-function detachChooser() {
-    if (chooserParent) {
-        chooser.selectedIndex = -1;
-        chooserParent.querySelector('.filter-tree-add-filter').style.backgroundColor = null;
-        chooserParent.removeChild(chooser);
-        chooser.onclick = chooser.onmouseout = chooserParent = null;
-        window.removeEventListener('click', detachChooser);
+function detachChooser() { // must be called with context
+    var chooser = this.chooser;
+    if (chooser) {
+        this.el.removeChild(chooser);
+        this.chooserTarget.style.backgroundColor = null;
+
+        chooser.onclick = chooser.onmouseout = null;
+        window.removeEventListener('click', this.detachChooser);
+
+        delete this.detachChooser;
+        delete this.chooser;
     }
 }
 
