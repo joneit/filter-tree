@@ -74,19 +74,19 @@
     <script src="filter-tree.js"></script>
 
     <script>
-var filterTree, body, content, options;
+var filterTree;
 
 window.onload = function() {
-    content = document.getElementById('filter');
-    fromJSON({
+    filterTree = new FilterTree({
         fields: fieldNames,
         datatypes: JSON.parse(document.getElementById('datatypes-json').value),
         json: getJSON(document.getElementById('JSON').value)
     });
-    content.appendChild(filterTree.el);
-    toSQL();
-    test();
+    document.getElementById('filter').appendChild(filterTree.el);
 
+    toSQL();
+
+    test();
 };
 
 var fieldNames = [
@@ -123,16 +123,8 @@ function toJSON() {
     return valid;
 }
 
-function fromJSON(options) {
-    var oldTree = filterTree;
-    filterTree = new FilterTree({
-        fields: fieldNames,
-        datatypes: JSON.parse(document.getElementById('datatypes-json').value),
-        json: getJSON(document.getElementById('JSON').value)
-    });
-    if (oldTree) {
-        content.replaceChild(filterTree.el, oldTree.el);
-    }
+function fromJSON() {
+    filterTree.fromJSON(getJSON(document.getElementById('JSON').value));
 }
 
 function toSQL() {
@@ -187,7 +179,7 @@ editors.Field = DefaultEditor.extend({
 <fieldset>
     <legend>JSON filter expression</legend>
     <input type="button" value="toJSON()" onclick="toJSON()" />
-    <input type="button" value="fromJSON()" onclick="fromJSON(options)" style="float:right" />
+    <input type="button" value="fromJSON()" onclick="fromJSON()" style="float:right" />
     <textarea id="JSON" rows="6">{
    "operator": "op-and",
    "children": [

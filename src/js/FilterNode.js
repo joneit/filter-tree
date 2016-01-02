@@ -84,40 +84,36 @@ var CHILDREN_TAG = 'OL',
 var FilterNode = Base.extend({
 
     initialize: function(options) {
-        var parent = this.parent = options && options.parent,
-            json = this.json = options && options.json;
+        var parent = options && options.parent,
+            json = options && options.json;
+
+        this.parent = parent;
 
         /** Default list of fields only for direct child terminal-node drop-downs.
-         * @name nodeFields
          * @type {string[]}
          * @memberOf FilterNode.prototype
          */
-        setOption.call(this, options, 'nodeFields');
+        this.nodeFields = setOption('nodeFields', options, json);
 
         /** Default list of fields for all descending terminal-node drop-downs.
-         * @name fields
          * @type {string[]}
          * @memberOf FilterNode.prototype
          */
-        setOption.call(this, options, 'fields', parent);
+        this.fields = setOption('fields', options, json, parent);
 
         /** Hash of field types.
-         * @name types
          * @type {object}
          * @memberOf FilterNode.prototype
          */
-        setOption.call(this, options, 'datatypes', parent);
+        this.datatypes = setOption('datatypes', options, json, parent);
 
         /** Type of filter editor.
-         * @name type
          * @type {string}
          * @memberOf FilterNode.prototype
          */
-        setOption.call(this, options, 'type', parent);
+        this.type = setOption('type', options, json, parent);
 
-        this.newView();
         this.fromJSON(json);
-        this.render();
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
@@ -165,11 +161,12 @@ var FilterNode = Base.extend({
 
 });
 
-function setOption(options, key, parent) {
-    this[key] =
+function setOption(key, options, json, parent) {
+    return (
         options && options[key] ||
-        this.json && this.json[key] ||
-        parent && parent[key]; // reference parent value now so we don't have to search up the tree later
+        json && json[key] ||
+        parent && parent[key] // reference parent value now so we don't have to search up the tree later
+    );
 }
 
 FilterNode.clickIn = function(el) {

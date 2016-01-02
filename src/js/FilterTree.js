@@ -94,6 +94,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     fromJSON: function(json) {
+        var oldEl = this.el;
+
+        this.newView();
+
         if (json) {
             // Validate the JSON object
             if (typeof json !== 'object') {
@@ -103,6 +107,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 }
                 throw this.Error(errMsg);
             }
+
+            // Validate `json.operator`
+            if (!(operators[json.operator] || json.operator === undefined && json.children.length === 1)) {
+                throw this.Error('Expected `operator` field to be one of: ' + Object.keys(operators));
+            }
+            this.operator = json.operator;
 
             // Validate `json.children`
             if (!(json.children instanceof Array && json.children.length)) {
@@ -125,12 +135,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
                     parent: self
                 }));
             });
-
-            // Validate `json.operator`
-            if (!(operators[json.operator] || json.operator === undefined && json.children.length === 1)) {
-                throw this.Error('Expected `operator` field to be one of: ' + Object.keys(operators));
-            }
-            this.operator = json.operator;
         } else {
             var filterEditorNames = Object.keys(this.editors),
                 onlyOneFilterEditor = filterEditorNames.length === 1;
@@ -138,6 +142,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 parent: this
             })] : [];
             this.operator = 'op-and';
+        }
+
+        this.render();
+
+        if (oldEl && !this.parent) {
+            oldEl.parentNode.replaceChild(this.el, oldEl);
         }
     },
 

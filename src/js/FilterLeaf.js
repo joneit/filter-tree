@@ -47,8 +47,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     fromJSON: function(json) {
-        var value, el, i;
+        this.newView();
+
         if (json) {
+            var value, el, i;
             for (var key in json) {
                 if (key !== 'fields' && key !== 'type') {
                     value = json[key];
@@ -73,6 +75,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 }
             }
         }
+
+        this.render();
     },
 
     /**
