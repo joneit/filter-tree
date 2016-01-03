@@ -66,7 +66,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         }
     },
 
-    terminate: function() {
+    destroy: function() {
         if (!this.parent) {
             // we are instantiating the root node
             this.el.removeEventListener('change', removeErrorClassAndMoveFocusToNextControl);
@@ -93,11 +93,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
-    fromJSON: function(json) {
-        var oldEl = this.el;
-
-        this.newView();
-
+    load: function(json) {
         if (json) {
             // Validate the JSON object
             if (typeof json !== 'object') {
@@ -110,25 +106,25 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
             // Validate `json.operator`
             if (!(operators[json.operator] || json.operator === undefined && json.children.length === 1)) {
-                throw this.Error('Expected `operator` field to be one of: ' + Object.keys(operators));
+                throw this.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
             }
             this.operator = json.operator;
 
             // Validate `json.children`
             if (!(json.children instanceof Array && json.children.length)) {
-                throw this.Error('Expected `children` field to be a non-empty array.');
+                throw this.Error('Expected `children` property to be a non-empty array.');
             }
             this.children = [];
             var self = this;
             json.children.forEach(function(json) { // eslint-disable-line no-shadow
                 var Constructor;
                 if (typeof json !== 'object') {
-                    throw self.Error('Expected child to be an object containing either `children`, `type`, or neither.');
+                    throw self.Error('Expected child to be an object containing either `children`, `editor`, or neither.');
                 }
                 if (json.children) {
                     Constructor = FilterTree;
                 } else {
-                    Constructor = self.editors[json.type || 'Default'];
+                    Constructor = self.editors[json.editor || 'Default'];
                 }
                 self.children.push(new Constructor({
                     json: json,
@@ -142,12 +138,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 parent: this
             })] : [];
             this.operator = 'op-and';
-        }
-
-        this.render();
-
-        if (oldEl && !this.parent) {
-            oldEl.parentNode.replaceChild(this.el, oldEl);
         }
     },
 
@@ -231,6 +221,9 @@ var FilterTree = FilterNode.extend('FilterTree', {
             validate.call(this);
         } catch (err) {
             result = err.message;
+            if (!/^filter-tree/.test(result)) {
+                throw err;
+            }
             if (!noAlert) {
                 alert(result); // eslint-disable-line no-alert
             }
@@ -310,13 +303,16 @@ function removeErrorClassAndMoveFocusToNextControl(evt) {
     var el = evt.target;
 
     if (
-        // click or change on a tree operator radio button
+        // a click or change event on a tree operator radio button
         el.className === 'filter-tree-op-choice'
             ||
-        // click on some a non-checkable el
+        // a click or change event on a text toggle, such as a hidden columns checkbox
+        el.className === 'text-toggle'
+            ||
+        // a click event on some a non-checkable el
         evt.type === 'click' &&  !('checked' in el)
             ||
-        // click on some a non-selectable el
+        // a click event on a non-selectable el
         evt.type === 'change' &&  el.tagName !== 'SELECT'
     ) {
         return; // ignore this `click` event

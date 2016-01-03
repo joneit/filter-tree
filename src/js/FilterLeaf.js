@@ -6,7 +6,7 @@
 var FilterNode = require('./FilterNode');
 var regExpLIKE = require('regexp-like').cached;
 
-var converter = {
+var converters = {
     number: { to: Number, not: isNaN },
     date: { to: function(s) { return new Date(s); }, not: isNaN }
 };
@@ -29,30 +29,29 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     newView: function() {
-        var fields = this.parent.nodeFields || this.fields,
-            root = this.el = document.createElement('span');
-        root.className = 'filter-tree-default';
+        var fields = this.parent.nodeFields || this.fields;
 
         if (!fields) {
             throw this.Error('Terminal node requires a fields list.');
         }
 
+        var root = this.el = document.createElement('span');
+        root.className = 'filter-tree-default';
+
         this.control = {
-            field: makeElement(root, fields, 'field…'),
-            operator: makeElement(root, Object.keys(this.operators), 'operator…'),
+            column: makeElement(root, fields, 'column'),
+            operator: makeElement(root, Object.keys(this.operators), 'operator'),
             argument: makeElement(root)
         };
 
         root.appendChild(document.createElement('br'));
     },
 
-    fromJSON: function(json) {
-        this.newView();
-
+    load: function(json) {
         if (json) {
             var value, el, i;
             for (var key in json) {
-                if (key !== 'fields' && key !== 'type') {
+                if (key !== 'fields' && key !== 'editor') {
                     value = json[key];
                     el = this.control[key];
                     switch (el.type) {
@@ -75,12 +74,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 }
             }
         }
-
-        this.render();
     },
 
     /**
      * Either returns (valid) or throws error (invalid) which is caught by FilterTree.prototype.validate().
+     * Also:
+     * * Copies all the controls' values from the DOM to properties of `this` object.
+     * * Pre-sets `this.operation`, `this.converter` and `this.sqlOperator` for efficient access in walks.
      */
     validate: function() {
         for (var elementName in this.control) {
@@ -91,25 +91,35 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 flashIt(el);
                 throw new Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
             } else {
+                // Copy each control's value to property of this object.
                 this[elementName] = value;
-                if (elementName === 'operator') {
-                    var operator = this.operators[value];
-                    this.operation = operator.test; // for efficient access in this.test()
-                    this.sqlOperator = operator.SQL || value;
+
+                switch (elementName) {
+                    case 'operator':
+                        var operator = this.operators[value];
+                        this.operation = operator.test; // for efficient access in this.test()
+                        this.sqlOperator = operator.SQL || value;
+                        break;
+                    case 'column':
+                        var fields = this.parent.nodeFields || this.fields,
+                            field = findField(fields, value);
+                        if (field && field.type) {
+                            this.converter = converters[field.type];
+                        }
                 }
             }
         }
     },
 
     test: function(dataRow) {
-        var Ls = dataRow[this.field], Ln,
+        var Ls = dataRow[this.column], Ln,
             Rs = this.argument, Rn,
-            convert = this.datatypes && converter[this.datatypes[this.field]];
+            converter = this.converter;
 
         return (
-            convert &&
-            !convert.not(Ln = convert.to(Ls)) &&
-            !convert.not(Rn = convert.to(Rs))
+            converter &&
+            !converter.not(Ln = converter.to(Ls)) &&
+            !converter.not(Rn = converter.to(Rs))
         )
             ? this.operation(Ln, Rn)
             : this.operation(Ls, Rs);
@@ -117,8 +127,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     toJSON: function(options) { // eslint-disable-line no-unused-vars
         var json = {};
-        if (this.type) {
-            json.type = this.type;
+        if (this.editor) {
+            json.editor = this.editor;
         }
         for (var key in this.control) {
             json[key] = this[key];
@@ -131,18 +141,36 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     toSQL: function() {
         return [
-            this.SQL_QUOTED_IDENTIFIER + this.field + this.SQL_QUOTED_IDENTIFIER,
+            this.SQL_QUOTED_IDENTIFIER + this.column + this.SQL_QUOTED_IDENTIFIER,
             this.sqlOperator,
             ' \'' + this.argument.replace(/'/g, '\'\'') + '\''
         ].join(' ');
     }
 });
 
-function flashIt(el, className, times, duration) {
-    var flashes = 2 * (times || 4),
-        flasher = setInterval(toggle, duration || 100);
+function findField(fields, name) {
+    var complex, simple;
 
-    el.classList.add(className = className || 'error');
+    simple = fields.find(function(field) {
+        if ((field.options || field) instanceof Array) {
+            return (complex = findField(field.options || field, name));
+        } else {
+            return field.name === name;
+        }
+    });
+
+    return complex || simple;
+}
+
+function flashIt(el, className, times, duration) {
+    times = times || 4;
+    duration = duration || 100;
+    className = className || 'error';
+
+    var flashes = 2 * times,
+        flasher = setInterval(toggle, duration);
+
+    el.classList.add(className);
 
     function toggle() {
         el.classList.toggle(className);
@@ -182,9 +210,10 @@ function controlValue(el) {
 }
 
 /** @typedef {object} valueOption
- * You should supply both `identifier` and `alias` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
- * @property {string} [identifier]
- * @property {string} [alias]
+ * You should supply both `name` and `header` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
+ * @property {string} [name]
+ * @property {string} [header]
+ * @property {boolean} [hidden=false]
  */
 /** @typedef {object} optionGroup
  * @property {string} label
@@ -193,7 +222,7 @@ function controlValue(el) {
 /** @typedef {string|valueOption|optionGroup} fieldOption
  * The three possible types specify either an `<option>....</option>` element or an `<optgroup>....</optgroup>` element as follows:
  * * `string` - specifies only the text of an `<option>....</option>` element (the value naturally defaults to the text)
- * * {@link valueOption} - specifies both the text (`.identifier`) and the value (`.alias`) of an `<option....</option>` element
+ * * {@link valueOption} - specifies both the text (`.name`) and the value (`.header`) of an `<option....</option>` element
  * * {@link optionGroup} - specifies an `<optgroup>....</optgroup>` element
  */
 /**
@@ -208,17 +237,17 @@ function controlValue(el) {
  * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
  */
 function makeElement(container, options, prompt) {
-    var el,
+    var el, option, input,
         tagName = options ? 'select' : 'input';
 
     if (options && options.length === 1) {
-        var option = options[0];
+        option = options[0];
         el = document.createElement('span');
-        el.innerHTML = option.alias || option.identifier || option;
+        el.innerHTML = option.header || option.name || option;
 
-        var input = document.createElement('input');
+        input = document.createElement('input');
         input.type = 'hidden';
-        input.value = option.identifier || option.alias || option;
+        input.value = option.name || option.header || option;
         el.appendChild(input);
     } else {
         el = addOptions(tagName, options, prompt);
@@ -245,7 +274,7 @@ function addOptions(tagName, options, prompt) {
         if (tagName === 'select') {
             add = el.add;
             if (prompt) {
-                el.add(new Option('(' + prompt + ')', ''));
+                el.add(new Option('(' + prompt + '&hellip;)', ''));
             } else if (prompt !== null) {
                 el.add(new Option());
             }
@@ -257,17 +286,16 @@ function addOptions(tagName, options, prompt) {
         options = options.slice().sort(fieldComparator); // clone it and sort the clone
 
         options.forEach(function(option) {
-            var newElement;
             if ((option.options || option) instanceof Array) {
                 var optgroup = addOptions('optgroup', option.options || option, option.label);
                 el.add(optgroup);
             } else {
-                newElement = typeof option !== 'object'
+                var newElement = typeof option !== 'object'
                     ? new Option(option)
                     : new Option(
-                    option.alias || option.identifier,
-                    option.identifier || option.alias
-                );
+                        option.header || option.name,
+                        option.name || option.header
+                    );
                 add.call(el, newElement);
             }
         });
@@ -278,8 +306,8 @@ function addOptions(tagName, options, prompt) {
 }
 
 function fieldComparator(a, b) {
-    a = a.alias || a.identifier || a.label || a;
-    b = b.alias || b.identifier || b.label || b;
+    a = a.header || a.name || a.label || a;
+    b = b.header || b.name || b.label || b;
     return a < b ? -1 : a > b ? 1 : 0;
 }
 

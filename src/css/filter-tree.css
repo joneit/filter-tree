@@ -67,7 +67,7 @@
     content: '\A0— NOR —';
 }
 
-/* Remaining rules are for the default filter editor and the filter editor chooser */
+/* Default filter editor */
 
 .filter-tree-default > * {
     margin: 0 .4em;
@@ -78,6 +78,8 @@
 .filter-tree-default > *.error {
     background-color: #ffc;
 }
+
+/* Filter editor chooser */
 .filter-tree-chooser {
     position: absolute;
     font-style: italic;

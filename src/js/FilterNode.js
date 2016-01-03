@@ -56,28 +56,22 @@ var CHILDREN_TAG = 'OL',
  * * Terminal node's parent node's `option.nodeFields` (or `option.json.nodesFields`) definition.
  * * Any of terminal node's ancestor's `options.fields` (or `options.json.fields`) definition.
  *
- * @param {object} [options.datatypes] - A hash of field types for all descendant terminal nodes to use in their comparison logic. Overrides `options.json.types` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted, will use the nearest ancestor `types` definition. However, descendants with their own definition of `types` will override any ancestor definition.
- *
  * @param {object} [options.json] - A data structure that describes a tree, subtree, or leaf:
  *
  * * May describe a terminal node with properties:
- *   * `type` - A string identifying the type of conditional. Must be in the tree's (see {@link FilterTree#editors|editors}) hash. If omitted, defaults to `'Default'`.
+ *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
+ *   * `editor` - A string identifying the type of conditional. Must be in the tree's (see {@link FilterTree#editors|editors}) hash. If omitted, defaults to `'Default'`.
  *   * misc. - Other properties peculiar to this filter type (but typically including at least a `field` property).
  * * May describe a non-terminal node with properties:
+ *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
  *   * `operator` - One of {@link treeOperators}.
  *   * `children` -  Array containing additional terminal and non-terminal nodes.
- *
- * Both types of nodes above may also contain the following properties, used when no other data is specified on instantiation:
- * * `fields` - Like `options.fields` (see above).
- * * `datatypes` - Like `options.types` (see above).
  *
  * If this `options.json` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
  * > Note that this is a JSON object; not a JSON string (_i.e.,_ "parsed"; not "stringified").
  *
- *
- *
- * @param {function} [options.type='Default'] - Type of simple expression.
+ * @param {function} [options.editor='Default'] - Type of simple expression.
  *
  * @param {FilterTree} [options.parent] - Used internally to insert element when creating nested subtrees. For the top level tree, you don't give a value for `parent`; you are responsible for inserting the top-level `.el` into the DOM.
  */
@@ -101,17 +95,11 @@ var FilterNode = Base.extend({
          */
         this.fields = setOption('fields', options, json, parent);
 
-        /** Hash of field types.
-         * @type {object}
-         * @memberOf FilterNode.prototype
-         */
-        this.datatypes = setOption('datatypes', options, json, parent);
-
         /** Type of filter editor.
          * @type {string}
          * @memberOf FilterNode.prototype
          */
-        this.type = setOption('type', options, json, parent);
+        this.editor = setOption('editor', options, json, parent);
 
         this.fromJSON(json);
     },
@@ -137,11 +125,8 @@ var FilterNode = Base.extend({
                 metadata.push('fields');
                 metadata.push('nodeFields');
             }
-            if (this.toJsonOptions.datatypes) {
-                metadata.push('datatypes');
-            }
-            if (this.toJsonOptions.type) {
-                metadata.push('type');
+            if (this.toJsonOptions.editor) {
+                metadata.push('editor');
             }
             metadata.forEach(function(prop) {
                 if (!tree.parent || tree[prop] && tree[prop] !== tree.parent[prop]) {
@@ -151,6 +136,16 @@ var FilterNode = Base.extend({
         }
 
         return json;
+    },
+
+    fromJSON: function(json) {
+        var oldEl = this.el;
+        this.newView();
+        this.load(json);
+        this.render();
+        if (oldEl && !this.parent) {
+            oldEl.parentNode.replaceChild(this.el, oldEl);
+        }
     },
 
     Error: function(msg) {

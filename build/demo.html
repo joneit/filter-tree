@@ -11,6 +11,9 @@
         body {
             font-family: sans-serif;
         }
+        p {
+            font-size: smaller;
+        }
         textarea {
             display: block;
             margin: 1em 0;
@@ -78,9 +81,8 @@ var filterTree;
 
 window.onload = function() {
     filterTree = new FilterTree({
-        fields: fieldNames,
-        datatypes: JSON.parse(document.getElementById('datatypes-json').value),
-        json: getJSON(document.getElementById('JSON').value)
+        fields: getJSON('json-columns'),
+        json: getJSON('json-data')
     });
     document.getElementById('filter').appendChild(filterTree.el);
 
@@ -89,25 +91,22 @@ window.onload = function() {
     test();
 };
 
-var fieldNames = [
-    { options: ['LastName', 'FirstName'], label: "Names" },
-    'BirthState',
-    { identifier: 'DOB', alias: 'Date Of Birth'},
-    'Age'
-];
+function initialize() {
+    var newTree = new FilterTree({
+        fields: getJSON('json-columns'),
+        json: getJSON('json-data')
+    });
+    document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
+    filterTree = newTree;
+}
 
-var visibleFieldNames = [
-    { options: ['LastName', 'FirstName'], label: "Names" },
-    'BirthState',
-    { identifier: 'DOB', alias: 'Date Of Birth'},
-    'Age'
-];
-
-function getJSON(el) {
+function getJSON(id) {
+    var value = document.getElementById(id).value;
     try {
-        return JSON.parse(el);
+        var x;
+        return eval('x = ' + value);
     } catch(e) {
-        alert('Bad JSON!');
+        alert('Bad data!');
     }
 }
 
@@ -124,7 +123,7 @@ function toJSON() {
 }
 
 function fromJSON() {
-    filterTree.fromJSON(getJSON(document.getElementById('JSON').value));
+    filterTree.fromJSON(getJSON('json-data'));
 }
 
 function toSQL() {
@@ -138,8 +137,7 @@ function toSQL() {
 function test() {
     var valid = !filterTree.validate();
     if (valid) {
-        document.getElementById('test-result').className =
-            filterTree.test(JSON.parse(document.getElementById('test-json').value));
+        document.getElementById('test-result').className = filterTree.test(getJSON('json-test'));
     }
     return valid;
 }
@@ -176,15 +174,27 @@ editors.Field = DefaultEditor.extend({
 </head>
 <body>
 <table style="width:100%"><tr><td>
+
+<fieldset>
+    <legend>Columns list (hierarchy implies optgroups)</legend>
+    <input type="button" value="initialize()" onclick="initialize()" />
+    <textarea id="json-columns" rows="6">[
+    { options: ['LastName', 'FirstName'], label: 'Names' },
+    'BirthState',
+    { name: 'DOB', header: 'Date Of Birth', type: 'date' },
+    { name: 'Age', type: 'number' }
+]</textarea>
+</fieldset>
+
 <fieldset>
     <legend>JSON filter expression</legend>
     <input type="button" value="toJSON()" onclick="toJSON()" />
     <input type="button" value="fromJSON()" onclick="fromJSON()" style="float:right" />
-    <textarea id="JSON" rows="6">{
+    <textarea id="json-data" rows="6">{
    "operator": "op-and",
    "children": [
       {
-         "field": "LastName",
+         "column": "LastName",
          "operator": "=",
          "argument": "Clinton"
       },
@@ -192,17 +202,17 @@ editors.Field = DefaultEditor.extend({
          "operator": "op-or",
          "children": [
             {
-               "field": "DOB",
-               "operator": "=",
-               "argument": "1/19/1946"
+               "column": "DOB",
+               "operator": "<",
+               "argument": "1/1/1950"
             },
             {
-               "field": "Age",
+               "column": "Age",
                "operator": "=",
                "argument": "69"
             },
             {
-               "field": "BirthState",
+               "column": "BirthState",
                "operator": "=",
                "argument": "Arkansas"
             }
@@ -211,34 +221,33 @@ editors.Field = DefaultEditor.extend({
    ]
 }</textarea>
 </fieldset>
+
 <fieldset>
     <legend>SQL WHERE clause filter expression</legend>
     <input type="button" value="toSQL()" onclick="toSQL()" style="margin-right:10em" />
     <textarea id="SQL" rows="3"></textarea>
 </fieldset>
+
 <fieldset>
     <legend>Data row to test against</legend>
     <input type="button" value="test()" onclick="test()" /> &#x27f9;
     <span id="test-result"></span><br/>
-    <p>Column data:</p>
-    <textarea id="test-json" rows="6" style="margin-top:0">{
-    "LastName": "Clinton",
-    "DOB": "1/19/1946",
-    "Age": "69"
-}</textarea>
-    <p>Column types:</p>
-    <textarea id="datatypes-json" rows="6" style="margin-top:0">{
-    "LastName": "string",
-    "DOB": "date",
-    "Age": "number"
+    <p>Row data:</p>
+    <textarea id="json-test" rows="6" style="margin-top:0">{
+    LastName: 'Clinton',
+    DOB: '1/19/1946',
+    Age: 69
 }</textarea>
 </fieldset>
+
 </td>
 <td>
+
     <fieldset id="filter" style="white-space:nowrap; height:635px">
         <legend>Filter UI</legend>
         <input type="button" value="validate()" onclick="validate()" style="float:right" />
     </fieldset>
+
 </td>
 </tr></table>
 </body>
