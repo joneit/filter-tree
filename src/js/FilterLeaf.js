@@ -8,11 +8,6 @@ var regExpLIKE = require('regexp-like').cached;
 var FilterNode = require('./FilterNode');
 var template = require('./template');
 
-var converters = {
-    number: { to: Number, not: isNaN },
-    date: { to: function(s) { return new Date(s); }, not: isNaN }
-};
-
 /** @constructor
  * @summary A terminal node in a filter tree, representing a conditional expression.
  * @desc Also known as a "filter."
@@ -41,12 +36,61 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         root.className = 'filter-tree-default';
 
         this.control = {
-            column: makeElement(root, fields, 'column'),
-            operator: makeElement(root, Object.keys(this.operators), 'operator'),
-            argument: makeElement(root)
+            column: this.makeElement(root, fields, 'column'),
+            operator: this.makeElement(root, Object.keys(this.operators), 'operator'),
+            argument: this.makeElement(root)
         };
 
         root.appendChild(document.createElement('br'));
+    },
+
+    /** @typedef {object} valueOption
+     * You should supply both `name` and `header` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
+     * @property {string} [name]
+     * @property {string} [header]
+     * @property {boolean} [hidden=false]
+     */
+    /** @typedef {object} optionGroup
+     * @property {string} label
+     * @property {fieldOption[]} options
+     */
+    /** @typedef {string|valueOption|optionGroup} fieldOption
+     * The three possible types specify either an `<option>....</option>` element or an `<optgroup>....</optgroup>` element as follows:
+     * * `string` - specifies only the text of an `<option>....</option>` element (the value naturally defaults to the text)
+     * * {@link valueOption} - specifies both the text (`.name`) and the value (`.header`) of an `<option....</option>` element
+     * * {@link optionGroup} - specifies an `<optgroup>....</optgroup>` element
+     */
+    /**
+     * @summary HTML form control factory.
+     * @desc Creates and appends a text box or a drop-down.
+     * @returns The new element.
+     * @param {Element} container - An element to which to append the new element.
+     * @param {fieldOption[]} [options] - Overloads:
+     * * If omitted, will create an `<input/>` (text box) element.
+     * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
+     * * Otherwise, creates a `<select>...</select>` element with these options.
+     * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
+     */
+    makeElement: function(container, options, prompt) {
+        var el, option, input,
+            tagName = options ? 'select' : 'input';
+
+        if (options && options.length === 1) {
+            option = options[0];
+            el = document.createElement('span');
+            el.innerHTML = option.header || option.name || option;
+
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.value = option.name || option.header || option;
+            el.appendChild(input);
+        } else {
+            el = addOptions(tagName, options, prompt);
+        }
+
+        container.appendChild(el);
+
+        return el;
     },
 
     load: function(json) {
@@ -93,11 +137,28 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
     },
 
+    /** @typedef {object} converter
+     * @property {function} to - Returns input value converted to type. Fails silently.
+     * @property {function} not - Tests input value against type, returning `false if type or `true` if not type.
+     */
     /**
-     * Either returns (valid) or throws error (invalid) which is caught by FilterTree.prototype.validate().
-     * Also:
-     * * Copies all the controls' values from the DOM to properties of `this` object.
+     * @property {converter} number
+     * @property {converter} date
+     */
+    converters: {
+        number: { to: Number, not: isNaN },
+        date: { to: function(s) { return new Date(s); }, not: isNaN }
+    },
+
+    /**
+     * Throws error if invalid expression.
+     * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
+     *
+     * Also performs the following compilation actions:
+     * * Copies all the `this.control`'s values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.operation`, `this.converter` and `this.sqlOperator` for efficient access in walks.
+     *
+     * @returns {undefined} if valid
      */
     validate: function() {
         for (var elementName in this.control) {
@@ -121,7 +182,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                         var fields = this.parent.nodeFields || this.fields,
                             field = findField(fields, value);
                         if (field && field.type) {
-                            this.converter = converters[field.type];
+                            this.converter = this.converters[field.type];
                         }
                 }
             }
@@ -224,54 +285,6 @@ function controlValue(el) {
     }
 
     return value;
-}
-
-/** @typedef {object} valueOption
- * You should supply both `name` and `header` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
- * @property {string} [name]
- * @property {string} [header]
- * @property {boolean} [hidden=false]
- */
-/** @typedef {object} optionGroup
- * @property {string} label
- * @property {fieldOption[]} options
- */
-/** @typedef {string|valueOption|optionGroup} fieldOption
- * The three possible types specify either an `<option>....</option>` element or an `<optgroup>....</optgroup>` element as follows:
- * * `string` - specifies only the text of an `<option>....</option>` element (the value naturally defaults to the text)
- * * {@link valueOption} - specifies both the text (`.name`) and the value (`.header`) of an `<option....</option>` element
- * * {@link optionGroup} - specifies an `<optgroup>....</optgroup>` element
- */
-/**
- * @summary HTML form control factory.
- * @desc Creates and appends a text box or a drop-down.
- * @returns The new element.
- * @param {Element} container - An element to which to append the new element.
- * @param {fieldOption[]} [options] - Overloads:
- * * If omitted, will create an `<input/>` (text box) element.
- * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
- * * Otherwise, creates a `<select>...</select>` element with these options.
- * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
- */
-function makeElement(container, options, prompt) {
-    var el, option, input,
-        tagName = options ? 'select' : 'input';
-
-    if (options && options.length === 1) {
-        option = options[0];
-        el = document.createElement('span');
-        el.innerHTML = option.header || option.name || option;
-
-        input = document.createElement('input');
-        input.type = 'hidden';
-        input.value = option.name || option.header || option;
-        el.appendChild(input);
-    } else {
-        el = addOptions(tagName, options, prompt);
-    }
-
-    container.appendChild(el);
-    return el;
 }
 
 /**

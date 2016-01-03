@@ -342,7 +342,9 @@ function catchClick(evt) { // must be called with context
 }
 
 /**
- * Either returns (valid) or throws error (invalid) which is caught by FilterTree.prototype.validate().
+ * Throws error if invalid expression tree.
+ * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
+ * @returns {undefined} if valid
  */
 function validate() { // must be called with context
     if (this instanceof FilterTree && !this.children.length) {
