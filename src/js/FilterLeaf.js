@@ -3,8 +3,10 @@
 
 'use strict';
 
-var FilterNode = require('./FilterNode');
 var regExpLIKE = require('regexp-like').cached;
+
+var FilterNode = require('./FilterNode');
+var template = require('./template');
 
 var converters = {
     number: { to: Number, not: isNaN },
@@ -49,7 +51,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     load: function(json) {
         if (json) {
-            var value, el, i;
+            var value, el, i, notes = [];
             for (var key in json) {
                 if (key !== 'fields' && key !== 'editor') {
                     value = json[key];
@@ -70,8 +72,23 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             break;
                         default:
                             el.value = value;
+                            if (el.value !== value) {
+                                notes.push({ key: key, value: value });
+                            }
                     }
                 }
+            }
+            if (notes.length) {
+                var multiple = notes.length > 1,
+                    footnotes = template(multiple ? 'notes' : 'note'),
+                    inner = footnotes.lastElementChild;
+                notes.forEach(function(note) {
+                    var footnote = multiple ? document.createElement('li') : inner;
+                    note = template('optionMissing', note.key, note.value);
+                    while (note.length) { footnote.appendChild(note[0]); }
+                    if (multiple) { inner.appendChild(footnote); }
+                });
+                el.parentNode.replaceChild(footnotes, el.parentNode.lastElementChild);
             }
         }
     },
@@ -270,11 +287,13 @@ function makeElement(container, options, prompt) {
 function addOptions(tagName, options, prompt) {
     var el = document.createElement(tagName);
     if (options) {
-        var add;
+        var add, newOption;
         if (tagName === 'select') {
             add = el.add;
             if (prompt) {
-                el.add(new Option('(' + prompt + '&hellip;)', ''));
+                newOption = new Option('(' + prompt, '');
+                newOption.innerHTML += '&hellip;)';
+                el.add(newOption);
             } else if (prompt !== null) {
                 el.add(new Option());
             }
