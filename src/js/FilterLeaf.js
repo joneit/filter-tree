@@ -35,7 +35,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         var root = this.el = document.createElement('span');
         root.className = 'filter-tree-default';
 
-        this.control = {
+        this.controls = {
             column: this.makeElement(root, fields, 'column'),
             operator: this.makeElement(root, Object.keys(this.operators), 'operator'),
             argument: this.makeElement(root)
@@ -61,7 +61,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * {@link optionGroup} - specifies an `<optgroup>....</optgroup>` element
      */
     /**
-     * @summary HTML form control factory.
+     * @summary HTML form controls factory.
      * @desc Creates and appends a text box or a drop-down.
      * @returns The new element.
      * @param {Element} container - An element to which to append the new element.
@@ -99,7 +99,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             for (var key in json) {
                 if (key !== 'fields' && key !== 'editor') {
                     value = json[key];
-                    el = this.control[key];
+                    el = this.controls[key];
                     switch (el.type) {
                         case 'checkbox':
                         case 'radio':
@@ -155,21 +155,21 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
      *
      * Also performs the following compilation actions:
-     * * Copies all the `this.control`'s values from the DOM to similarly named properties of `this`.
+     * * Copies all the `this.controls`'s values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.operation`, `this.converter` and `this.sqlOperator` for efficient access in walks.
      *
      * @returns {undefined} if valid
      */
     validate: function() {
-        for (var elementName in this.control) {
-            var el = this.control[elementName],
+        for (var elementName in this.controls) {
+            var el = this.controls[elementName],
                 value = controlValue(el).trim();
 
             if (value === '') {
                 flashIt(el);
-                throw new Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
+                throw new Error('Blank ' + elementName + ' controls.\nComplete the filter or delete it.');
             } else {
-                // Copy each control's value to property of this object.
+                // Copy each controls's value to property of this object.
                 this[elementName] = value;
 
                 switch (elementName) {
@@ -189,18 +189,22 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
     },
 
+    p: function(dataRow) { return dataRow[this.column]; },
+    q: function() { return this.argument; },
+
     test: function(dataRow) {
-        var Ls = dataRow[this.column], Ln,
-            Rs = this.argument, Rn,
-            converter = this.converter;
+        var p = this.p(dataRow),
+            q = this.q(dataRow),
+            P, Q, // typed versions of p and q
+            convert = this.converter;
 
         return (
-            converter &&
-            !converter.not(Ln = converter.to(Ls)) &&
-            !converter.not(Rn = converter.to(Rs))
+            convert &&
+            !convert.not(P = convert.to(p)) &&
+            !convert.not(Q = convert.to(q))
         )
-            ? this.operation(Ln, Rn)
-            : this.operation(Ls, Rs);
+            ? this.operation(P, Q)
+            : this.operation(p, q);
     },
 
     toJSON: function(options) { // eslint-disable-line no-unused-vars
@@ -208,7 +212,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         if (this.editor) {
             json.editor = this.editor;
         }
-        for (var key in this.control) {
+        for (var key in this.controls) {
             json[key] = this[key];
         }
         if (!this.parent.nodeFields && this.fields !== this.parent.fields) {

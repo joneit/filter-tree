@@ -19,8 +19,18 @@
     font-style: italic;
     margin-left: 3em;
 }
+.filter-tree-add-filter {
+    width: 100px;
+    display: inline-block;
+    line-height: normal;
+}
 .filter-tree-add-filter:hover, .filter-tree-add:hover {
     text-decoration: underline;
+}
+.filter-tree-add-filter.as-menu-header, .filter-tree-add.as-menu-header {
+    background-color: white;
+    font-weight: bold;
+    border-top: 3px solid white;
 }
 .filter-tree-add > div, .filter-tree-add-filter > div, .filter-tree-remove {
     display: inline-block;
@@ -110,8 +120,6 @@
 .filter-tree-chooser {
     position: absolute;
     font-style: italic;
-    background-color: #8c8;
-    color: white;
     font-size: 11.5px;
     outline: 0;
     box-shadow: 5px 5px 10px grey;

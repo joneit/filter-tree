@@ -372,8 +372,7 @@ function attachChooser(evt) { // must be called with context
 
     // Create it
     var editors = Object.keys(FilterTree.prototype.editors),
-        chooser = this.chooser = document.createElement('select'),
-        target = this.chooserTarget = evt.target;
+        chooser = this.chooser = document.createElement('select');
 
     chooser.className = 'filter-tree-chooser';
     chooser.size = editors.length;
@@ -408,14 +407,15 @@ function attachChooser(evt) { // must be called with context
     this.el.appendChild(chooser);
 
     // Color the link similarly
-    target.style.backgroundColor = window.getComputedStyle(chooser).backgroundColor;
+    this.chooserTarget = evt.target;
+    this.chooserTarget.classList.add('as-menu-header');
 }
 
 function detachChooser() { // must be called with context
     var chooser = this.chooser;
     if (chooser) {
         this.el.removeChild(chooser);
-        this.chooserTarget.style.backgroundColor = null;
+        this.chooserTarget.classList.remove('as-menu-header');
 
         chooser.onclick = chooser.onmouseout = null;
         window.removeEventListener('click', this.detachChooser);

@@ -147,28 +147,31 @@ function test() {
 var editors = FilterTree.prototype.editors,
     DefaultEditor = editors.Default;
 
-editors.Field = DefaultEditor.extend({
+editors['Column-Column'] = DefaultEditor.extend({
     newView() {
         // Create and insert the three elements into .el
-        FilterLeaf.prototype.newView.call(this);
+        DefaultEditor.prototype.newView.call(this);
 
-        // Clone the 1st element and replace the 3rd element with the clone (there are no event listeners to worry about).
-        this.el.replaceChild(
-            this.bindings.argument = this.bindings.field.cloneNode(true),
-            this.el.children[2]
-        );
-    },
-    toSQL() {
-        var where = FilterLeaf.prototype.toSQL.call(this);
-        return where.replace(/'/g, '"');
-    },
-    test: function(Ls, Ln, textCompare) {
-        var test = this.operators[this.bindings.operator.value].test,
-            Rs = this.bindings.argument.value,
-            Rn;
+        // Refer to the first element as `column1` instead of `column`
+        this.controls.column1 = this.el.firstElementChild;
+        delete this.controls.column;
 
-        return textCompare || isNaN(Rn = Number(Rs)) ? test(Ls, Rs) : test(Ln, Rn);
+        // Clone the first element and call it `column2`
+        this.controls.column2 = this.el.firstElementChild.cloneNode(true);
+        delete this.controls.argument;
+
+        // Replace the 3rd element with the clone. There are no event listeners to worry about.
+        this.el.replaceChild(this.controls.column2, this.el.children[2]);
     },
+    p: function(dataRow) { return dataRow[this.column1]; },
+    q: function(dataRow) { return dataRow[this.column2]; },
+    toSQL: function() {
+        return [
+            this.SQL_QUOTED_IDENTIFIER + this.column1 + this.SQL_QUOTED_IDENTIFIER,
+            this.sqlOperator,
+            this.SQL_QUOTED_IDENTIFIER + this.column2 + this.SQL_QUOTED_IDENTIFIER
+        ].join(' ');
+    }
 });
     </script>
 </head>
