@@ -144,10 +144,10 @@ function test() {
 
 // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
 
-var editors = FilterTree.prototype.editors,
-    DefaultEditor = editors.Default;
+var DefaultEditor = FilterTree.prototype.editors.Default;
 
-editors['Column-Column'] = DefaultEditor.extend({
+FilterTree.prototype.addEditor('Columns', {
+    name: 'Column ? Column',
     newView() {
         // Create and insert the three elements into .el
         DefaultEditor.prototype.newView.call(this);

@@ -80,11 +80,11 @@ var FilterTree = FilterNode.extend('FilterTree', {
         Default: DefaultFilter
     },
 
-    addEditor: function(name, editor) {
-        if (editor) {
-            this.editors[name] = editor;
+    addEditor: function(key, overrides) {
+        if (overrides) {
+            this.editors[key] = DefaultFilter.extend(overrides);
         } else {
-            delete this.editors[name];
+            delete this.editors[key];
         }
     },
 
@@ -378,7 +378,9 @@ function attachChooser(evt) { // must be called with context
     chooser.size = editors.length;
 
     editors.forEach(function(key) {
-        chooser.add(new Option(key));
+        var name = tree.editors[key].prototype.name || key;
+        name = name.replace('?', '\u225F'); // make question mark into "? over equals" UNICODE char
+        chooser.add(new Option(name, key));
     });
 
     chooser.onmouseover = function(evt) { // eslint-disable-line no-shadow

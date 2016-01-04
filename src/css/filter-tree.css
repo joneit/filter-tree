@@ -31,6 +31,10 @@
     background-color: white;
     font-weight: bold;
     border-top: 3px solid white;
+    font-style: normal;
+}
+.filter-tree-add-filter.as-menu-header:hover {
+    text-decoration: inherit;
 }
 .filter-tree-add > div, .filter-tree-add-filter > div, .filter-tree-remove {
     display: inline-block;
@@ -119,8 +123,7 @@
 /* Filter editor chooser */
 .filter-tree-chooser {
     position: absolute;
-    font-style: italic;
-    font-size: 11.5px;
+    font-size: 9pt;
     outline: 0;
     box-shadow: 5px 5px 10px grey;
 }

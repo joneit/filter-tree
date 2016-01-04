@@ -14,6 +14,8 @@ var template = require('./template');
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
+    name: 'Column ? Literal',
+
     operators: {
         '<'       : { test: function(a, b) { return a < b; } },
         '\u2264'  : { test: function(a, b) { return a <= b; }, SQL: '<=' },
