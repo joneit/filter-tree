@@ -82,7 +82,7 @@ var filterTree;
 window.onload = function() {
     filterTree = new FilterTree({
         fields: getJSON('json-columns'),
-        json: getJSON('json-data')
+        state: getJSON('json-data')
     });
     document.getElementById('filter').appendChild(filterTree.el);
 
@@ -96,7 +96,7 @@ window.onload = function() {
 function initialize() {
     var newTree = new FilterTree({
         fields: getJSON('json-columns'),
-        json: getJSON('json-data')
+        state: getJSON('json-data')
     });
     document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
     filterTree = newTree;
@@ -186,7 +186,7 @@ FilterTree.prototype.addEditor('Columns', {
     <textarea id="json-columns" rows="6">[
     { options: ['LastName', 'FirstName'], label: 'Names' },
     'BirthState',
-    { name: 'DOB', header: 'Date Of Birth', type: 'date' },
+    { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
     { name: 'Age', type: 'number' }
 ]</textarea>
 </fieldset>

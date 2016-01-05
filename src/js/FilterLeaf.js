@@ -65,9 +65,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     /** @typedef {object} valueOption
-     * You should supply both `name` and `header` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
+     * You should supply both `name` and `alias` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
      * @property {string} [name]
-     * @property {string} [header]
+     * @property {string} [alias]
      * @property {string} [type] One of the keys of `this.converters`. If not one of these (including `undefined`), field values will be tested with a string comparison.
      * @property {boolean} [hidden=false]
      */
@@ -78,7 +78,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     /** @typedef {string|valueOption|optionGroup} fieldOption
      * The three possible types specify either an `<option>....</option>` element or an `<optgroup>....</optgroup>` element as follows:
      * * `string` - specifies only the text of an `<option>....</option>` element (the value naturally defaults to the text)
-     * * {@link valueOption} - specifies both the text (`.name`) and the value (`.header`) of an `<option....</option>` element
+     * * {@link valueOption} - specifies both the text (`.name`) and the value (`.alias`) of an `<option....</option>` element
      * * {@link optionGroup} - specifies an `<optgroup>....</optgroup>` element
      */
     /**
@@ -101,10 +101,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
             el = document.createElement('input');
             el.type = 'hidden';
-            el.value = option.name || option.header || option;
+            el.value = option.name || option.alias || option;
 
             span = document.createElement('span');
-            span.innerHTML = option.header || option.name || option;
+            span.innerHTML = option.alias || option.name || option;
             span.appendChild(el);
 
             container.appendChild(span);
@@ -370,8 +370,8 @@ function addOptions(tagName, options, prompt) {
                 var newElement = typeof option !== 'object'
                     ? new Option(option)
                     : new Option(
-                        option.header || option.name,
-                        option.name || option.header
+                        option.alias || option.name,
+                        option.name || option.alias
                     );
                 add.call(el, newElement);
             }
@@ -384,8 +384,8 @@ function addOptions(tagName, options, prompt) {
 }
 
 function fieldComparator(a, b) {
-    a = a.header || a.name || a.label || a;
-    b = b.header || b.name || b.label || b;
+    a = a.alias || a.name || a.label || a;
+    b = b.alias || b.name || b.label || b;
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
