@@ -44,19 +44,19 @@ var CHILDREN_TAG = 'OL',
  *
  * Some of the above-named methods as already implemented in `FilterLeaf` and/or `FilterNode` may be sufficient to handle your needs as is (without further code).
  *
- * @param {string[]} [options.fields] - A default list of column names for field drop-downs of all descendant terminal nodes. Overrides `options.json.fields` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no `nodeFields`), will use the nearest ancestor `fields` definition. However, descendants with their own definition of `types` will override any ancestor definition.
+ * @param {string[]} [options.fields] - A default list of column names for field drop-downs of all descendant terminal nodes. Overrides `options.state.fields` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no `nodeFields`), will use the nearest ancestor `fields` definition. However, descendants with their own definition of `types` will override any ancestor definition.
  *
  * > Typically only used by the caller for the top-level (root) tree.
  *
- * @param {string[]} [options.nodeFields] - A default list of column names for field drop-downs of immediate descendant terminal nodes _only_. Overrides `options.json.nodeFields` (see).
+ * @param {string[]} [options.nodeFields] - A default list of column names for field drop-downs of immediate descendant terminal nodes _only_. Overrides `options.state.nodeFields` (see).
  *
  * Although both `options.fields` and `options.nodeFields` are notated as optional herein, by the time a terminal node tries to render a fields drop-down, a `fields` list _must_ be defined through (in order of priority):
  *
- * * Terminal node's own `options.fields` (or `options.json.fields`) definition.
- * * Terminal node's parent node's `option.nodeFields` (or `option.json.nodesFields`) definition.
- * * Any of terminal node's ancestor's `options.fields` (or `options.json.fields`) definition.
+ * * Terminal node's own `options.fields` (or `options.state.fields`) definition.
+ * * Terminal node's parent node's `option.nodeFields` (or `option.state.nodesFields`) definition.
+ * * Any of terminal node's ancestor's `options.fields` (or `options.state.fields`) definition.
  *
- * @param {object} [options.json] - A data structure that describes a tree, subtree, or leaf:
+ * @param {object} [options.state] - A data structure that describes a tree, subtree, or leaf:
  *
  * * May describe a terminal node with properties:
  *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
@@ -67,7 +67,7 @@ var CHILDREN_TAG = 'OL',
  *   * `operator` - One of {@link treeOperators}.
  *   * `children` -  Array containing additional terminal and non-terminal nodes.
  *
- * If this `options.json` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
+ * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
  * > Note that this is a JSON object; not a JSON string (_i.e.,_ "parsed"; not "stringified").
  *
@@ -79,7 +79,7 @@ var FilterNode = Base.extend({
 
     initialize: function(options) {
         var parent = options && options.parent,
-            json = options && options.json;
+            state = options && options.state;
 
         this.parent = parent;
 
@@ -87,21 +87,21 @@ var FilterNode = Base.extend({
          * @type {string[]}
          * @memberOf FilterNode.prototype
          */
-        this.nodeFields = setOption('nodeFields', options, json);
+        this.nodeFields = setOption('nodeFields', options, state);
 
         /** Default list of fields for all descending terminal-node drop-downs.
          * @type {string[]}
          * @memberOf FilterNode.prototype
          */
-        this.fields = setOption('fields', options, json, parent);
+        this.fields = setOption('fields', options, state, parent);
 
         /** Type of filter editor.
          * @type {string}
          * @memberOf FilterNode.prototype
          */
-        this.editor = setOption('editor', options, json, parent);
+        this.editor = setOption('editor', options, state, parent);
 
-        this.fromJSON(json);
+        this.fromJSON(state);
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
@@ -117,7 +117,7 @@ var FilterNode = Base.extend({
     },
 
     toJSON: function toJSON() {
-        var json = {};
+        var state = {};
 
         if (this.toJsonOptions) {
             var tree = this, metadata = [];
@@ -130,18 +130,18 @@ var FilterNode = Base.extend({
             }
             metadata.forEach(function(prop) {
                 if (!tree.parent || tree[prop] && tree[prop] !== tree.parent[prop]) {
-                    json[prop] = tree[prop];
+                    state[prop] = tree[prop];
                 }
             });
         }
 
-        return json;
+        return state;
     },
 
-    fromJSON: function(json) {
+    fromJSON: function(state) {
         var oldEl = this.el;
         this.newView();
-        this.load(json);
+        this.load(state);
         this.render();
         if (oldEl && !this.parent) {
             oldEl.parentNode.replaceChild(this.el, oldEl);
@@ -152,10 +152,10 @@ var FilterNode = Base.extend({
 
 });
 
-function setOption(key, options, json, parent) {
+function setOption(key, options, state, parent) {
     return (
         options && options[key] ||
-        json && json[key] ||
+        state && state[key] ||
         parent && parent[key] // reference parent value now so we don't have to search up the tree later
     );
 }

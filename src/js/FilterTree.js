@@ -13,11 +13,12 @@ var DefaultFilter = require('./FilterLeaf');
 var template = require('./template');
 var operators = require('./tree-operators');
 
-var ordinal = 0;
-
 var css; // defined by code inserted by gulpfile between following comments
 /* inject:css */
 /* endinject */
+
+var ordinal = 0;
+var reFilterTreeErrorString = /^filter-tree: /;
 
 /** @constructor
  *
@@ -81,51 +82,44 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
-    load: function(json) {
-        if (json) {
-            // Validate the JSON object
-            if (typeof json !== 'object') {
-                var errMsg = 'Expected `json` parameter to be an object.';
-                if (typeof json === 'string') {
-                    errMsg += ' See `JSON.parse()`.';
-                }
-                throw this.Error(errMsg);
-            }
-
-            // Validate `json.operator`
-            if (!(operators[json.operator] || json.operator === undefined && json.children.length === 1)) {
-                throw this.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
-            }
-            this.operator = json.operator;
-
-            // Validate `json.children`
-            if (!(json.children instanceof Array && json.children.length)) {
-                throw this.Error('Expected `children` property to be a non-empty array.');
-            }
-            this.children = [];
-            var self = this;
-            json.children.forEach(function(json) { // eslint-disable-line no-shadow
-                var Constructor;
-                if (typeof json !== 'object') {
-                    throw self.Error('Expected child to be an object containing either `children`, `editor`, or neither.');
-                }
-                if (json.children) {
-                    Constructor = FilterTree;
-                } else {
-                    Constructor = self.editors[json.editor || 'Default'];
-                }
-                self.children.push(new Constructor({
-                    json: json,
-                    parent: self
-                }));
-            });
-        } else {
+    load: function(state) {
+        if (!state) {
             var filterEditorNames = Object.keys(this.editors),
                 onlyOneFilterEditor = filterEditorNames.length === 1;
             this.children = onlyOneFilterEditor ? [new this.editors[filterEditorNames[0]]({
                 parent: this
             })] : [];
             this.operator = 'op-and';
+        } else {
+            throwIfJSON(state);
+
+            // Validate `state.operator`
+            if (!(operators[state.operator] || state.operator === undefined && state.children.length === 1)) {
+                throw this.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
+            }
+            this.operator = state.operator;
+
+            // Validate `state.children`
+            if (!(state.children instanceof Array && state.children.length)) {
+                throw this.Error('Expected `children` property to be a non-empty array.');
+            }
+            this.children = [];
+            var self = this;
+            state.children.forEach(function(state) { // eslint-disable-line no-shadow
+                var Constructor;
+                if (typeof state !== 'object') {
+                    throw self.Error('Expected child to be an object containing either `children`, `editor`, or neither.');
+                }
+                if (state.children) {
+                    Constructor = FilterTree;
+                } else {
+                    Constructor = self.editors[state.editor || 'Default'];
+                }
+                self.children.push(new Constructor({
+                    state: state,
+                    parent: self
+                }));
+            });
         }
     },
 
@@ -216,12 +210,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
             result = err.message;
 
             // Throw when not a filter tree error
-            if (!/^filter-tree/.test(result)) {
+            if (!reFilterTreeErrorString.test(result)) {
                 throw err;
             }
 
-            console.log(result);
             if (alert) {
+                result = result.replace(reFilterTreeErrorString, '');
                 window.alert(result); // eslint-disable-line no-alert
             }
         }
@@ -250,7 +244,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     toJSON: function toJSON() {
-        var json = {
+        var state = {
             operator: this.operator,
             children: []
         };
@@ -258,19 +252,19 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.children.forEach(function(child) {
             if (child) {
                 if (child instanceof DefaultFilter) {
-                    json.children.push(child);
+                    state.children.push(child);
                 } else if (child.children.length) {
-                    json.children.push(toJSON.call(child));
+                    state.children.push(toJSON.call(child));
                 }
             }
         });
 
         var metadata = FilterNode.prototype.toJSON.call(this);
         Object.keys(metadata).forEach(function(key) {
-            json[key] = metadata[key];
+            state[key] = metadata[key];
         });
 
-        return json;
+        return state;
     },
 
     toSQL: function toSQL() {
@@ -295,6 +289,22 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
 });
 
+/**
+ * Checks to make sure `state` is defined as a plain object and not a JSON string.
+ * If not, throws error and does not return.
+ * @param {object} state
+ * @private
+ */
+function throwIfJSON(state) {
+    if (typeof state !== 'object') {
+        var errMsg = 'Expected `state` parameter to be an object.';
+        if (typeof state === 'string') {
+            errMsg += ' See `JSON.parse()`.';
+        }
+        throw this.Error(errMsg);
+    }
+}
+
 function catchClick(evt) { // must be called with context
     var elt = evt.target;
 
@@ -313,6 +323,7 @@ function catchClick(evt) { // must be called with context
  * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
  * @param {boolean} focus - Move focus to offending control.
  * @returns {undefined} if valid
+ * @private
  */
 function validate(focus) { // must be called with context
     if (this instanceof FilterTree && !this.children.length) {

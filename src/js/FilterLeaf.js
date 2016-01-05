@@ -8,6 +8,16 @@ var regExpLIKE = require('regexp-like').cached;
 var FilterNode = require('./FilterNode');
 var template = require('./template');
 
+
+/** @typedef {object} converter
+ * @property {function} to - Returns input value converted to type. Fails silently.
+ * @property {function} not - Tests input value against type, returning `false if type or `true` if not type.
+ */
+/** @type converter */
+var numberConverter = { to: Number, not: isNaN };
+/** @type converter */
+var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
+
 /** @constructor
  * @summary A terminal node in a filter tree, representing a conditional expression.
  * @desc Also known as a "filter."
@@ -58,6 +68,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * You should supply both `name` and `header` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
      * @property {string} [name]
      * @property {string} [header]
+     * @property {string} [type] One of the keys of `this.converters`. If not one of these (including `undefined`), field values will be tested with a string comparison.
      * @property {boolean} [hidden=false]
      */
     /** @typedef {object} optionGroup
@@ -107,12 +118,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return el;
     },
 
-    load: function(json) {
-        if (json) {
+    load: function(state) {
+        if (state) {
             var value, el, i, b, selected, notes = [];
-            for (var key in json) {
+            for (var key in state) {
                 if (key !== 'fields' && key !== 'editor') {
-                    value = json[key];
+                    value = state[key];
                     el = this.controls[key];
                     switch (el.type) {
                         case 'checkbox':
@@ -153,17 +164,15 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
     },
 
-    /** @typedef {object} converter
-     * @property {function} to - Returns input value converted to type. Fails silently.
-     * @property {function} not - Tests input value against type, returning `false if type or `true` if not type.
-     */
     /**
      * @property {converter} number
      * @property {converter} date
      */
     converters: {
-        number: { to: Number, not: isNaN },
-        date: { to: function(s) { return new Date(s); }, not: isNaN }
+        number: numberConverter,
+        int: numberConverter, // pseudo-type: really just a Number
+        float: numberConverter, // pseudo-type: really just a Number
+        date: dateConverter
     },
 
     /**
@@ -184,7 +193,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
             if (value === '') {
                 if (focus) { focusOn(el); }
-                throw new FilterNode.Error('Blank ' + elementName + ' controls.\nComplete the filter or delete it.');
+                throw new FilterNode.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
             } else {
                 // Copy each controls's value to property of this object.
                 this[elementName] = value;
@@ -225,17 +234,17 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     toJSON: function(options) { // eslint-disable-line no-unused-vars
-        var json = {};
+        var state = {};
         if (this.editor) {
-            json.editor = this.editor;
+            state.editor = this.editor;
         }
         for (var key in this.controls) {
-            json[key] = this[key];
+            state[key] = this[key];
         }
         if (!this.parent.nodeFields && this.fields !== this.parent.fields) {
-            json.fields = this.fields;
+            state.fields = this.fields;
         }
-        return json;
+        return state;
     },
 
     toSQL: function() {
@@ -262,6 +271,9 @@ function findField(fields, name) {
 }
 
 /** `change` or `click` event handler for all form controls.
+ * Removes error CSS class from control.
+ * Adds warning CSS class from control if blank; removes if not blank.
+ * Moves focus to next non-blank sibling control.
  */
 function cleanUpAndMoveOn(evt) {
     var el = evt.target;
@@ -274,11 +286,14 @@ function cleanUpAndMoveOn(evt) {
 
     // find next sibling control, if any
     if (!el.multiple && el.value) {
-        while ((el = el.nextElementSibling) && !('name' in el)); // eslint-disable-line curly
+        while ((el = el.nextElementSibling) && (!('name' in el) || el.value.trim() !== '')); // eslint-disable-line curly
     }
 
     // and click in it (opens select list)
-    FilterNode.clickIn(el);
+    if (el && el.value.trim() === '') {
+        el.value = ''; // rid of any white space
+        FilterNode.clickIn(el);
+    }
 }
 
 function focusOn(el) {

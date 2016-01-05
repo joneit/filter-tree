@@ -86,9 +86,11 @@ window.onload = function() {
     });
     document.getElementById('filter').appendChild(filterTree.el);
 
-    toSQL();
-
-    test();
+    if (!filterTree.validate({ alert: false }))
+    {
+        document.getElementById('SQL').value = filterTree.toSQL();
+        document.getElementById('test-result').className = filterTree.test(getJSON('json-test'));
+    }
 };
 
 function initialize() {
