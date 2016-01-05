@@ -58,21 +58,9 @@ var FilterTree = FilterNode.extend('FilterTree', {
         if (options.editors) {
             this.editors = options.editors;
         }
-
-        if (!this.parent) {
-            // we are instantiating the root node
-            this.el.addEventListener('change', removeErrorClassAndMoveFocusToNextControl);
-            this.el.addEventListener('click', removeErrorClassAndMoveFocusToNextControl);
-        }
     },
 
     destroy: function() {
-        if (!this.parent) {
-            // we are instantiating the root node
-            this.el.removeEventListener('change', removeErrorClassAndMoveFocusToNextControl);
-            this.el.removeEventListener('click', removeErrorClassAndMoveFocusToNextControl);
-        }
-
         detachChooser.call(this);
     },
 
@@ -210,24 +198,34 @@ var FilterTree = FilterNode.extend('FilterTree', {
         });
     },
 
-
     /**
-     * @param {boolean} [noAlert=false] - Suppress alert.
-     * @returns {undefined|string} where `undefined` means valid and string contains error message.
+     * @param {boolean} [object.alert=true] - Announce error via window.alert() before returning.
+     * @param {boolean} [object.focus=true] - Place the focus on the offending control and give it error color.
+     * @returns {undefined|string} `undefined` means valid or string containing error message.
      */
-    validate: function(noAlert) {
-        var result;
+    validate: function(options) {
+        options = options || {};
+
+        var focus = options.focus === undefined || options.focus,
+            alert = options.alert === undefined || options.alert,
+            result;
+
         try {
-            validate.call(this);
+            validate.call(this, focus);
         } catch (err) {
             result = err.message;
+
+            // Throw when not a filter tree error
             if (!/^filter-tree/.test(result)) {
                 throw err;
             }
-            if (!noAlert) {
-                alert(result); // eslint-disable-line no-alert
+
+            console.log(result);
+            if (alert) {
+                window.alert(result); // eslint-disable-line no-alert
             }
         }
+
         return result;
     },
 
@@ -238,7 +236,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.children.find(function(child) {
             if (child) {
                 if (child instanceof DefaultFilter) {
-                    result = operator.reduce(result, child.test.call(child, dataRow));
+                    result = operator.reduce(result, child.test(dataRow));
                 } else if (child.children.length) {
                     result = operator.reduce(result, test.call(child, dataRow));
                 }
@@ -297,37 +295,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
 });
 
-/** `change` or `click` event handler for all form controls.
- */
-function removeErrorClassAndMoveFocusToNextControl(evt) {
-    var el = evt.target;
-
-    if (
-        // a click or change event on a tree operator radio button
-        el.className === 'filter-tree-op-choice'
-            ||
-        // a click or change event on a text toggle, such as a hidden columns checkbox
-        el.className === 'text-toggle'
-            ||
-        // a click event on some a non-checkable el
-        evt.type === 'click' &&  !('checked' in el)
-            ||
-        // a click event on a non-selectable el
-        evt.type === 'change' &&  el.tagName !== 'SELECT'
-    ) {
-        return; // ignore this `click` event
-    }
-
-    // remove `error` CSS class, which may have been added by `FilterLeaf.prototype.validate`
-    el.classList.remove('error');
-
-    // find next sibling control, if any
-    while ((el = el.nextElementSibling) && !('name' in el)); // eslint-disable-line curly
-
-    // and click in it (opens select list)
-    FilterNode.clickIn(el);
-}
-
 function catchClick(evt) { // must be called with context
     var elt = evt.target;
 
@@ -344,16 +311,19 @@ function catchClick(evt) { // must be called with context
 /**
  * Throws error if invalid expression tree.
  * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
+ * @param {boolean} focus - Move focus to offending control.
  * @returns {undefined} if valid
  */
-function validate() { // must be called with context
+function validate(focus) { // must be called with context
     if (this instanceof FilterTree && !this.children.length) {
-        throw new Error('Empty subexpression (no filters).');
+        throw new FilterNode.Error('Empty subexpression (no filters).');
     }
 
     this.children.forEach(function(child) {
-        if (child) {
-            child.validate();
+        if (child instanceof DefaultFilter) {
+            child.validate(focus);
+        } else if (child.children.length) {
+            validate.call(child, focus);
         }
     });
 }

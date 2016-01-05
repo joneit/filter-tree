@@ -27,6 +27,14 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         'NOT LIKE': { test: function(a, b) { return !regExpLIKE(b).test(a); } }
     },
 
+    destroy: function() {
+        if (this.controls) {
+            for (var key in this.controls) {
+                this.controls[key].removeEventListener('change', cleanUpAndMoveOn);
+            }
+        }
+    },
+
     newView: function() {
         var fields = this.parent.nodeFields || this.fields;
 
@@ -74,30 +82,34 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      */
     makeElement: function(container, options, prompt) {
-        var el, option, input,
+        var el, option, span,
             tagName = options ? 'select' : 'input';
 
         if (options && options.length === 1) {
             option = options[0];
-            el = document.createElement('span');
-            el.innerHTML = option.header || option.name || option;
 
-            input = document.createElement('input');
-            input.type = 'hidden';
-            input.value = option.name || option.header || option;
-            el.appendChild(input);
+            el = document.createElement('input');
+            el.type = 'hidden';
+            el.value = option.name || option.header || option;
+
+            span = document.createElement('span');
+            span.innerHTML = option.header || option.name || option;
+            span.appendChild(el);
+
+            container.appendChild(span);
         } else {
             el = addOptions(tagName, options, prompt);
+            this.el.addEventListener('change', cleanUpAndMoveOn);
+            FilterNode.setWarningClass(el);
+            container.appendChild(el);
         }
-
-        container.appendChild(el);
 
         return el;
     },
 
     load: function(json) {
         if (json) {
-            var value, el, i, notes = [];
+            var value, el, i, b, selected, notes = [];
             for (var key in json) {
                 if (key !== 'fields' && key !== 'editor') {
                     value = json[key];
@@ -112,13 +124,15 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             break;
                         case 'select-multiple':
                             el = el.options;
-                            for (i = 0; i < el.length; i++) {
-                                el[i].selected = value.indexOf(el[i].value) >= 0;
+                            for (i = 0, b = false; i < el.length; i++, b = b || selected) {
+                                selected = value.indexOf(el[i].value) >= 0;
+                                el[i].selected = selected;
                             }
+                            FilterNode.setWarningClass(el, b);
                             break;
                         default:
                             el.value = value;
-                            if (el.value !== value) {
+                            if (!FilterNode.setWarningClass(el) && el.value !== value) {
                                 notes.push({ key: key, value: value });
                             }
                     }
@@ -160,16 +174,17 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * Copies all the `this.controls`'s values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.operation`, `this.converter` and `this.sqlOperator` for efficient access in walks.
      *
+     * @param {boolean} focus - Move focus to offending control.
      * @returns {undefined} if valid
      */
-    validate: function() {
+    validate: function(focus) {
         for (var elementName in this.controls) {
             var el = this.controls[elementName],
                 value = controlValue(el).trim();
 
             if (value === '') {
-                flashIt(el);
-                throw new Error('Blank ' + elementName + ' controls.\nComplete the filter or delete it.');
+                if (focus) { focusOn(el); }
+                throw new FilterNode.Error('Blank ' + elementName + ' controls.\nComplete the filter or delete it.');
             } else {
                 // Copy each controls's value to property of this object.
                 this[elementName] = value;
@@ -246,23 +261,31 @@ function findField(fields, name) {
     return complex || simple;
 }
 
-function flashIt(el, className, times, duration) {
-    times = times || 4;
-    duration = duration || 100;
-    className = className || 'error';
+/** `change` or `click` event handler for all form controls.
+ */
+function cleanUpAndMoveOn(evt) {
+    var el = evt.target;
 
-    var flashes = 2 * times,
-        flasher = setInterval(toggle, duration);
+    // remove `error` CSS class, which may have been added by `FilterLeaf.prototype.validate`
+    el.classList.remove('filter-tree-error');
 
-    el.classList.add(className);
+    // set or remove 'warning' CSS class, as per el.value
+    FilterNode.setWarningClass(el);
 
-    function toggle() {
-        el.classList.toggle(className);
-        if (!--flashes) {
-            clearInterval(flasher);
-            FilterNode.clickIn(el);
-        }
+    // find next sibling control, if any
+    if (!el.multiple && el.value) {
+        while ((el = el.nextElementSibling) && !('name' in el)); // eslint-disable-line curly
     }
+
+    // and click in it (opens select list)
+    FilterNode.clickIn(el);
+}
+
+function focusOn(el) {
+    setTimeout(function() {
+        el.classList.add('filter-tree-error');
+        FilterNode.clickIn(el);
+    }, 0);
 }
 
 function controlValue(el) {
@@ -305,6 +328,7 @@ function controlValue(el) {
  */
 function addOptions(tagName, options, prompt) {
     var el = document.createElement(tagName);
+
     if (options) {
         var add, newOption;
         if (tagName === 'select') {
@@ -340,6 +364,7 @@ function addOptions(tagName, options, prompt) {
     } else {
         el.type = 'text';
     }
+
     return el;
 }
 

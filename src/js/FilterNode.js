@@ -148,10 +148,6 @@ var FilterNode = Base.extend({
         }
     },
 
-    Error: function(msg) {
-        return new Error('filter-tree: ' + msg);
-    },
-
     SQL_QUOTED_IDENTIFIER: '"'
 
 });
@@ -163,6 +159,19 @@ function setOption(key, options, json, parent) {
         parent && parent[key] // reference parent value now so we don't have to search up the tree later
     );
 }
+
+FilterNode.setWarningClass = function(el, value) {
+    if (arguments.length < 2) {
+        value = el.value;
+    }
+    el.classList[value ? 'remove' : 'add']('filter-tree-warning');
+    return value;
+
+};
+
+FilterNode.Error = function(msg) {
+    return new Error('filter-tree: ' + msg);
+};
 
 FilterNode.clickIn = function(el) {
     if (el) {

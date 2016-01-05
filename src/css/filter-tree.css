@@ -1,5 +1,6 @@
 .filter-tree {
     font-family: sans-serif;
+    font-size: 10pt;
     line-height: 1.5em;
 }
 .filter-tree label {
@@ -15,14 +16,14 @@
     cursor: pointer;
 }
 .filter-tree-add-filter, .filter-tree-add {
-    font-size: smaller;
     font-style: italic;
-    margin-left: 3em;
+    color: #444;
+    font-size: 90%;
 }
 .filter-tree-add-filter {
-    width: 100px;
+    margin: 3px 0 3px 3em;
+    width: 120px;
     display: inline-block;
-    line-height: normal;
 }
 .filter-tree-add-filter:hover, .filter-tree-add:hover {
     text-decoration: underline;
@@ -30,7 +31,6 @@
 .filter-tree-add-filter.as-menu-header, .filter-tree-add.as-menu-header {
     background-color: white;
     font-weight: bold;
-    border-top: 3px solid white;
     font-style: normal;
 }
 .filter-tree-add-filter.as-menu-header:hover {
@@ -53,51 +53,63 @@
     margin-right: 4px;
 }
 .filter-tree-add > div:before, .filter-tree-add-filter > div:before {
-    content: '\ff0b';
+    content: '\ff0b'; /* plus sign */
 }
 .filter-tree-remove {
     background-color: #e88;
     border: 0;
 }
 .filter-tree-remove:before {
-    content: '\2212';
+    content: '\2212'; /* minus sign */
 }
 .filter-tree li::after {
     font-size: 70%;
     font-style: italic;
     font-weight: bold;
-    color: #900;
+    color: #080;
 }
 
 .filter-tree > ol > li:last-child::after { display: none }
 
 .op-or > ol > li::after {
-    content: '\A0— OR —';
+    margin-left: 2.5em;
+    content: '— OR —';
 }
 .op-and > ol > li::after {
-    content: '\A0— AND —';
+    margin-left: 2.5em;
+    content: '— AND —';
 }
 .op-nor > ol > li::after {
-    content: '\A0— NOR —';
+    margin-left: 2.5em;
+    content: '— NOR —';
 }
 
 /* Default filter editor */
 
-.filter-tree-default > * {
+.filter-tree-default > *:enabled {
     margin: 0 .4em;
+    background-color: #ddd;
+    border: 0;
 }
 .filter-tree-default > input[type=text] {
     width: 8em;
+    padding: 0 5px;
 }
-.filter-tree-default > *.error {
+.filter-tree-default > select {
+    border: 0;
+}
+.filter-tree-default > *.filter-tree-warning {
     background-color: #ffc;
+}
+.filter-tree-default > *.filter-tree-error {
+    background-color: #Fcc;
 }
 
 /* Footnotes */
 
 .filter-tree .footnotes {
     font-size: 6pt;
-    margin: 0;
+    margin: 2px 0 0 0;
     line-height: normal;
     white-space: normal;
     color: #999;
