@@ -106,6 +106,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             container.appendChild(span);
         } else {
             el = addOptions(tagName, options, prompt, sort);
+            if (el.type === 'text' && this.eventHandler) {
+                this.el.addEventListener('keyup', this.eventHandler);
+            }
             this.el.addEventListener('change', this.onChange);
             FilterNode.setWarningClass(el);
             container.appendChild(el);

@@ -44,7 +44,7 @@ gulp.task('reload', function() {
 gulp.task('watch', function () {
     gulp.watch([
         srcDir + '**',
-        '!' + srcDir + 'index.js',
+        '!' + srcDir + 'js/css.js',
         testDir + '**',
         buildDir + 'demo.html'
     ], [
