@@ -36,7 +36,7 @@ var CHILDREN_TAG = 'OL',
  *
  * The programmer may define a new type of simple expression by extending from `FilterLeaf`. An example is the `FilterField` object. Such an implementation must include methods:
  *
- * * Save and subsequently reload the state of the conditional as entered by the user (`toJSON()` and `fromJSON()`, respectively).
+ * * Save and subsequently reload the state of the conditional as entered by the user (`toJSON()` and `setState()`, respectively).
  * * Create the DOM objects that represent the UI filter editor and render them to the UI (`newView()` and `render()`, respectively).
  * * Filter a table by implementing one or more of the following:
  *   * Apply the conditional logic to available table row data (`test()`).
@@ -79,7 +79,7 @@ var FilterNode = Base.extend({
 
     initialize: function(options) {
         var parent = options && options.parent,
-            state = options && options.state;
+            state = options && options.state || JSON.parse(options.json);
 
         this.parent = parent;
 
@@ -101,7 +101,13 @@ var FilterNode = Base.extend({
          */
         this.editor = setOption('editor', options, state, parent);
 
-        this.fromJSON(state);
+        /** Event handler for UI events.
+         * @type {string}
+         * @memberOf FilterNode.prototype
+         */
+        this.eventHandler = setOption('eventHandler', options, state, parent);
+
+        this.setState(state);
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
@@ -113,6 +119,16 @@ var FilterNode = Base.extend({
             newListItem.appendChild(template('removeButton'));
             newListItem.appendChild(this.el);
             this.parent.el.querySelector(CHILDREN_TAG).appendChild(newListItem);
+        }
+    },
+
+    setState: function(state) {
+        var oldEl = this.el;
+        this.newView();
+        this.load(state);
+        this.render();
+        if (oldEl && !this.parent) {
+            oldEl.parentNode.replaceChild(this.el, oldEl);
         }
     },
 
@@ -136,16 +152,6 @@ var FilterNode = Base.extend({
         }
 
         return state;
-    },
-
-    fromJSON: function(state) {
-        var oldEl = this.el;
-        this.newView();
-        this.load(state);
-        this.render();
-        if (oldEl && !this.parent) {
-            oldEl.parentNode.replaceChild(this.el, oldEl);
-        }
     },
 
     SQL_QUOTED_IDENTIFIER: '"'

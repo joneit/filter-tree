@@ -4,7 +4,7 @@
 
 require('should'); // extends Object with `should`
 
-var FilterTree = require('../src/js/FilterTree');
+var FilterTree = require('../src/FilterTree');
 
 describe('`FilterTree` that', function() {
     it('is a function', function() {

@@ -11,12 +11,9 @@
         body {
             font-family: sans-serif;
         }
-        p {
-            font-size: smaller;
-        }
         textarea {
             display: block;
-            margin: 1em 0;
+            margin: 1em 0 3px 0;
             width: 100%;
         }
         input[type='button'] {
@@ -26,7 +23,7 @@
             font-weight: bold;
             border-radius: 10px;
             padding: 4px 10px;
-            letter-spacing: 1px;
+            letter-spacing: .5px;
             font-family: monospace;
             border: 1px transparent solid;
             box-sizing: border-box;
@@ -58,9 +55,8 @@
             width: 50%;
         }
         fieldset > p {
-            font-style: italic;
-            font-size: smaller;
-            margin: .5em 0 0 0;
+            font-size: 8pt;
+            margin: 0;
         }
         .false, .true {
             font-weight: bold
@@ -73,42 +69,70 @@
             color: #0a0;
             content: 'include';
         }
+        .invalid:before {
+            font-style: italic;
+            content: '(invalid)';
+        }
     </style>
     <script src="filter-tree.js"></script>
 
     <script>
 var filterTree;
+var quietValidation = {alert: false, focus: false};
+
+function autotest() {
+    if (document.getElementById('autoget').checked) {
+        toJSON(quietValidation);
+    }
+    test();
+}
+
+function makeNewTree() {
+    return new FilterTree({
+        fields: getLiteral('fields'),
+        json: document.getElementById('json-data').value,
+        eventHandler: autotest
+    });
+}
 
 window.onload = function() {
-    filterTree = new FilterTree({
-        fields: getJSON('json-columns'),
-        state: getJSON('json-data')
-    });
+    try {
+        filterTree = makeNewTree();
+    } catch(e) {
+        if (!(e instanceof SyntaxError)) { throw e; }
+        alert('Bad JSON format:\n\n' + e);
+        return;
+    }
+
     document.getElementById('filter').appendChild(filterTree.el);
 
     if (!filterTree.validate({ alert: false }))
     {
-        document.getElementById('SQL').value = filterTree.toSQL();
-        document.getElementById('test-result').className = filterTree.test(getJSON('json-test'));
+        document.getElementById('SQL').value = filterTree.getSqlWhereClause();
+        test();
     }
 };
 
 function initialize() {
-    var newTree = new FilterTree({
-        fields: getJSON('json-columns'),
-        state: getJSON('json-data')
-    });
+    try {
+        var newTree = makeNewTree();
+    } catch(e) {
+        if (!(e instanceof SyntaxError)) { throw e; }
+        alert('Bad JSON format:\n\n' + e);
+        return;
+    }
+
     document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
     filterTree = newTree;
 }
 
-function getJSON(id) {
+function getLiteral(id) {
     var value = document.getElementById(id).value;
     try {
         var x;
         return eval('x = ' + value);
     } catch(e) {
-        alert('Bad data!');
+        alert('Bad ' + id + ' JavaScript literal!');
     }
 }
 
@@ -116,32 +140,40 @@ function validate() {
     return filterTree.validate();
 }
 
-function toJSON() {
-    var valid = !filterTree.validate();
+function toJSON(validateOptions) {
+    var valid = !filterTree.validate(validateOptions);
     if (valid) {
-        document.getElementById('JSON').value = JSON.stringify(filterTree, null, 3);
+        filterTree.JSONspace = 3; // make it pretty
+        document.getElementById('json-data').value = filterTree.getJSON();
     }
     return valid;
 }
 
 function fromJSON() {
-    filterTree.fromJSON(getJSON('json-data'));
+    try {
+        filterTree.setJSON(document.getElementById('json-data').value);
+    } catch(e) {
+        if (!(e instanceof SyntaxError)) { throw e; }
+        alert('Bad JSON format:\n\n' + e);
+        return;
+    }
+    test();
 }
 
-function toSQL() {
+function getSqlWhereClause() {
     var valid = !filterTree.validate();
     if (valid) {
-        document.getElementById('SQL').value = filterTree.toSQL();
+        document.getElementById('SQL').value = filterTree.getSqlWhereClause();
     }
     return valid;
 }
 
-function test() {
-    var valid = !filterTree.validate();
-    if (valid) {
-        document.getElementById('test-result').className = filterTree.test(getJSON('json-test'));
+function test(force) {
+    if (force || document.getElementById('autotest').checked) {
+        document.getElementById('test-result').className = filterTree.validate(quietValidation)
+            ? 'invalid'
+            : filterTree.test(getLiteral('dataRow'));
     }
-    return valid;
 }
 
 // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
@@ -149,9 +181,9 @@ function test() {
 var DefaultEditor = FilterTree.prototype.editors.Default;
 
 FilterTree.prototype.addEditor('Columns', {
-    name: 'Column ? Column',
+    name: 'column : column',
     newView() {
-        // Create and insert the three elements into .el
+        // Create and insert the three default elements (column, operator, value) into .el
         DefaultEditor.prototype.newView.call(this);
 
         // Refer to the first element as `column1` instead of `column`
@@ -160,17 +192,19 @@ FilterTree.prototype.addEditor('Columns', {
 
         // Clone the first element and call it `column2`
         this.controls.column2 = this.el.firstElementChild.cloneNode(true);
-        delete this.controls.argument;
+        delete this.controls.value;
 
         // Replace the 3rd element with the clone. There are no event listeners to worry about.
         this.el.replaceChild(this.controls.column2, this.el.children[2]);
+
+        //TODO: Remove string operators
     },
     p: function(dataRow) { return dataRow[this.column1]; },
     q: function(dataRow) { return dataRow[this.column2]; },
-    toSQL: function() {
+    getSqlWhereClause: function() {
         return [
             this.SQL_QUOTED_IDENTIFIER + this.column1 + this.SQL_QUOTED_IDENTIFIER,
-            this.sqlOperator,
+            this.op.sql,
             this.SQL_QUOTED_IDENTIFIER + this.column2 + this.SQL_QUOTED_IDENTIFIER
         ].join(' ');
     }
@@ -180,28 +214,30 @@ FilterTree.prototype.addEditor('Columns', {
 <body>
 <table style="width:100%"><tr><td>
 
-<fieldset>
-    <legend>Columns list (hierarchy implies optgroups)</legend>
-    <input type="button" value="initialize()" onclick="initialize()" />
-    <textarea id="json-columns" rows="6">[
+    <fieldset>
+        <legend>Initialize with a column list</legend>
+        <input type="button" value="initialize({ fields: ..., json: filterJSON })" onclick="initialize()" />
+        <textarea id="fields" rows="6">[
     { options: ['LastName', 'FirstName'], label: 'Names' },
     'BirthState',
     { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
     { name: 'Age', type: 'number' }
 ]</textarea>
-</fieldset>
+    <p>Format: JavaScript array literal</p>
+    </fieldset>
 
-<fieldset>
-    <legend>JSON filter expression</legend>
-    <input type="button" value="toJSON()" onclick="toJSON()" />
-    <input type="button" value="fromJSON()" onclick="fromJSON()" style="float:right" />
-    <textarea id="json-data" rows="6">{
+    <fieldset>
+        <legend>filterJSON</legend>
+        <input type="button" value="... = filter.getJSON()" onclick="toJSON()" />
+        <input type="checkbox" id="autoget" onclick="if(this.checked)toJSON()"/><span style="font-size:10pt">Auto</span>
+        <input type="button" value="filter.setJSON(...)" onclick="fromJSON()" style="float:right" />
+        <textarea id="json-data" rows="6">{
    "operator": "op-and",
    "children": [
       {
          "column": "LastName",
          "operator": "=",
-         "argument": "Clinton"
+         "value": "Clinton"
       },
       {
          "operator": "op-or",
@@ -209,51 +245,53 @@ FilterTree.prototype.addEditor('Columns', {
             {
                "column": "DOB",
                "operator": "<",
-               "argument": "1/1/1950"
+               "value": "1/1/1950"
             },
             {
                "column": "Age",
                "operator": "=",
-               "argument": "69"
+               "value": "69"
             },
             {
                "column": "BirthState",
                "operator": "=",
-               "argument": "Arkansas"
+               "value": "Arkansas"
             }
          ]
       }
    ]
 }</textarea>
-</fieldset>
+    <p>Format: JSON (strict, with all property names and values in double-quotes)</p>
+    </fieldset>
 
-<fieldset>
-    <legend>SQL WHERE clause filter expression</legend>
-    <input type="button" value="toSQL()" onclick="toSQL()" style="margin-right:10em" />
-    <textarea id="SQL" rows="3"></textarea>
-</fieldset>
+    <fieldset>
+        <legend>SQL WHERE clause filter expression</legend>
+        <input type="button" value="... = getSqlWhereClause()" onclick="getSqlWhereClause()" />
+        <textarea id="SQL" rows="3"></textarea>
+    </fieldset>
 
-<fieldset>
-    <legend>Data row to test against</legend>
-    <input type="button" value="test()" onclick="test()" /> &#x27f9;
-    <span id="test-result"></span><br/>
-    <p>Row data:</p>
-    <textarea id="json-test" rows="6" style="margin-top:0">{
+    <fieldset>
+        <legend>Data row to test against</legend>
+        <input type="button" value="test(dataRow)" onclick="test(true)" /> &#x27f9;
+        <div style="float:right; font-size:10pt">
+            <input type="checkbox" id="autotest" checked onclick="if(this.checked)test()"/>Auto
+        </div>
+        <span id="test-result"></span><br/>
+        <textarea id="dataRow" rows="6">{
     LastName: 'Clinton',
     DOB: '1/19/1946',
     Age: 69
 }</textarea>
-</fieldset>
+    <p>Format: JavaScript object literal</p>
+    </fieldset>
 
-</td>
-<td>
+</td><td>
 
     <fieldset id="filter" style="white-space:nowrap; height:635px">
         <legend>Filter UI</legend>
         <input type="button" value="validate()" onclick="validate()" style="float:right" />
     </fieldset>
 
-</td>
-</tr></table>
+</td></tr></table>
 </body>
 </html>

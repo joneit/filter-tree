@@ -6,16 +6,11 @@
 
 'use strict';
 
-var cssInjector = require('css-injector');
-
-var FilterNode = require('./FilterNode');
-var DefaultFilter = require('./FilterLeaf');
-var template = require('./template');
-var operators = require('./tree-operators');
-
-var css; // defined by code inserted by gulpfile between following comments
-/* inject:css */
-/* endinject */
+var cssInjector = require('./js/css');
+var FilterNode = require('./js/FilterNode');
+var DefaultFilter = require('./js/FilterLeaf');
+var template = require('./js/template');
+var operators = require('./js/tree-operators');
 
 var ordinal = 0;
 var reFilterTreeErrorString = /^filter-tree: /;
@@ -53,8 +48,8 @@ var reFilterTreeErrorString = /^filter-tree: /;
  */
 var FilterTree = FilterNode.extend('FilterTree', {
 
-    initialize: function(options) {
-        cssInjector(css, 'filter-tree-base', options && options.cssStylesheetReferenceElement);
+    preInitialize: function(options) {
+        cssInjector('filter-tree-base', options && options.cssStylesheetReferenceElement);
 
         if (options.editors) {
             this.editors = options.editors;
@@ -82,6 +77,36 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
+    /** @summary Walk tree like `JSON.stringify`.
+     * @desc Functionally identical to `JSON.parse(JSON.stringify(this))` but far more efficient, performing `JSON.stringify()`'s [toJSON behavior](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior) but skipping the serialization and parse steps.
+     * @returns {object} A new object representing `this`.
+     */
+    getState: function state() {
+        var clone, object = typeof this.toJSON === 'function' ? this.toJSON() : this;
+        if (object instanceof Array) {
+            clone = [];
+            object.forEach(function(obj) {
+                clone.push(state.call(obj));
+            });
+        } else  if (typeof object === 'object') {
+            clone = {};
+            Object.keys(object).forEach(function(key) {
+                clone[key] = state.call(object[key]);
+            });
+        } else {
+            clone = object;
+        }
+        return clone;
+    },
+
+    getJSON: function() {
+        return JSON.stringify(this, null, this.JSONspace);
+    },
+
+    setJSON: function(json) {
+        this.setState(JSON.parse(json));
+    },
+
     load: function(state) {
         if (!state) {
             var filterEditorNames = Object.keys(this.editors),
@@ -95,13 +120,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
             // Validate `state.operator`
             if (!(operators[state.operator] || state.operator === undefined && state.children.length === 1)) {
-                throw this.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
+                throw FilterNode.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
             }
             this.operator = state.operator;
 
             // Validate `state.children`
             if (!(state.children instanceof Array && state.children.length)) {
-                throw this.Error('Expected `children` property to be a non-empty array.');
+                throw FilterNode.Error('Expected `children` property to be a non-empty array.');
             }
             this.children = [];
             var self = this;
@@ -193,6 +218,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     /**
+     * @param {boolean} [object.rethrow=false] - Catch (do not throw) the error.
      * @param {boolean} [object.alert=true] - Announce error via window.alert() before returning.
      * @param {boolean} [object.focus=true] - Place the focus on the offending control and give it error color.
      * @returns {undefined|string} `undefined` means valid or string containing error message.
@@ -202,6 +228,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         var focus = options.focus === undefined || options.focus,
             alert = options.alert === undefined || options.alert,
+            rethrow = options.rethrow === true,
             result;
 
         try {
@@ -210,7 +237,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
             result = err.message;
 
             // Throw when not a filter tree error
-            if (!reFilterTreeErrorString.test(result)) {
+            if (rethrow || !reFilterTreeErrorString.test(result)) {
                 throw err;
             }
 
@@ -225,10 +252,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     test: function test(dataRow) {
         var operator = operators[this.operator],
-            result = operator.seed;
+            result = operator.seed,
+            noChildrenDefined = true;
 
         this.children.find(function(child) {
             if (child) {
+                noChildrenDefined = false;
                 if (child instanceof DefaultFilter) {
                     result = operator.reduce(result, child.test(dataRow));
                 } else if (child.children.length) {
@@ -240,7 +269,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
             return false;
         });
 
-        return operator.negate ? !result : result;
+        return noChildrenDefined || (operator.negate ? !result : result);
     },
 
     toJSON: function toJSON() {
@@ -267,7 +296,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return state;
     },
 
-    toSQL: function toSQL() {
+    getSqlWhereClause: function getSqlWhereClause() {
         var lexeme = operators[this.operator].SQL,
             where = lexeme.beg;
 
@@ -275,9 +304,9 @@ var FilterTree = FilterNode.extend('FilterTree', {
             var op = idx ? ' ' + lexeme.op + ' ' : '';
             if (child) {
                 if (child instanceof DefaultFilter) {
-                    where += op + child.toSQL();
+                    where += op + child.getSqlWhereClause();
                 } else if (child.children.length) {
-                    where += op + toSQL.call(child);
+                    where += op + getSqlWhereClause.call(child);
                 }
             }
         });
@@ -301,7 +330,7 @@ function throwIfJSON(state) {
         if (typeof state === 'string') {
             errMsg += ' See `JSON.parse()`.';
         }
-        throw this.Error(errMsg);
+        throw FilterNode.Error(errMsg);
     }
 }
 
@@ -315,6 +344,10 @@ function catchClick(evt) { // must be called with context
         }
         handler.call(this, evt);
         evt.stopPropagation();
+    }
+
+    if (this.eventHandler) {
+        this.eventHandler(evt);
     }
 }
 
@@ -408,4 +441,4 @@ function detachChooser() { // must be called with context
     }
 }
 
-module.exports = FilterTree;
+window.FilterTree = FilterTree;

@@ -3,19 +3,19 @@
 
 'use strict';
 
-var regExpLIKE = require('regexp-like').cached;
-
 var FilterNode = require('./FilterNode');
 var template = require('./template');
+var operators = require('./leaf-operators');
 
 
 /** @typedef {object} converter
  * @property {function} to - Returns input value converted to type. Fails silently.
  * @property {function} not - Tests input value against type, returning `false if type or `true` if not type.
  */
-/** @type converter */
+/** @type {converter} */
 var numberConverter = { to: Number, not: isNaN };
-/** @type converter */
+
+/** @type {converter} */
 var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
 
 /** @constructor
@@ -24,23 +24,19 @@ var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
-    name: 'Column ? Literal',
+    name: 'column : value',
 
-    operators: {
-        '<'       : { test: function(a, b) { return a < b; } },
-        '\u2264'  : { test: function(a, b) { return a <= b; }, SQL: '<=' },
-        '='       : { test: function(a, b) { return a === b; } },
-        '\u2265'  : { test: function(a, b) { return a >= b; }, SQL: '>=' },
-        '>'       : { test: function(a, b) { return a > b; } },
-        '\u2260'  : { test: function(a, b) { return a !== b; }, SQL: '<>' },
-        LIKE      : { test: function(a, b) { return regExpLIKE(b).test(a); } },
-        'NOT LIKE': { test: function(a, b) { return !regExpLIKE(b).test(a); } }
+    preInitialize: function() {
+        this.onChange = cleanUpAndMoveOn.bind(this);
     },
+
+    operators: operators,
+    operatorsOptions: operators.options,
 
     destroy: function() {
         if (this.controls) {
             for (var key in this.controls) {
-                this.controls[key].removeEventListener('change', cleanUpAndMoveOn);
+                this.controls[key].removeEventListener('change', this.onChange);
             }
         }
     },
@@ -49,16 +45,16 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         var fields = this.parent.nodeFields || this.fields;
 
         if (!fields) {
-            throw this.Error('Terminal node requires a fields list.');
+            throw FilterNode.Error('Terminal node requires a fields list.');
         }
 
         var root = this.el = document.createElement('span');
         root.className = 'filter-tree-default';
 
         this.controls = {
-            column: this.makeElement(root, fields, 'column'),
-            operator: this.makeElement(root, Object.keys(this.operators), 'operator'),
-            argument: this.makeElement(root)
+            column: this.makeElement(root, fields, 'column', true),
+            operator: this.makeElement(root, this.operatorsOptions, 'operator'),
+            value: this.makeElement(root)
         };
 
         root.appendChild(document.createElement('br'));
@@ -92,7 +88,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * Otherwise, creates a `<select>...</select>` element with these options.
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      */
-    makeElement: function(container, options, prompt) {
+    makeElement: function(container, options, prompt, sort) {
         var el, option, span,
             tagName = options ? 'select' : 'input';
 
@@ -109,8 +105,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
             container.appendChild(span);
         } else {
-            el = addOptions(tagName, options, prompt);
-            this.el.addEventListener('change', cleanUpAndMoveOn);
+            el = addOptions(tagName, options, prompt, sort);
+            this.el.addEventListener('change', this.onChange);
             FilterNode.setWarningClass(el);
             container.appendChild(el);
         }
@@ -180,43 +176,48 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
      *
      * Also performs the following compilation actions:
-     * * Copies all the `this.controls`'s values from the DOM to similarly named properties of `this`.
-     * * Pre-sets `this.operation`, `this.converter` and `this.sqlOperator` for efficient access in walks.
+     * * Copies all `this.controls`' values from the DOM to similarly named properties of `this`.
+     * * Pre-sets `this.op` and `this.converter` for use in `test`'s tree walk.
      *
      * @param {boolean} focus - Move focus to offending control.
      * @returns {undefined} if valid
      */
     validate: function(focus) {
-        for (var elementName in this.controls) {
+        var elementName, fields, field;
+
+        for (elementName in this.controls) {
             var el = this.controls[elementName],
                 value = controlValue(el).trim();
 
             if (value === '') {
-                if (focus) { focusOn(el); }
+                if (focus) { clickIn(el); }
                 throw new FilterNode.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
             } else {
                 // Copy each controls's value to property of this object.
                 this[elementName] = value;
+            }
+        }
 
-                switch (elementName) {
-                    case 'operator':
-                        var operator = this.operators[value];
-                        this.operation = operator.test; // for efficient access in this.test()
-                        this.sqlOperator = operator.SQL || value;
-                        break;
-                    case 'column':
-                        var fields = this.parent.nodeFields || this.fields,
-                            field = findField(fields, value);
-                        if (field && field.type) {
-                            this.converter = this.converters[field.type];
-                        }
+        this.op = this.operators[this.operator];
+
+        this.converter = undefined; // remains undefined when neither operator nor column is typed
+        if (this.op.type) {
+            this.converter = this.converters[this.op.type];
+        } else {
+            for (elementName in this.controls) {
+                if (/^column/.test(elementName)) {
+                    fields = this.parent.nodeFields || this.fields;
+                    field = findField(fields, this[elementName]);
+                    if (field && field.type) {
+                        this.converter = this.converters[field.type];
+                    }
                 }
             }
         }
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
-    q: function() { return this.argument; },
+    q: function() { return this.value; },
 
     test: function(dataRow) {
         var p = this.p(dataRow),
@@ -229,8 +230,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             !convert.not(P = convert.to(p)) &&
             !convert.not(Q = convert.to(q))
         )
-            ? this.operation(P, Q)
-            : this.operation(p, q);
+            ? this.op.test(P, Q)
+            : this.op.test(p, q);
     },
 
     toJSON: function(options) { // eslint-disable-line no-unused-vars
@@ -247,12 +248,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return state;
     },
 
-    toSQL: function() {
-        return [
-            this.SQL_QUOTED_IDENTIFIER + this.column + this.SQL_QUOTED_IDENTIFIER,
-            this.sqlOperator,
-            ' \'' + this.argument.replace(/'/g, '\'\'') + '\''
-        ].join(' ');
+    getSqlWhereClause: function() {
+        return this.SQL_QUOTED_IDENTIFIER + this.column + this.SQL_QUOTED_IDENTIFIER + ' ' + (
+            typeof this.op.sql === 'function'
+                ? this.op.sql(this.value)
+                : (this.op.sql || this.operator) + operators.sq(this.value)
+        );
     }
 });
 
@@ -294,9 +295,13 @@ function cleanUpAndMoveOn(evt) {
         el.value = ''; // rid of any white space
         FilterNode.clickIn(el);
     }
+
+    if (this.eventHandler) {
+        this.eventHandler(evt);
+    }
 }
 
-function focusOn(el) {
+function clickIn(el) {
     setTimeout(function() {
         el.classList.add('filter-tree-error');
         FilterNode.clickIn(el);
@@ -341,7 +346,7 @@ function controlValue(el) {
  * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value in parentheses as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
  * @returns {Element} Either a `<select>` or `<optgroup>` element.
  */
-function addOptions(tagName, options, prompt) {
+function addOptions(tagName, options, prompt, sort) {
     var el = document.createElement(tagName);
 
     if (options) {
@@ -360,7 +365,9 @@ function addOptions(tagName, options, prompt) {
             el.label = prompt;
         }
 
-        options = options.slice().sort(fieldComparator); // clone it and sort the clone
+        if (sort) {
+            options = options.slice().sort(fieldComparator); // clone it and sort the clone
+        }
 
         options.forEach(function(option) {
             if ((option.options || option) instanceof Array) {

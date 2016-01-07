@@ -21,6 +21,7 @@ var name     = 'filter-tree',
 gulp.task('lint', lint);
 gulp.task('test', test);
 gulp.task('doc', doc);
+gulp.task('injection', injectCSS);
 gulp.task('browserify', browserify);
 gulp.task('serve', browserSyncLaunchServer);
 
@@ -30,6 +31,7 @@ gulp.task('build', function(callback) {
         'lint',
         //'test',
         //'doc',
+        'injection',
         'browserify',
         callback
     );
@@ -96,57 +98,39 @@ function browserSyncLaunchServer() {
     });
 }
 
-function browserify(callback) {
-    var source = gulp.src(srcDir + 'css/' + name + '.css'),
-        destination = gulp.dest(srcDir);
-
-    var cssInjectedIntoSource = gulp.src(srcDir + 'js/' + global + '.js')
-        .pipe($$.inject(source, {
+function injectCSS() {
+    // inject the css from css/filter-tree.css via css/filter-tree.js into new file js/css.js
+    return gulp.src(srcDir + 'css/' + name + '.js')
+        .pipe($$.inject(gulp.src(srcDir + 'css/' + name + '.css'), {
             transform: cssToJsFn,
             starttag: '/* {{name}}:{{ext}} */',
             endtag: '/* endinject */'
         }))
+        .pipe($$.rename('css.js'))
+        .pipe(gulp.dest(srcDir + 'js/'));
+}
+
+function browserify() {
+    // browserify the root file src/index.js into build/filter-tree.js and filter-tree.min.js
+    return gulp.src(srcDir + 'index.js')
+        .pipe($$.replace(
+            'module.exports =',
+            'window.' + global + ' ='
+        ))
         .pipe($$.mirror(
             pipe(
-                $$.rename('index.js'),
-                $$.replace(
-                    'require(\'./',
-                    'require(\'./js/'
-                ),
-                $$.replace(
-                    'require(\'../',
-                    'require(\'./'
-                ),
-                gulp.dest(srcDir)
+                $$.rename(name + '.js'),
+                $$.browserify({ debug: true })
+                    .on('error', $$.util.log)
             ),
             pipe(
-                $$.replace(
-                    'module.exports =',
-                    'window.' + global + ' ='
-                ),
-                $$.mirror(
-                    pipe(
-                        $$.rename(name + '.js'),
-                        $$.browserify({ debug: true })
-                            .on('error', $$.util.log)
-                    ),
-                    pipe(
-                        $$.rename(name + '.min.js'),
-                        $$.browserify(),
-                        $$.uglify()
-                            .on('error', $$.util.log)
-                    )
-                ),
-                gulp.dest(buildDir)
+                $$.rename(name + '.min.js'),
+                $$.browserify(),
+                $$.uglify()
+                    .on('error', $$.util.log)
             )
-        ));
-
-    //cssInjectedIntoSource
-    //    .pipe($$.rename('index.js'))
-    //    .pipe(gulp.dest(srcDir));
-
-
-    callback();
+        ))
+        .pipe(gulp.dest(buildDir));
 }
 
 function doc(callback) {
