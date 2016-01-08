@@ -11,6 +11,12 @@
         body {
             font-family: sans-serif;
         }
+        code {
+            font-weight: bold;
+            font-style: normal;
+            font-size: large;
+            margin: 0 .25em;
+        }
         textarea {
             display: block;
             margin: 1em 0 3px 0;
@@ -35,7 +41,7 @@
         }
         fieldset {
             margin-bottom: 1.5em;
-            background-color: #f4f4f4;
+            background-color: #f8f8ff;
             padding-top: .75em;
             border-radius: 5px;
             box-shadow: 4px 4px 10px #aaa;
@@ -69,9 +75,13 @@
             color: #0a0;
             content: 'include';
         }
-        .invalid:before {
+        .invalid-filter:before {
             font-style: italic;
-            content: '(invalid)';
+            content: '(invalid filter expression, right)';
+        }
+        .invalid-data:before {
+            font-style: italic;
+            content: '(syntax error in dataRow, below)';
         }
     </style>
     <script src="filter-tree.js"></script>
@@ -112,6 +122,8 @@ window.onload = function() {
         document.getElementById('SQL').value = filterTree.getSqlWhereClause();
         test();
     }
+
+    document.getElementById('dataRow').addEventListener('keyup', test.bind(this, false));
 };
 
 function initialize() {
@@ -127,13 +139,19 @@ function initialize() {
     filterTree = newTree;
 }
 
-function getLiteral(id) {
-    var value = document.getElementById(id).value;
+function getLiteral(id, options) {
+    options = options || {};
+
+    var alert = options.alert === undefined || options.alert,
+        value = document.getElementById(id).value;
+
     try {
         var x;
         return eval('x = ' + value);
     } catch(e) {
-        alert('Bad ' + id + ' JavaScript literal!');
+        if (alert) {
+            window.alert('Bad ' + id + ' JavaScript literal!');
+        }
     }
 }
 
@@ -170,9 +188,16 @@ function getSqlWhereClause(force) {
 
 function test(force) {
     if (force || document.getElementById('autotest').checked) {
-        document.getElementById('test-result').className = filterTree.validate(!force && quietValidation)
-            ? 'invalid'
-            : filterTree.test(getLiteral('dataRow'));
+        var result, data,
+            options = !force && quietValidation;
+        if (filterTree.validate(options)) {
+            result = 'invalid-filter';
+        } else if (!(data = getLiteral('dataRow', options))) {
+            result = 'invalid-data';
+        } else {
+            result = filterTree.test(data);
+        }
+        document.getElementById('test-result').className = result;
     }
 }
 
@@ -215,19 +240,20 @@ FilterTree.prototype.addEditor('Columns', {
 <table style="width:100%"><tr><td>
 
     <fieldset>
-        <legend>Initialize with a column list</legend>
-        <input type="button" value="initialize({ fields: ..., json: filterJSON })" onclick="initialize()" />
+        <legend>Initialize with this <code>fields</code> list and the <code>filterJSON</code> below</legend>
+        <input type="button" value="initialize({ fields: fields, json: filterJSON })" onclick="initialize()"
+         title="Creates a new filter tree object bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." />
         <textarea id="fields" rows="6">[
     { options: ['LastName', 'FirstName'], label: 'Names' },
     'BirthState',
     { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
     { name: 'Age', type: 'number' }
 ]</textarea>
-    <p>Format: JavaScript array literal</p>
+    <p>Format: JavaScript array literal syntax</p>
     </fieldset>
 
     <fieldset>
-        <legend>filterJSON</legend>
+        <legend><code>filterJSON</code></legend>
         <input type="button" value="... = filter.getJSON()" onclick="toJSON()"
          title="Generate JSON describing the filter expression in the UI."/>
         <label style="float:right; font-size:10pt"
@@ -264,13 +290,13 @@ FilterTree.prototype.addEditor('Columns', {
       }
    ]
 }</textarea>
-        <p>Format: JSON (strict, with all property names and values in double-quotes)</p>
+        <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>, with all property names and strings in double-quotes)</p>
         <input type="button" value="filter.setJSON(...)" onclick="fromJSON()" style="margin-top:.7em"
-               title="Regnerate the UI based on the filter expression described by the JSON." />
+               title="Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
 
     <fieldset>
-        <legend>SQL WHERE clause filter expression</legend>
+        <legend>SQL <code>WHERE</code> clause describing filter expression</legend>
         <input type="button" value="... = getSqlWhereClause()" onclick="getSqlWhereClause(true)" />
         <label style="float:right; font-size:10pt"
          title="Automatically regenerate the SQL on any manual change to the UI.">
@@ -280,7 +306,7 @@ FilterTree.prototype.addEditor('Columns', {
     </fieldset>
 
     <fieldset>
-        <legend>Data row to test against</legend>
+        <legend>Test the filter expression against this <code>dataRow</code></legend>
         <input type="button" value="test(dataRow)" onclick="test(true)" /> &#x27f9;
         <label style="float:right; font-size:10pt"
          title="Automatically retest this data row against the filter expression in the UI on any manual change to same.">
@@ -292,13 +318,13 @@ FilterTree.prototype.addEditor('Columns', {
     DOB: '1/19/1946',
     Age: 69
 }</textarea>
-    <p>Format: JavaScript object literal</p>
+    <p>Format: JavaScript object literal syntax</p>
     </fieldset>
 
 </td><td>
 
     <fieldset id="filter" style="white-space:nowrap; height:635px">
-        <legend>Filter UI</legend>
+        <legend>Filter expression user interface</legend>
         <input type="button" value="validate()" onclick="validate()" style="float:right" />
     </fieldset>
 

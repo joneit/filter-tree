@@ -70,7 +70,7 @@ var treeOperators = {
         negate: true,
         SQL: {
             op: 'OR',
-            beg: 'NOT  (',
+            beg: 'NOT (',
             end: ')'
         }
     }

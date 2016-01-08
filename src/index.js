@@ -6,6 +6,8 @@
 
 'use strict';
 
+var unstrungify = require('unstrungify');
+
 var cssInjector = require('./js/css');
 var FilterNode = require('./js/FilterNode');
 var DefaultFilter = require('./js/FilterLeaf');
@@ -77,30 +79,11 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
-    /** @summary Walk tree like `JSON.stringify`.
-     * @desc Functionally identical to `JSON.parse(JSON.stringify(this))` but far more efficient, performing `JSON.stringify()`'s [toJSON behavior](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior) but skipping the serialization and parse steps.
-     * @returns {object} A new object representing `this`.
-     */
-    getState: function state() {
-        var clone, object = typeof this.toJSON === 'function' ? this.toJSON() : this;
-        if (object instanceof Array) {
-            clone = [];
-            object.forEach(function(obj) {
-                clone.push(state.call(obj));
-            });
-        } else  if (typeof object === 'object') {
-            clone = {};
-            Object.keys(object).forEach(function(key) {
-                clone[key] = state.call(object[key]);
-            });
-        } else {
-            clone = object;
-        }
-        return clone;
-    },
+    getState: unstrungify,
 
     getJSON: function() {
-        return JSON.stringify(this, null, this.JSONspace);
+        var ready = JSON.stringify(this, null, this.JSONspace);
+        return ready ? ready : '';
     },
 
     setJSON: function(json) {
@@ -283,7 +266,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 if (child instanceof DefaultFilter) {
                     state.children.push(child);
                 } else if (child.children.length) {
-                    state.children.push(toJSON.call(child));
+                    var ready = toJSON.call(child);
+                    if (ready) {
+                        state.children.push(ready);
+                    }
                 }
             }
         });
@@ -293,12 +279,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
             state[key] = metadata[key];
         });
 
-        return state;
+        return state.children.length ? state : undefined;
     },
 
     getSqlWhereClause: function getSqlWhereClause() {
         var lexeme = operators[this.operator].SQL,
-            where = lexeme.beg;
+            where = '';
 
         this.children.forEach(function(child, idx) {
             var op = idx ? ' ' + lexeme.op + ' ' : '';
@@ -311,9 +297,11 @@ var FilterTree = FilterNode.extend('FilterTree', {
             }
         });
 
-        where += lexeme.end;
+        if (!where) {
+            where = 'NULL IS NULL';
+        }
 
-        return where;
+        return lexeme.beg + where + lexeme.end;
     }
 
 });

@@ -79,7 +79,10 @@ var FilterNode = Base.extend({
 
     initialize: function(options) {
         var parent = options && options.parent,
-            state = options && options.state || JSON.parse(options.json);
+            state = options && (
+                options.state ||
+                options.json && JSON.parse(options.json)
+            );
 
         this.parent = parent;
 

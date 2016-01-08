@@ -223,18 +223,19 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     q: function() { return this.value; },
 
     test: function(dataRow) {
-        var p = this.p(dataRow),
-            q = this.q(dataRow),
+        var p, q, // untyped versions of args
             P, Q, // typed versions of p and q
-            convert = this.converter;
+            convert;
 
-        return (
-            convert &&
-            !convert.not(P = convert.to(p)) &&
-            !convert.not(Q = convert.to(q))
-        )
-            ? this.op.test(P, Q)
-            : this.op.test(p, q);
+        return (p = this.p(dataRow)) === undefined || (q = this.q(dataRow)) === undefined
+            ? false
+            : (
+                (convert = this.converter) &&
+                !convert.not(P = convert.to(p)) &&
+                !convert.not(Q = convert.to(q))
+            )
+                ? this.op.test(P, Q)
+                : this.op.test(p, q);
     },
 
     toJSON: function(options) { // eslint-disable-line no-unused-vars
