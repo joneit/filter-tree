@@ -24,23 +24,37 @@ var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
-    name: 'column : value',
+    name: 'column ? value',
 
     preInitialize: function() {
         this.onChange = cleanUpAndMoveOn.bind(this);
     },
 
     operators: operators,
-    operatorsOptions: operators.options,
+    operatorOptions: operators.options,
 
     destroy: function() {
-        if (this.controls) {
-            for (var key in this.controls) {
-                this.controls[key].removeEventListener('change', this.onChange);
+        if (this.view) {
+            for (var key in this.view) {
+                this.view[key].removeEventListener('change', this.onChange);
             }
         }
     },
 
+    /** @summary Create a new view in `this.view`.
+     * @desc This new "view" is a group of HTML `Element` controls that completely describe the conditional expression this object represents. This method creates the following object properties:
+     *
+     * * `this.el` - a `<span>...</span>` element to contain the controls as child nodes
+     * * `this.view` - a hash containing direct references to the controls.
+     *
+     * The view for this base `FilterLeaf` object consists of the following controls:
+     *
+     * * `this.view.column` - A drop-down with options from `this.fields`. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
+     * * `this.view.operator` - A drop-down with options from {@link leafOperators}. Value is one of the keys therein.
+     * * `this.view.value` - A text box.
+     *
+     *  > Prototypes extended from `FilterLeaf` may have different controls as needed. The only required control is `column`, which all such "editors" must support.
+     */
     newView: function() {
         var fields = this.parent.nodeFields || this.fields;
 
@@ -51,9 +65,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         var root = this.el = document.createElement('span');
         root.className = 'filter-tree-default';
 
-        this.controls = {
+        this.view = {
             column: this.makeElement(root, fields, 'column', true),
-            operator: this.makeElement(root, this.operatorsOptions, 'operator'),
+            operator: this.makeElement(root, this.operatorOptions, 'operator'),
             value: this.makeElement(root)
         };
 
@@ -117,13 +131,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return el;
     },
 
-    load: function(state) {
+    loadState: function(state) {
         if (state) {
             var value, el, i, b, selected, notes = [];
             for (var key in state) {
                 if (key !== 'fields' && key !== 'editor') {
                     value = state[key];
-                    el = this.controls[key];
+                    el = this.view[key];
                     switch (el.type) {
                         case 'checkbox':
                         case 'radio':
@@ -179,7 +193,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
      *
      * Also performs the following compilation actions:
-     * * Copies all `this.controls`' values from the DOM to similarly named properties of `this`.
+     * * Copies all `this.view`' values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.op` and `this.converter` for use in `test`'s tree walk.
      *
      * @param {boolean} focus - Move focus to offending control.
@@ -188,15 +202,15 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     validate: function(focus) {
         var elementName, fields, field;
 
-        for (elementName in this.controls) {
-            var el = this.controls[elementName],
+        for (elementName in this.view) {
+            var el = this.view[elementName],
                 value = controlValue(el).trim();
 
             if (value === '') {
                 if (focus) { clickIn(el); }
                 throw new FilterNode.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
             } else {
-                // Copy each controls's value to property of this object.
+                // Copy each controls's value as a new similarly named property of this object.
                 this[elementName] = value;
             }
         }
@@ -207,7 +221,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         if (this.op.type) {
             this.converter = this.converters[this.op.type];
         } else {
-            for (elementName in this.controls) {
+            for (elementName in this.view) {
                 if (/^column/.test(elementName)) {
                     fields = this.parent.nodeFields || this.fields;
                     field = findField(fields, this[elementName]);
@@ -238,12 +252,29 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 : this.op.test(p, q);
     },
 
-    toJSON: function(options) { // eslint-disable-line no-unused-vars
+    /** Tests this leaf node for given column name.
+     * > This is the default "find" function.
+     * @param {string} fieldName
+     * @returns {boolean}
+     */
+    find: function(fieldName) {
+        return this.column === fieldName;
+    },
+
+    /** Tests this leaf node for given column `Element` ownership.
+     * @param {function} Editor (leaf constructor)
+     * @returns {boolean}
+     */
+    findByEl: function(el) {
+        return this.el === el;
+    },
+
+    toJSON: function() {
         var state = {};
         if (this.editor) {
             state.editor = this.editor;
         }
-        for (var key in this.controls) {
+        for (var key in this.view) {
             state[key] = this[key];
         }
         if (!this.parent.nodeFields && this.fields !== this.parent.fields) {

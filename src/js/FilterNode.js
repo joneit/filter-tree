@@ -128,7 +128,7 @@ var FilterNode = Base.extend({
     setState: function(state) {
         var oldEl = this.el;
         this.newView();
-        this.load(state);
+        this.loadState(state);
         this.render();
         if (oldEl && !this.parent) {
             oldEl.parentNode.replaceChild(this.el, oldEl);

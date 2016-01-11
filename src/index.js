@@ -10,7 +10,7 @@ var unstrungify = require('unstrungify');
 
 var cssInjector = require('./js/css');
 var FilterNode = require('./js/FilterNode');
-var DefaultFilter = require('./js/FilterLeaf');
+var TerminalNode = require('./js/FilterLeaf');
 var template = require('./js/template');
 var operators = require('./js/tree-operators');
 
@@ -63,12 +63,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     editors: {
-        Default: DefaultFilter
+        Default: TerminalNode
     },
 
     addEditor: function(key, overrides) {
         if (overrides) {
-            this.editors[key] = DefaultFilter.extend(overrides);
+            this.editors[key] = TerminalNode.extend(overrides);
         } else {
             delete this.editors[key];
         }
@@ -79,55 +79,30 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
-    getState: unstrungify,
+    loadState: function(state) {
+        this.operator = 'op-and';
+        this.children = [];
 
-    getJSON: function() {
-        var ready = JSON.stringify(this, null, this.JSONspace);
-        return ready ? ready : '';
-    },
-
-    setJSON: function(json) {
-        this.setState(JSON.parse(json));
-    },
-
-    load: function(state) {
         if (!state) {
-            var filterEditorNames = Object.keys(this.editors),
-                onlyOneFilterEditor = filterEditorNames.length === 1;
-            this.children = onlyOneFilterEditor ? [new this.editors[filterEditorNames[0]]({
-                parent: this
-            })] : [];
-            this.operator = 'op-and';
+            this.add();
         } else {
             throwIfJSON(state);
 
-            // Validate `state.operator`
-            if (!(operators[state.operator] || state.operator === undefined && state.children.length === 1)) {
-                throw FilterNode.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
-            }
-            this.operator = state.operator;
-
-            // Validate `state.children`
+            // Validate `state.children` (required)
             if (!(state.children instanceof Array && state.children.length)) {
                 throw FilterNode.Error('Expected `children` property to be a non-empty array.');
             }
-            this.children = [];
-            var self = this;
-            state.children.forEach(function(state) { // eslint-disable-line no-shadow
-                var Constructor;
-                if (typeof state !== 'object') {
-                    throw self.Error('Expected child to be an object containing either `children`, `editor`, or neither.');
+
+            // Validate `state.operator` (if given)
+            if (state.operator) {
+                if (!operators[state.operator]) {
+                    throw FilterNode.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
                 }
-                if (state.children) {
-                    Constructor = FilterTree;
-                } else {
-                    Constructor = self.editors[state.editor || 'Default'];
-                }
-                self.children.push(new Constructor({
-                    state: state,
-                    parent: self
-                }));
-            });
+
+                this.operator = state.operator;
+            }
+
+            state.children.forEach(this.add.bind(this));
         }
     },
 
@@ -151,6 +126,83 @@ var FilterTree = FilterNode.extend('FilterTree', {
         FilterNode.prototype.render.call(this);
     },
 
+    /**
+     * Creates a new node as per `state`.
+     * > Note that terminal nodes ("conditionals") will only be as complete as
+     * @param {object} [state]
+     * * If `state` has a `children` property, will attempt to add a new subtree.
+     * * If `state` has an `editor` property, will create one (`this.editors[state.editor]`).
+     * * If `state` has neither (or was omitted), will create a new default editor (`this.editors.Default`).
+     */
+    add: function(state) {
+        var Constructor;
+
+        if (state && state.children) {
+            Constructor = FilterTree;
+        } else if (state && state.editor) {
+            Constructor = this.editors[state.editor];
+        } else {
+            Constructor = this.editors.Default;
+        }
+
+        this.children.push(new Constructor({
+            state: state,
+            parent: this
+        }));
+    },
+
+    /**
+     * Search the expression tree for a node with certain characteristics as described by the type of search (`type`) and the search args.
+     * @param {string} [type='find'] - Name of method to use on terminal nodes; characterizes the type of search. Must exist in your terminal node object.
+     * @param {boolean} [deep=false] - Must be explicit `true` or `false` (not merely truthy or falsy); or omitted.
+     * @param {*} firstSearchArg - May not be boolean type (accommodation to overload logic).
+     * @param {...*} [additionalSearchArgs]
+     * @returns {boolean|FilterLeaf|FilterTree}
+     * * `false` - Not found. (`true` is never returned.)
+     * * `FilterLeaf` (or instance of an object extended from same) - Sought node (typical).
+     * * 'FilterTree` - Sought node (rare).
+     */
+    find: function find(type, deep) {
+        var result, n, treeArgs = arguments, leafArgs;
+
+        if (arguments.length > 1 && typeof type === 'string') {
+            n = 1;
+        } else {
+            n = 0;
+            deep = type;
+            type = 'find';
+        }
+
+        if (typeof deep === 'boolean') {
+            n += 1;
+        } else {
+            deep = false;
+        }
+
+        leafArgs = Array.prototype.slice.call(arguments, n);
+
+        // TODO: Following could be broken out into separate method (like FilterLeaf)
+        if (type === 'findByEl' && this.el === leafArgs[0]) {
+            return this;
+        }
+
+        // walk tree recursively, ending on defined `result` (first node found)
+        return this.children.find(function(child) {
+            if (child) { // only recurse on undead children
+                if (child instanceof TerminalNode) {
+                    // always recurse on terminal nodes
+                    result = child[type].apply(child, leafArgs);
+                } else if (deep && child.children.length) {
+                    // only recurse on subtrees if going `deep` and not childless
+                    result = find.apply(child, treeArgs);
+                }
+                return result; // truthiness aborts find loop if set above
+            }
+
+            return false; // keep going // TODO: Couldn't this just be "return result" making the return above unnecessary?
+        });
+    },
+
     'filter-tree-op-choice': function(evt) {
         var radioButton = evt.target;
 
@@ -170,11 +222,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     'filter-tree-add-filter': function(evt) {
-        var filterEditorNames = Object.keys(this.editors);
-        if (filterEditorNames.length === 1) {
-            this.children.push(new this.editors[filterEditorNames[0]]({
-                parent: this
-            }));
+        if (Object.keys(this.editors).length === 1) {
+            this.add();
         } else {
             attachChooser.call(this, evt);
         }
@@ -187,17 +236,20 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     'filter-tree-remove': function(evt) {
-        var deleteButton = evt.target,
-            listItem = deleteButton.parentElement,
-            children = this.children,
-            el = deleteButton.nextElementSibling;
+        this.remove(evt.target.nextElementSibling, true);
+    },
 
-        children.forEach(function(child, idx) {
-            if (child.el === el) {
-                delete children[idx];
-                listItem.remove();
-            }
-        });
+    /** Removes a child node and it's .el; or vice-versa
+     * @param {Element|FilterNode} node
+     */
+    remove: function(node, deep) {
+        if (node instanceof Element) {
+            node = this.find('findByEl', !!deep, node);
+        }
+
+        delete this.children[this.children.indexOf(node)];
+
+        node.el.parentElement.remove(node.el);
     },
 
     /**
@@ -241,7 +293,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.children.find(function(child) {
             if (child) {
                 noChildrenDefined = false;
-                if (child instanceof DefaultFilter) {
+                if (child instanceof TerminalNode) {
                     result = operator.reduce(result, child.test(dataRow));
                 } else if (child.children.length) {
                     result = operator.reduce(result, test.call(child, dataRow));
@@ -255,6 +307,17 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return noChildrenDefined || (operator.negate ? !result : result);
     },
 
+    setJSON: function(json) {
+        this.setState(JSON.parse(json));
+    },
+
+    getState: unstrungify,
+
+    getJSON: function() {
+        var ready = JSON.stringify(this, null, this.JSONspace);
+        return ready ? ready : '';
+    },
+
     toJSON: function toJSON() {
         var state = {
             operator: this.operator,
@@ -263,7 +326,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         this.children.forEach(function(child) {
             if (child) {
-                if (child instanceof DefaultFilter) {
+                if (child instanceof TerminalNode) {
                     state.children.push(child);
                 } else if (child.children.length) {
                     var ready = toJSON.call(child);
@@ -289,7 +352,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.children.forEach(function(child, idx) {
             var op = idx ? ' ' + lexeme.op + ' ' : '';
             if (child) {
-                if (child instanceof DefaultFilter) {
+                if (child instanceof TerminalNode) {
                     where += op + child.getSqlWhereClause();
                 } else if (child.children.length) {
                     where += op + getSqlWhereClause.call(child);
@@ -352,7 +415,7 @@ function validate(focus) { // must be called with context
     }
 
     this.children.forEach(function(child) {
-        if (child instanceof DefaultFilter) {
+        if (child instanceof TerminalNode) {
             child.validate(focus);
         } else if (child.children.length) {
             validate.call(child, focus);

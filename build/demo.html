@@ -83,6 +83,22 @@
             font-style: italic;
             content: '(syntax error in dataRow, below)';
         }
+        .filter-box {
+            position: absolute;
+            left: 11px;
+            top: 39px;
+            width: 96px;
+            height: 9px;
+            background-color: transparent;
+            border: 2px solid transparent;
+            font-size: 9px;
+            text-align: center;
+        }
+        .filter-box.enable {
+            background-color: lightyellow;
+            border-color: black;
+            font-weight: bold;
+        }
     </style>
     <script src="filter-tree.js"></script>
 
@@ -90,7 +106,7 @@
 var filterTree;
 var quietValidation = {alert: false, focus: false};
 
-function autotest() {
+function auto() {
     if (document.getElementById('autoget').checked) {
         toJSON(quietValidation);
     }
@@ -102,7 +118,7 @@ function makeNewTree() {
     return new FilterTree({
         fields: getLiteral('fields'),
         json: document.getElementById('json-data').value,
-        eventHandler: autotest
+        eventHandler: auto
     });
 }
 
@@ -124,6 +140,58 @@ window.onload = function() {
     }
 
     document.getElementById('dataRow').addEventListener('keyup', test.bind(this, false));
+
+    var oldArg;
+
+    function enableEditor() {
+        oldArg = this.value;
+        this.classList.add('enable');
+        this.readOnly = false;
+        this.focus();
+    }
+    function disableEditor() {
+        this.classList.remove('enable');
+        this.value = this.value.trim();
+        this.readOnly = true;
+    }
+    function updateFilter() {
+        disableEditor.call(this);
+        var conditional = filterTree.find(this.name);
+        if (conditional) {
+            if (this.value === '') {
+                filterTree.remove(conditional.el);
+            } else {
+                var inputControl = conditional.view.value;
+                inputControl.value = this.value;
+            }
+        } else if (this.value !== '') {
+            filterTree.add({
+                column: this.name,
+                operator: '=',
+                value: this.value
+            });
+        }
+        auto();
+    }
+    const RETURN_KEY = 0x0d, ESCAPE_KEY = 0x1b;
+    function blurOnReturn(e) {
+        switch (e.keyCode) {
+            case RETURN_KEY:
+                this.onblur();
+                break;
+            case ESCAPE_KEY:
+                this.value = oldArg;
+                disableEditor.call(this);
+                break;
+        }
+    }
+
+    var els = document.querySelectorAll('.filter-box');
+    for (var i=0; i<els.length; ++i) {
+        els[i].ondblclick = enableEditor;
+        els[i].onblur = updateFilter;
+        els[i].onkeyup = blurOnReturn;
+    }
 };
 
 function initialize() {
@@ -201,39 +269,43 @@ function test(force) {
     }
 }
 
-// You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
+if (false) {
+    // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
 
-var DefaultEditor = FilterTree.prototype.editors.Default;
+    var DefaultEditor = FilterTree.prototype.editors.Default;
 
-FilterTree.prototype.addEditor('Columns', {
-    name: 'column : column',
-    newView() {
-        // Create and insert the three default elements (column, operator, value) into .el
-        DefaultEditor.prototype.newView.call(this);
+    FilterTree.prototype.addEditor('Columns', {
+        name: 'column ? column',
+        newView() {
+            // Create the `view` hash and insert the three default elements (`column`, `operator`, `value`) into `.el`
+            DefaultEditor.prototype.newView.call(this);
 
-        // Refer to the first element as `column1` instead of `column`
-        this.controls.column1 = this.el.firstElementChild;
-        delete this.controls.column;
+            // Remove the `value` element from the `view` hash
+            delete this.view.value;
 
-        // Clone the first element and call it `column2`
-        this.controls.column2 = this.el.firstElementChild.cloneNode(true);
-        delete this.controls.value;
+            // Clone the first element and call it `column2`
+            this.view.column2 = this.el.firstElementChild.cloneNode(true);
 
-        // Replace the 3rd element with the clone. There are no event listeners to worry about.
-        this.el.replaceChild(this.controls.column2, this.el.children[2]);
+            // Replace the 3rd element with the clone. There are no event listeners to worry about.
+            this.el.replaceChild(this.view.column2, this.el.children[2]);
 
-        //TODO: Remove string operators
-    },
-    p: function(dataRow) { return dataRow[this.column1]; },
-    q: function(dataRow) { return dataRow[this.column2]; },
-    getSqlWhereClause: function() {
-        return [
-            this.SQL_QUOTED_IDENTIFIER + this.column1 + this.SQL_QUOTED_IDENTIFIER,
-            this.op.sql,
-            this.SQL_QUOTED_IDENTIFIER + this.column2 + this.SQL_QUOTED_IDENTIFIER
-        ].join(' ');
-    }
-});
+            //TODO: Remove string operators
+        },
+        p: function(dataRow) {
+            return dataRow[this.column1];
+        },
+        q: function(dataRow) {
+            return dataRow[this.column2];
+        },
+        getSqlWhereClause: function() {
+            return [
+                this.SQL_QUOTED_IDENTIFIER + this.column1 + this.SQL_QUOTED_IDENTIFIER,
+                this.op.sql,
+                this.SQL_QUOTED_IDENTIFIER + this.column2 + this.SQL_QUOTED_IDENTIFIER
+            ].join(' ');
+        }
+    });
+}
     </script>
 </head>
 <body>
@@ -254,7 +326,7 @@ FilterTree.prototype.addEditor('Columns', {
 
     <fieldset>
         <legend><code>filterJSON</code></legend>
-        <input type="button" value="... = filter.getJSON()" onclick="toJSON()"
+        <input type="button" value="filterJSON = filter.getJSON()" onclick="toJSON()"
          title="Generate JSON describing the filter expression in the UI."/>
         <label style="float:right; font-size:10pt"
          title="Automatically regenerate the JSON on any manual change to the UI.">
@@ -291,13 +363,13 @@ FilterTree.prototype.addEditor('Columns', {
    ]
 }</textarea>
         <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>, with all property names and strings in double-quotes)</p>
-        <input type="button" value="filter.setJSON(...)" onclick="fromJSON()" style="margin-top:.7em"
+        <input type="button" value="filter.setJSON(filterJSON)" onclick="fromJSON()" style="margin-top:.7em"
                title="Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
 
     <fieldset>
         <legend>SQL <code>WHERE</code> clause describing filter expression</legend>
-        <input type="button" value="... = getSqlWhereClause()" onclick="getSqlWhereClause(true)" />
+        <input type="button" value="WHERE = getSqlWhereClause()" onclick="getSqlWhereClause(true)" />
         <label style="float:right; font-size:10pt"
          title="Automatically regenerate the SQL on any manual change to the UI.">
             <input type="checkbox" id="autowhere" checked onclick="if(this.checked)getSqlWhereClause()"/>Auto
@@ -322,6 +394,17 @@ FilterTree.prototype.addEditor('Columns', {
     </fieldset>
 
 </td><td>
+
+    <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(img/filters.png); background-size:100%; background-repeat: no-repeat">
+        <input name="LastName" class="filter-box" readonly autocomplete="off" />
+        <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" />
+    </div>
+
+    <div style="display: inline-block; white-space: nowrap; font-size:small; vertical-align: middle; color: red; padding-bottom: 2em">
+        &nbsp; &#x27f8; &nbsp; <em>double-click these filters!</em>
+    </div>
+
+    <br/><br/>
 
     <fieldset id="filter" style="white-space:nowrap; height:635px">
         <legend>Filter expression user interface</legend>

@@ -3,7 +3,7 @@ Complex table filter expressions with GUI editor
 
 ## Synopsis
 
-To initialize and optionally load persisted state"
+To initialize and optionally load persisted state:
 
 ```javascript
 var fields = ['FirstName', 'LastName', 'Date of Birth'];
@@ -15,10 +15,28 @@ var filter = new FilterTree({
 document.getElementById('filter').appendChild(filter.el);
 ```
 
-to (re)load persisted state to previously instantiated `filter`:
+to load or reload from saved state:
 
 ```javascript
-filter.fromJSON(myPersistedFilterObject);
+filter.setState(myFilterStateObject);
+
+// or:
+
+filter.setJSON(myFilterStateJSONstring);
+```
+
+to get state to save:
+
+```javascript
+if (!filter.validate()) { // `undefined` means valid (otherwise returns error message string)
+    // an object to hold in memory for subsequent reloading
+    myFilterStateObject = filter.getState();
+    
+    // or:
+    
+    // a string to persist to storage
+    myFilterStateJSONstring = JSON.stringify(filter);
+}
 ```
 
 to test against data:
@@ -26,14 +44,6 @@ to test against data:
 ```javascript
 var myDataObject = { LastName: 'Spade', FirstName: 'Sam', 'Date of Birth': 1910 };
 filer.test(myDataObject); // `true` if data consistent with filter logic
-```
-
-to get state to persist:
-
-```javascript
-if (!filter.validate()) { // `undefined` means valid (otherwise returns error message string)
-    JSON.stringify(filter); // a string to persist
-}
 ```
 
 ### API documentation
