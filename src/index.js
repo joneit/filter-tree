@@ -444,7 +444,6 @@ function attachChooser(evt) { // must be called with context
 
     editors.forEach(function(key) {
         var name = tree.editors[key].prototype.name || key;
-        name = name.replace('?', '\u225F'); // make question mark into "? over equals" UNICODE char
         chooser.add(new Option(name, key));
     });
 

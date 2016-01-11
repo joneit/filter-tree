@@ -106,9 +106,9 @@
 var filterTree;
 var quietValidation = {alert: false, focus: false};
 
-function auto() {
+function auto(evt) {
     if (document.getElementById('autoget').checked) {
-        toJSON(quietValidation);
+        toJSON(false);
     }
     getSqlWhereClause();
     test();
@@ -151,24 +151,27 @@ window.onload = function() {
     }
     function disableEditor() {
         this.classList.remove('enable');
-        this.value = this.value.trim();
         this.readOnly = true;
     }
+    var reCellFilter = /^(([<≤≠≥>=]\s*)|(<=)|(>=)|(<>)|((NOT\s+)?(IN|CONTAINS|BEGINS|ENDS|LIKE)\s+))?(.*)$/i;
     function updateFilter() {
+        var parts = (this.value = this.value.trim()).match(reCellFilter),
+            literal = parts[parts.length - 1],
+            operator = parts[1].trim().toUpperCase() || '=';
         disableEditor.call(this);
         var conditional = filterTree.find(this.name);
         if (conditional) {
-            if (this.value === '') {
+            if (literal === '') {
                 filterTree.remove(conditional.el);
             } else {
-                var inputControl = conditional.view.value;
-                inputControl.value = this.value;
+                conditional.view.literal.value = literal;
+                conditional.view.operator.value = operator;
             }
-        } else if (this.value !== '') {
+        } else if (literal !== '') {
             filterTree.add({
                 column: this.name,
-                operator: '=',
-                value: this.value
+                operator: operator,
+                literal: literal
             });
         }
         auto();
@@ -227,7 +230,7 @@ function validate() {
     return filterTree.validate();
 }
 
-function toJSON(validateOptions) {
+function toJSON(validate) {
     var valid = !filterTree.validate(validateOptions);
     if (valid) {
         filterTree.JSONspace = 3; // make it pretty
@@ -248,7 +251,10 @@ function fromJSON() {
 }
 
 function getSqlWhereClause(force) {
-    if (force || (document.getElementById('autowhere').checked && !filterTree.validate(!force && quietValidation))) {
+    if (
+        (force || document.getElementById('autowhere').checked) &&
+        !filterTree.validate(!force && quietValidation)
+    ) {
         document.getElementById('SQL').value = filterTree.getSqlWhereClause();
         console.log()
     }
@@ -269,19 +275,23 @@ function test(force) {
     }
 }
 
-if (false) {
+function querystringHasParam(param) {
+    return new RegExp('[\\?&]' + param + '[\\?&=]|[\\?&]' + param + '$').test(location.search);
+}
+
+if (querystringHasParam('cc')) {
     // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
 
     var DefaultEditor = FilterTree.prototype.editors.Default;
 
     FilterTree.prototype.addEditor('Columns', {
-        name: 'column ? column',
+        name: 'Compare one column to another',
         newView() {
-            // Create the `view` hash and insert the three default elements (`column`, `operator`, `value`) into `.el`
+            // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
             DefaultEditor.prototype.newView.call(this);
 
-            // Remove the `value` element from the `view` hash
-            delete this.view.value;
+            // Remove the `literal` element from the `view` hash
+            delete this.view.literal;
 
             // Clone the first element and call it `column2`
             this.view.column2 = this.el.firstElementChild.cloneNode(true);
@@ -289,20 +299,20 @@ if (false) {
             // Replace the 3rd element with the clone. There are no event listeners to worry about.
             this.el.replaceChild(this.view.column2, this.el.children[2]);
 
-            //TODO: Remove string operators
+            var select = this.view.operator,
+                optgroups = select.querySelectorAll('optgroup:not([label$=quality])');
+            for (var i = 0; i < optgroups.length; ++i) {
+                select.removeChild(optgroups[i]);
+            }
         },
         p: function(dataRow) {
-            return dataRow[this.column1];
+            return dataRow[this.column];
         },
         q: function(dataRow) {
             return dataRow[this.column2];
         },
         getSqlWhereClause: function() {
-            return [
-                this.SQL_QUOTED_IDENTIFIER + this.column1 + this.SQL_QUOTED_IDENTIFIER,
-                this.op.sql,
-                this.SQL_QUOTED_IDENTIFIER + this.column2 + this.SQL_QUOTED_IDENTIFIER
-            ].join(' ');
+            return this.op.sql(this.column, { identifier: this.column2 });
         }
     });
 }
@@ -338,7 +348,7 @@ if (false) {
       {
          "column": "LastName",
          "operator": "=",
-         "value": "Clinton"
+         "literal": "Clinton"
       },
       {
          "operator": "op-or",
@@ -346,17 +356,17 @@ if (false) {
             {
                "column": "DOB",
                "operator": "<",
-               "value": "1/1/1950"
+               "literal": "1/1/1950"
             },
             {
                "column": "Age",
                "operator": "=",
-               "value": "69"
+               "literal": "69"
             },
             {
                "column": "BirthState",
                "operator": "=",
-               "value": "Arkansas"
+               "literal": "Arkansas"
             }
          ]
       }

@@ -24,11 +24,7 @@ var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
-    name: 'column ? value',
-
-    preInitialize: function() {
-        this.onChange = cleanUpAndMoveOn.bind(this);
-    },
+    name: 'Compare a column to a value',
 
     operators: operators,
     operatorOptions: operators.options,
@@ -51,7 +47,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      *
      * * `this.view.column` - A drop-down with options from `this.fields`. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
      * * `this.view.operator` - A drop-down with options from {@link leafOperators}. Value is one of the keys therein.
-     * * `this.view.value` - A text box.
+     * * `this.view.literal` - A text box.
      *
      *  > Prototypes extended from `FilterLeaf` may have different controls as needed. The only required control is `column`, which all such "editors" must support.
      */
@@ -68,7 +64,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         this.view = {
             column: this.makeElement(root, fields, 'column', true),
             operator: this.makeElement(root, this.operatorOptions, 'operator'),
-            value: this.makeElement(root)
+            literal: this.makeElement(root)
         };
 
         root.appendChild(document.createElement('br'));
@@ -107,6 +103,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             tagName = options ? 'select' : 'input';
 
         if (options && options.length === 1) {
+            // hard text when there would be only 1 option in the dropdown
             option = options[0];
 
             el = document.createElement('input');
@@ -123,7 +120,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
-            this.el.addEventListener('change', this.onChange);
+            this.el.addEventListener('change', this.onChange = this.onChange || cleanUpAndMoveOn.bind(this));
             FilterNode.setWarningClass(el);
             container.appendChild(el);
         }
@@ -234,7 +231,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
-    q: function() { return this.value; },
+    q: function() { return this.literal; },
 
     test: function(dataRow) {
         var p, q, // untyped versions of args
@@ -284,11 +281,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     getSqlWhereClause: function() {
-        return this.SQL_QUOTED_IDENTIFIER + this.column + this.SQL_QUOTED_IDENTIFIER + ' ' + (
-            typeof this.op.sql === 'function'
-                ? this.op.sql(this.value)
-                : (this.op.sql || this.operator) + operators.sq(this.value)
-        );
+        return this.op.sql(this.column, this.literal);
     }
 });
 

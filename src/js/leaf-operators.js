@@ -8,72 +8,77 @@ var LIKE = 'LIKE ',
 
 var leafOperators = {
     '<': {
-        test: function(a, b) { return a < b; }
+        test: function(a, b) { return a < b; },
+        sql: sqlDiadic.bind(this, '<')
     },
     '\u2264': {
         test: function(a, b) { return a <= b; },
-        sql: '<='
+        sql: sqlDiadic.bind(this, '<=')
     },
     '=': {
-        test: function(a, b) { return a === b; }
+        test: function(a, b) { return a === b; },
+        sql: sqlDiadic.bind(this, '=')
     },
     '\u2265': {
         test: function(a, b) { return a >= b; },
-        sql: '>='
+        sql: sqlDiadic.bind(this, '>=')
     },
     '>': {
-        test: function(a, b) { return a > b; }
+        test: function(a, b) { return a > b; },
+        sql: sqlDiadic.bind(this, '>')
     },
     '\u2260': {
         test: function(a, b) { return a !== b; },
-        sql: '<>'
+        sql: sqlDiadic.bind(this, '<>')
     },
     LIKE: {
         test: function(a, b) { return regExpLIKE.cached(b, true).test(a); },
+        sql: sqlDiadic.bind(this, 'LIKE'),
         type: 'string'
     },
     'NOT LIKE': {
         test: function(a, b) { return !regExpLIKE.cached(b, true).test(a); },
+        sql: sqlDiadic.bind(this, 'NOT LIKE'),
         type: 'string'
     },
     IN: { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) >= 0; },
-        sql: sqlIN,
+        sql: sqlIN.bind('IN'),
         type: 'string'
     },
     'NOT IN': { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) < 0; },
-        sql: sqlNotIN,
+        sql: sqlIN.bind('NOT IN'),
         type: 'string'
     },
     CONTAINS: {
         test: function(a, b) { return containsOp(a, b) >= 0; },
-        sql: sqlLkeExpression.bind(this, LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE),
+        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE),
         type: 'string'
     },
     'NOT CONTAINS': {
         test: function(a, b) { return containsOp(a, b) < 0; },
-        sql: sqlLkeExpression.bind(this, LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE),
+        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE),
         type: 'string'
     },
     BEGINS: {
         test: function(a, b) { b = b.toString().toLowerCase(); return beginsOp(a, b.length) === b; },
-        sql: sqlLkeExpression.bind(this, '', LIKE_WILD_CARD, LIKE),
+        sql: sqlLIKE.bind(this, '', LIKE_WILD_CARD, LIKE),
         type: 'string'
     },
     'NOT BEGINS': {
         test: function(a, b) { b = b.toString().toLowerCase(); return beginsOp(a, b.length) !== b; },
-        sql: sqlLkeExpression.bind(this, '', LIKE_WILD_CARD, NOT_LIKE),
+        sql: sqlLIKE.bind(this, '', LIKE_WILD_CARD, NOT_LIKE),
         type: 'string'
     },
     ENDS: {
         test: function(a, b) { b = b.toString().toLowerCase(); return endsOp(a, b.length) === b; },
-        sql: sqlLkeExpression.bind(this, LIKE_WILD_CARD, '', LIKE),
+        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, '', LIKE),
         type: 'string'
     },
     'NOT ENDS': {
         test: function(a, b) { b = b.toString().toLowerCase(); return endsOp(a, b.length) !== b; },
-        sql: sqlLkeExpression.bind(this, LIKE_WILD_CARD, '', NOT_LIKE),
+        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, '', NOT_LIKE),
         type: 'string'
     }
 };
@@ -96,6 +101,39 @@ function beginsOp(a, length) {
 
 function endsOp(a, length) {
     return a.toString().toLowerCase().substr(-length, length);
+}
+
+function sqlLIKE(beg, end, LIKE_OR_NOT_LIKE, a, likePattern) {
+    var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
+    return identifier(a) + ' ' + LIKE_OR_NOT_LIKE + ' ' + getSqlString(beg + escaped + end);
+}
+
+function sqlIN(op, a, b) {
+    return identifier(a) + ' ' + op + ' (\'' + sqEsc(b).replace(/\s*,\s*/g, '\', \'') + '\')';
+}
+
+function identifier(s) {
+    return s.literal ? getSqlString(s.literal) : getSqlIdentifier(s.identifier ? s.identifier : s);
+}
+
+function literal(s) {
+    return s.identifier ? getSqlIdentifier(s.identifier) : getSqlString(s.literal ? s.literal : s);
+}
+
+function sqlDiadic(op, a, b) {
+    return identifier(a) + op + literal(b);
+}
+
+function sqEsc(string) {
+    return string.replace(/'/g, '\'\'');
+}
+
+function getSqlString(string) {
+    return '\'' + sqEsc(string) + '\'';
+}
+
+function getSqlIdentifier(id) {
+    return '\"' + sqEsc(id) + '\"';
 }
 
 // List the operators as drop-down options in an hierarchical array (rendered as option groups):
@@ -129,28 +167,5 @@ leafOperators.options = [
     strings,
     patterns
 ];
-
-function sqlLkeExpression(beg, end, LIKE_OR_NOT_LIKE, likePattern) {
-    var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
-    return LIKE_OR_NOT_LIKE + sq(beg + escaped + end);
-}
-
-function sqlIN(b) {
-    return 'IN (\'' + sqEsc(b).replace(/\s*,\s*/g, '\', \'') + '\')';
-}
-
-function sqlNotIN(b) {
-    return 'NOT ' + sqlIN(b);
-}
-
-function sqEsc(sqlString) {
-    return sqlString.replace(/'/g, '\'\'');
-}
-
-function sq(sqlString) {
-    return ' \'' + sqEsc(sqlString) + '\'';
-}
-
-leafOperators.sq = sq;
 
 module.exports = leafOperators;
