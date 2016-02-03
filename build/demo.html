@@ -286,7 +286,7 @@ if (querystringHasParam('cc')) {
 
     FilterTree.prototype.addEditor('Columns', {
         name: 'Compare one column to another',
-        newView() {
+        newView: function() {
             // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
             DefaultEditor.prototype.newView.call(this);
 
