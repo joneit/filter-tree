@@ -21,8 +21,7 @@
     font-size: 90%;
 }
 .filter-tree-add-filter {
-    margin: 3px 0 3px 3em;
-    width: 120px;
+    margin: 3px 0;
     display: inline-block;
 }
 .filter-tree-add-filter:hover, .filter-tree-add:hover {
@@ -70,6 +69,10 @@
 }
 
 .filter-tree > ol > li:last-child::after { display: none }
+
+.filter-tree-add-filter, .filter-tree-add, .op-or > ol, .op-and > ol, .op-nor > ol {
+    padding-left: 32px;
+}
 
 .op-or > ol > li::after {
     margin-left: 2.5em;

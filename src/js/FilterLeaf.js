@@ -29,6 +29,14 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     operators: operators,
     operatorOptions: operators.options,
 
+    postInitialize: function() {
+        var el = this.view.column;
+        if (!el.value) {
+            // For empty (i.e., new) controls, simulate a click a beat after rendering
+            setTimeout(function() { FilterNode.clickIn(el); }, 700);
+        }
+    },
+
     destroy: function() {
         if (this.view) {
             for (var key in this.view) {
@@ -51,7 +59,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      *
      *  > Prototypes extended from `FilterLeaf` may have different controls as needed. The only required control is `column`, which all such "editors" must support.
      */
-    newView: function() {
+    createView: function() {
         var fields = this.parent.nodeFields || this.fields;
 
         if (!fields) {
@@ -128,7 +136,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return el;
     },
 
-    loadState: function(state) {
+    loadState: function() {
+        var state = this.state;
+
         if (state) {
             var value, el, i, b, selected, notes = [];
             for (var key in state) {
@@ -193,10 +203,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * Copies all `this.view`' values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.op` and `this.converter` for use in `test`'s tree walk.
      *
-     * @param {boolean} focus - Move focus to offending control.
+     * @param {boolean} [options.focus=false] - Move focus to offending control.
      * @returns {undefined} if valid
      */
-    validate: function(focus) {
+    validate: function(options) {
         var elementName, fields, field;
 
         for (elementName in this.view) {
@@ -204,7 +214,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 value = controlValue(el).trim();
 
             if (value === '') {
-                if (focus) { clickIn(el); }
+                var focus = options && options.focus;
+                if (focus || focus === undefined) { clickIn(el); }
                 throw new FilterNode.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
             } else {
                 // Copy each controls's value as a new similarly named property of this object.
@@ -313,15 +324,17 @@ function cleanUpAndMoveOn(evt) {
     // set or remove 'warning' CSS class, as per el.value
     FilterNode.setWarningClass(el);
 
-    // find next sibling control, if any
-    if (!el.multiple && el.value) {
-        while ((el = el.nextElementSibling) && (!('name' in el) || el.value.trim() !== '')); // eslint-disable-line curly
-    }
+    if (el.value) {
+        // find next sibling control, if any
+        if (!el.multiple) {
+            while ((el = el.nextElementSibling) && (!('name' in el) || el.value.trim() !== '')); // eslint-disable-line curly
+        }
 
-    // and click in it (opens select list)
-    if (el && el.value.trim() === '') {
-        el.value = ''; // rid of any white space
-        FilterNode.clickIn(el);
+        // and click in it (opens select list)
+        if (el && el.value.trim() === '') {
+            el.value = ''; // rid of any white space
+            FilterNode.clickIn(el);
+        }
     }
 
     if (this.eventHandler) {

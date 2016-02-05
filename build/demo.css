@@ -1,0 +1,100 @@
+* {
+    outline: none;
+}
+body {
+    font-family: sans-serif;
+}
+code {
+    font-weight: bold;
+    font-style: normal;
+    font-size: large;
+    margin: 0 .25em;
+}
+textarea {
+    display: block;
+    margin: 1em 0 3px 0;
+    width: 100%;
+}
+textarea.warn {
+    background-color: #Fcc;
+}
+input[type='button'] {
+    border: 0;
+    background-color: #777;
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 4px 10px;
+    letter-spacing: .5px;
+    font-family: monospace;
+    border: 1px transparent solid;
+    box-sizing: border-box;
+}
+input[type='button']:active {
+    background-color: #bbb;
+    color: black;
+    border: 1px #555 solid;
+}
+fieldset {
+    margin-bottom: 1.5em;
+    background-color: #f8f8ff;
+    padding-top: .75em;
+    border-radius: 5px;
+    box-shadow: 4px 4px 10px #aaa;
+}
+legend {
+    font-size: smaller;
+    font-style: italic;
+    background-color: ivory;
+    border: 1px #555 solid;
+    padding: 3px 8px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px grey;
+}
+td {
+    vertical-align: top;
+    padding: .5em;
+    width: 50%;
+}
+fieldset > p {
+    font-size: 8pt;
+    margin: 0;
+}
+.false, .true {
+    font-weight: bold
+}
+.false:before {
+    color: #c00;
+    content: 'exclude';
+}
+.true:before {
+    color: #0a0;
+    content: 'include';
+}
+.invalid-filter:before {
+    font-style: italic;
+    content: '(invalid filter expression, right)';
+}
+.invalid-data:before {
+    font-style: italic;
+    content: '(syntax error in dataRow, below)';
+}
+.filter-box {
+    position: absolute;
+    left: 11px;
+    top: 39px;
+    width: 96px;
+    height: 11px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    font-size: 10px;
+    text-align: center;
+}
+.filter-box.enable {
+    background-color: lightyellow;
+    border-color: black;
+    font-weight: bold;
+}
+input + em {
+    font-size: smaller;
+}

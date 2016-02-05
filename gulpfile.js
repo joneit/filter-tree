@@ -46,12 +46,12 @@ gulp.task('watch', function () {
         srcDir + '**',
         '!' + srcDir + 'js/css.js',
         testDir + '**',
-        buildDir + 'demo.html'
+        buildDir + '*'
     ], [
         'build'
     ]);
     gulp.watch([
-        buildDir + name + '.js'
+        buildDir + 'lib/' + name + '.js'
     ], [
         'reload'
     ]);
@@ -75,7 +75,7 @@ function cssToJsFn(filePath, file) {
 }
 
 function lint() {
-    return gulp.src(srcDir + '**/*.js')
+    return gulp.src([srcDir + '**/*.js', buildDir + '*.js'])
         .pipe($$.excludeGitignore())
         .pipe($$.eslint())
         .pipe($$.eslint.format())
@@ -130,7 +130,7 @@ function browserify() {
                     .on('error', $$.util.log)
             )
         ))
-        .pipe(gulp.dest(buildDir));
+        .pipe(gulp.dest(buildDir + 'lib/'));
 }
 
 function doc(callback) {

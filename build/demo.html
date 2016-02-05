@@ -3,320 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Test harness for filter-tree.js</title>
-
-    <style>
-        * {
-            outline: none;
-        }
-        body {
-            font-family: sans-serif;
-        }
-        code {
-            font-weight: bold;
-            font-style: normal;
-            font-size: large;
-            margin: 0 .25em;
-        }
-        textarea {
-            display: block;
-            margin: 1em 0 3px 0;
-            width: 100%;
-        }
-        input[type='button'] {
-            border: 0;
-            background-color: #777;
-            color: white;
-            font-weight: bold;
-            border-radius: 10px;
-            padding: 4px 10px;
-            letter-spacing: .5px;
-            font-family: monospace;
-            border: 1px transparent solid;
-            box-sizing: border-box;
-        }
-        input[type='button']:active {
-            background-color: #bbb;
-            color: black;
-            border: 1px #555 solid;
-        }
-        fieldset {
-            margin-bottom: 1.5em;
-            background-color: #f8f8ff;
-            padding-top: .75em;
-            border-radius: 5px;
-            box-shadow: 4px 4px 10px #aaa;
-        }
-        legend {
-            font-size: smaller;
-            font-style: italic;
-            background-color: ivory;
-            border: 1px #555 solid;
-            padding: 3px 8px;
-            border-radius: 5px;
-            box-shadow: 2px 2px 5px grey;
-        }
-        td {
-            vertical-align: top;
-            padding: .5em;
-            width: 50%;
-        }
-        fieldset > p {
-            font-size: 8pt;
-            margin: 0;
-        }
-        .false, .true {
-            font-weight: bold
-        }
-        .false:before {
-            color: #c00;
-            content: 'exclude';
-        }
-        .true:before {
-            color: #0a0;
-            content: 'include';
-        }
-        .invalid-filter:before {
-            font-style: italic;
-            content: '(invalid filter expression, right)';
-        }
-        .invalid-data:before {
-            font-style: italic;
-            content: '(syntax error in dataRow, below)';
-        }
-        .filter-box {
-            position: absolute;
-            left: 11px;
-            top: 39px;
-            width: 96px;
-            height: 9px;
-            background-color: transparent;
-            border: 2px solid transparent;
-            font-size: 9px;
-            text-align: center;
-        }
-        .filter-box.enable {
-            background-color: lightyellow;
-            border-color: black;
-            font-weight: bold;
-        }
-    </style>
-    <script src="filter-tree.js"></script>
-
-    <script>
-var filterTree;
-var quietValidation = {alert: false, focus: false};
-
-function auto(evt) {
-    if (document.getElementById('autoget').checked) {
-        toJSON(false);
-    }
-    getSqlWhereClause();
-    test();
-}
-
-function makeNewTree() {
-    return new FilterTree({
-        fields: getLiteral('fields'),
-        json: document.getElementById('json-data').value,
-        eventHandler: auto
-    });
-}
-
-window.onload = function() {
-    try {
-        filterTree = makeNewTree();
-    } catch(e) {
-        if (!(e instanceof SyntaxError)) { throw e; }
-        alert('Bad JSON format:\n\n' + e);
-        return;
-    }
-
-    document.getElementById('filter').appendChild(filterTree.el);
-
-    if (!filterTree.validate({ alert: false }))
-    {
-        document.getElementById('SQL').value = filterTree.getSqlWhereClause();
-        test();
-    }
-
-    document.getElementById('dataRow').addEventListener('keyup', test.bind(this, false));
-
-    var oldArg;
-
-    function enableEditor() {
-        oldArg = this.value;
-        this.classList.add('enable');
-        this.readOnly = false;
-        this.focus();
-    }
-    function disableEditor() {
-        this.classList.remove('enable');
-        this.readOnly = true;
-    }
-    var reCellFilter = /^(([<≤≠≥>=]\s*)|(<=)|(>=)|(<>)|((NOT\s+)?(IN|CONTAINS|BEGINS|ENDS|LIKE)\s+))?(.*)$/i;
-    function updateFilter() {
-        var parts = (this.value = this.value.trim()).match(reCellFilter),
-            literal = parts[parts.length - 1],
-            operator = parts[1].trim().toUpperCase() || '=';
-        disableEditor.call(this);
-        var conditional = filterTree.find(this.name);
-        if (conditional) {
-            if (literal === '') {
-                filterTree.remove(conditional.el);
-            } else {
-                conditional.view.literal.value = literal;
-                conditional.view.operator.value = operator;
-            }
-        } else if (literal !== '') {
-            filterTree.add({
-                column: this.name,
-                operator: operator,
-                literal: literal
-            });
-        }
-        auto();
-    }
-    const RETURN_KEY = 0x0d, ESCAPE_KEY = 0x1b;
-    function blurOnReturn(e) {
-        switch (e.keyCode) {
-            case RETURN_KEY:
-                this.onblur();
-                break;
-            case ESCAPE_KEY:
-                this.value = oldArg;
-                disableEditor.call(this);
-                break;
-        }
-    }
-
-    var els = document.querySelectorAll('.filter-box');
-    for (var i=0; i<els.length; ++i) {
-        els[i].ondblclick = enableEditor;
-        els[i].onblur = updateFilter;
-        els[i].onkeyup = blurOnReturn;
-    }
-};
-
-function initialize() {
-    try {
-        var newTree = makeNewTree();
-    } catch(e) {
-        if (!(e instanceof SyntaxError)) { throw e; }
-        alert('Bad JSON format:\n\n' + e);
-        return;
-    }
-
-    document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
-    filterTree = newTree;
-}
-
-function getLiteral(id, options) {
-    options = options || {};
-
-    var alert = options.alert === undefined || options.alert,
-        value = document.getElementById(id).value;
-
-    try {
-        var x;
-        return eval('x = ' + value);
-    } catch(e) {
-        if (alert) {
-            window.alert('Bad ' + id + ' JavaScript literal!');
-        }
-    }
-}
-
-function validate() {
-    return filterTree.validate();
-}
-
-function toJSON(validate) {
-    var valid = !filterTree.validate(validateOptions);
-    if (valid) {
-        filterTree.JSONspace = 3; // make it pretty
-        document.getElementById('json-data').value = filterTree.getJSON();
-    }
-    return valid;
-}
-
-function fromJSON() {
-    try {
-        filterTree.setJSON(document.getElementById('json-data').value);
-    } catch(e) {
-        if (!(e instanceof SyntaxError)) { throw e; }
-        alert('Bad JSON format:\n\n' + e);
-        return;
-    }
-    test();
-}
-
-function getSqlWhereClause(force) {
-    if (
-        (force || document.getElementById('autowhere').checked) &&
-        !filterTree.validate(!force && quietValidation)
-    ) {
-        document.getElementById('SQL').value = filterTree.getSqlWhereClause();
-        console.log()
-    }
-}
-
-function test(force) {
-    if (force || document.getElementById('autotest').checked) {
-        var result, data,
-            options = !force && quietValidation;
-        if (filterTree.validate(options)) {
-            result = 'invalid-filter';
-        } else if (!(data = getLiteral('dataRow', options))) {
-            result = 'invalid-data';
-        } else {
-            result = filterTree.test(data);
-        }
-        document.getElementById('test-result').className = result;
-    }
-}
-
-function querystringHasParam(param) {
-    return new RegExp('[\\?&]' + param + '[\\?&=]|[\\?&]' + param + '$').test(location.search);
-}
-
-if (querystringHasParam('cc')) {
-    // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
-
-    var DefaultEditor = FilterTree.prototype.editors.Default;
-
-    FilterTree.prototype.addEditor('Columns', {
-        name: 'Compare one column to another',
-        newView: function() {
-            // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
-            DefaultEditor.prototype.newView.call(this);
-
-            // Remove the `literal` element from the `view` hash
-            delete this.view.literal;
-
-            // Clone the first element and call it `column2`
-            this.view.column2 = this.el.firstElementChild.cloneNode(true);
-
-            // Replace the 3rd element with the clone. There are no event listeners to worry about.
-            this.el.replaceChild(this.view.column2, this.el.children[2]);
-
-            var select = this.view.operator,
-                optgroups = select.querySelectorAll('optgroup:not([label$=quality])');
-            for (var i = 0; i < optgroups.length; ++i) {
-                select.removeChild(optgroups[i]);
-            }
-        },
-        p: function(dataRow) {
-            return dataRow[this.column];
-        },
-        q: function(dataRow) {
-            return dataRow[this.column2];
-        },
-        getSqlWhereClause: function() {
-            return this.op.sql(this.column, { identifier: this.column2 });
-        }
-    });
-}
-    </script>
+    <link rel="stylesheet" href="demo.css"/>
+    <script src="lib/filter-tree.js"></script>
+    <script src="demo.js"></script>
 </head>
 <body>
 <table style="width:100%"><tr><td>
@@ -336,7 +25,7 @@ if (querystringHasParam('cc')) {
 
     <fieldset>
         <legend><code>filterJSON</code></legend>
-        <input type="button" value="filterJSON = filter.getJSON()" onclick="toJSON()"
+        <input type="button" value="filterJSON = filter.getJSON() // serialize the UI state" onclick="toJSON()"
          title="Generate JSON describing the filter expression in the UI."/>
         <label style="float:right; font-size:10pt"
          title="Automatically regenerate the JSON on any manual change to the UI.">
@@ -345,11 +34,6 @@ if (querystringHasParam('cc')) {
         <textarea id="json-data" rows="6">{
    "operator": "op-and",
    "children": [
-      {
-         "column": "LastName",
-         "operator": "=",
-         "literal": "Clinton"
-      },
       {
          "operator": "op-or",
          "children": [
@@ -362,18 +46,13 @@ if (querystringHasParam('cc')) {
                "column": "Age",
                "operator": "=",
                "literal": "69"
-            },
-            {
-               "column": "BirthState",
-               "operator": "=",
-               "literal": "Arkansas"
             }
          ]
       }
    ]
 }</textarea>
-        <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>, with all property names and strings in double-quotes)</p>
-        <input type="button" value="filter.setJSON(filterJSON)" onclick="fromJSON()" style="margin-top:.7em"
+        <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>), with all property names and strings in double-quotes)</p>
+        <input type="button" value="filter.setJSON(filterJSON) // reset the UI state to match" onclick="fromJSON()" style="margin-top:.7em"
                title="Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
 
@@ -403,15 +82,29 @@ if (querystringHasParam('cc')) {
     <p>Format: JavaScript object literal syntax</p>
     </fieldset>
 
-</td><td>
+</td><td style="white-space:nowrap">
 
     <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(filters.png); background-size:100%; background-repeat: no-repeat">
         <input name="LastName" class="filter-box" readonly autocomplete="off" />
         <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" />
     </div>
 
-    <div style="display: inline-block; white-space: nowrap; font-size:small; vertical-align: middle; color: red; padding-bottom: 2em">
-        &nbsp; &#x27f8; &nbsp; <em>double-click these filters!</em>
+    <div style="display: inline-block; font-size: small; margin-left: 1em">
+        <div style="color: red">
+            <em style="margin-left:2.5em">click</em><br/>
+            <em style="margin-left:2.5em">these</em><br/>
+            &#x27f8; &nbsp; <em>filters!</em>
+        </div>
+        <div style="font-size:xx-small">&nbsp;</div>
+    </div>
+
+    <div style="display: inline-block; white-space: nowrap; margin-left: 1em; font-size: 9pt; text-align: center; border:1px solid grey;padding-bottom:2px">
+        <div style="margin-bottom: 3px; padding-bottom: 3px; padding-top:2px; background-color:grey; color:white; font-weight:bold">examples:</div>
+        <code style="font-size: 8pt; letter-spacing: 1px; font-weight: normal">
+            50<br/>
+            < 50<br/>
+            &nbsp;>=A and <=L&nbsp;<br/>
+        </code>
     </div>
 
     <br/><br/>

@@ -3,6 +3,7 @@
 'use strict';
 
 var extend = require('extend-me');
+var _ = require('object-iterators');
 var Base = extend.Base;
 
 var template = require('./template');
@@ -11,6 +12,32 @@ extend.debug = true;
 
 var CHILDREN_TAG = 'OL',
     CHILD_TAG = 'LI';
+
+var optionsSchema = {
+    /** Default list of fields only for direct child terminal-node drop-downs.
+     * @type {string[]}
+     * @memberOf FilterNode.prototype
+     */
+    nodeFields: { own: true },
+
+    /** Default list of fields for all descending terminal-node drop-downs.
+     * @type {string[]}
+     * @memberOf FilterNode.prototype
+     */
+    fields: {},
+
+    /** Type of filter editor.
+     * @type {string}
+     * @memberOf FilterNode.prototype
+     */
+    editor: {},
+
+    /** Event handler for UI events.
+     * @type {string}
+     * @memberOf FilterNode.prototype
+     */
+    eventHandler: {}
+};
 
 /**
  * @constructor
@@ -37,7 +64,7 @@ var CHILDREN_TAG = 'OL',
  * The programmer may define a new type of simple expression by extending from `FilterLeaf`. An example is the `FilterField` object. Such an implementation must include methods:
  *
  * * Save and subsequently reload the state of the conditional as entered by the user (`toJSON()` and `setState()`, respectively).
- * * Create the DOM objects that represent the UI filter editor and render them to the UI (`newView()` and `render()`, respectively).
+ * * Create the DOM objects that represent the UI filter editor and render them to the UI (`createView()` and `render()`, respectively).
  * * Filter a table by implementing one or more of the following:
  *   * Apply the conditional logic to available table row data (`test()`).
  *   * Apply the conditional logic to a remote data-store by generating a **SQL** or **Q** _WHERE_ clause (`toSQL()` and `toQ()`, respectively).
@@ -78,7 +105,8 @@ var CHILDREN_TAG = 'OL',
 var FilterNode = Base.extend({
 
     initialize: function(options) {
-        var parent = options && options.parent,
+        var self = this,
+            parent = options && options.parent,
             state = options && (
                 options.state ||
                 options.json && JSON.parse(options.json)
@@ -86,29 +114,14 @@ var FilterNode = Base.extend({
 
         this.parent = parent;
 
-        /** Default list of fields only for direct child terminal-node drop-downs.
-         * @type {string[]}
-         * @memberOf FilterNode.prototype
-         */
-        this.nodeFields = setOption('nodeFields', options, state);
-
-        /** Default list of fields for all descending terminal-node drop-downs.
-         * @type {string[]}
-         * @memberOf FilterNode.prototype
-         */
-        this.fields = setOption('fields', options, state, parent);
-
-        /** Type of filter editor.
-         * @type {string}
-         * @memberOf FilterNode.prototype
-         */
-        this.editor = setOption('editor', options, state, parent);
-
-        /** Event handler for UI events.
-         * @type {string}
-         * @memberOf FilterNode.prototype
-         */
-        this.eventHandler = setOption('eventHandler', options, state, parent);
+        // create each option
+        _(optionsSchema).each(function(optionOptions, key) {
+            self[key] = (
+                options && options[key] ||
+                state && state[key] ||
+                parent && !optionOptions.own && parent[key] // reference parent value now so we don't have to search up the tree later
+            );
+        });
 
         this.setState(state);
     },
@@ -119,7 +132,11 @@ var FilterNode = Base.extend({
     render: function() {
         if (this.parent) {
             var newListItem = document.createElement(CHILD_TAG);
-            newListItem.appendChild(template('removeButton'));
+
+            if (!(this.state && this.state.locked)) {
+                newListItem.appendChild(template('removeButton'));
+            }
+
             newListItem.appendChild(this.el);
             this.parent.el.querySelector(CHILDREN_TAG).appendChild(newListItem);
         }
@@ -127,8 +144,9 @@ var FilterNode = Base.extend({
 
     setState: function(state) {
         var oldEl = this.el;
-        this.newView();
-        this.loadState(state);
+        this.state = state;
+        this.createView();
+        this.loadState();
         this.render();
         if (oldEl && !this.parent) {
             oldEl.parentNode.replaceChild(this.el, oldEl);
@@ -160,14 +178,6 @@ var FilterNode = Base.extend({
     SQL_QUOTED_IDENTIFIER: '"'
 
 });
-
-function setOption(key, options, state, parent) {
-    return (
-        options && options[key] ||
-        state && state[key] ||
-        parent && parent[key] // reference parent value now so we don't have to search up the tree later
-    );
-}
 
 FilterNode.setWarningClass = function(el, value) {
     if (arguments.length < 2) {

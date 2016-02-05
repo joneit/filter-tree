@@ -6,30 +6,6 @@
 
 'use strict';
 
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find
-if (!Array.prototype.find) {
-    Array.prototype.find = function(predicate) { // eslint-disable-line no-extend-native
-        if (this === null) {
-            throw new TypeError('Array.prototype.find called on null or undefined');
-        }
-        if (typeof predicate !== 'function') {
-            throw new TypeError('predicate must be a function');
-        }
-        var list = Object(this);
-        var length = list.length >>> 0;
-        var thisArg = arguments[1];
-        var value;
-
-        for (var i = 0; i < length; i++) {
-            value = list[i];
-            if (predicate.call(thisArg, value, i, list)) {
-                return value;
-            }
-        }
-        return undefined;
-    };
-}
-
 var unstrungify = require('unstrungify');
 
 var cssInjector = require('./js/css');
@@ -77,7 +53,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     preInitialize: function(options) {
         cssInjector('filter-tree-base', options && options.cssStylesheetReferenceElement);
 
-        if (options.editors) {
+        if (options && options.editors) {
             this.editors = options.editors;
         }
     },
@@ -98,12 +74,14 @@ var FilterTree = FilterNode.extend('FilterTree', {
         }
     },
 
-    newView: function() {
+    createView: function() {
         this.el = template('tree', ++ordinal);
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
-    loadState: function(state) {
+    loadState: function() {
+        var state = this.state;
+
         this.operator = 'op-and';
         this.children = [];
 
@@ -132,15 +110,18 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     render: function() {
         // simulate click on the operator to display strike-through and operator between filters
-        var radioButton = this.el.querySelector('input[value=' + this.operator + ']');
-        radioButton.checked = true;
-        this['filter-tree-op-choice']({
-            target: radioButton
-        });
+        var radioButton = this.el.querySelector('input[value=' + this.operator + ']'),
+            addFilterLink = this.el.querySelector('.filter-tree-add-filter');
+
+        if (radioButton) {
+            radioButton.checked = true;
+            this['filter-tree-op-choice']({
+                target: radioButton
+            });
+        }
 
         // when multiple filter editors available, simulate click on the new "add conditional" link
-        if (!this.children.length && Object.keys(this.editors).length > 1) {
-            var addFilterLink = this.el.querySelector('.filter-tree-add-filter');
+        if (addFilterLink && !this.children.length && Object.keys(this.editors).length > 1) {
             this['filter-tree-add-filter']({
                 target: addFilterLink
             });
@@ -152,7 +133,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     /**
      * Creates a new node as per `state`.
-     * > Note that terminal nodes ("conditionals") will only be as complete as
      * @param {object} [state]
      * * If `state` has a `children` property, will attempt to add a new subtree.
      * * If `state` has an `editor` property, will create one (`this.editors[state.editor]`).
@@ -285,13 +265,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
     validate: function(options) {
         options = options || {};
 
-        var focus = options.focus === undefined || options.focus,
-            alert = options.alert === undefined || options.alert,
+        var alert = options.alert === undefined || options.alert,
             rethrow = options.rethrow === true,
             result;
 
         try {
-            validate.call(this, focus);
+            validate.call(this, options);
         } catch (err) {
             result = err.message;
 
@@ -433,16 +412,16 @@ function catchClick(evt) { // must be called with context
  * @returns {undefined} if valid
  * @private
  */
-function validate(focus) { // must be called with context
+function validate(options) { // must be called with context
     if (this instanceof FilterTree && !this.children.length) {
         throw new FilterNode.Error('Empty subexpression (no filters).');
     }
 
     this.children.forEach(function(child) {
         if (child instanceof TerminalNode) {
-            child.validate(focus);
+            child.validate(options);
         } else if (child.children.length) {
-            validate.call(child, focus);
+            validate.call(child, options);
         }
     });
 }

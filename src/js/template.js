@@ -8,21 +8,21 @@ var templates = {
 
     tree: function() {
         /*
-        <span class="filter-tree">
-            Match
-            <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-or">any</label>
-            <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-and">all</label>
-            <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
-            of:<br/>
-            <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
+         <span class="filter-tree">
+             Match
+             <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-or">any</label>
+             <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-and">all</label>
+             <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
+             of the following conditionals:<br/>
+             <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
                 <div></div>conditional
-            </span>
-            <span class="filter-tree-add" title="Add a new sub-match under this match.">
+             </span>
+             <span class="filter-tree-add" title="Add a new sub-match under this match.">
                 <div></div>subexpression
-            </span>
-            <ol></ol>
-        </span>
-        */
+             </span>
+             <ol></ol>
+         </span>
+         */
     },
 
     removeButton: function() {
