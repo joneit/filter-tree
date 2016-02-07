@@ -75,7 +75,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     createView: function() {
-        this.el = template('tree', ++ordinal);
+        this.el = template(this.isColumnFilters ? 'columnFilters' : 'tree', ++ordinal);
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
@@ -333,6 +333,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
                     state.children.push(child);
                 } else if (child.children.length) {
                     var ready = toJSON.call(child);
+                    if (child.isColumnFilters) {
+                        ready.isColumnFilters = true;
+                    }
+                    if (child.fields !== child.parent.fields) {
+                        ready.fields = child.fields;
+                    }
                     if (ready) {
                         state.children.push(ready);
                     }

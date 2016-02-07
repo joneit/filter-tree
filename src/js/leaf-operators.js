@@ -43,12 +43,12 @@ var leafOperators = {
     },
     IN: { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) >= 0; },
-        sql: sqlIN.bind('IN'),
+        sql: sqlIN.bind(this, 'IN'),
         type: 'string'
     },
     'NOT IN': { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) < 0; },
-        sql: sqlIN.bind('NOT IN'),
+        sql: sqlIN.bind(this, 'NOT IN'),
         type: 'string'
     },
     CONTAINS: {

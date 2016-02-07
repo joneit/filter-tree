@@ -15,9 +15,6 @@ textarea {
     margin: 1em 0 3px 0;
     width: 100%;
 }
-textarea.warn {
-    background-color: #Fcc;
-}
 input[type='button'] {
     border: 0;
     background-color: #777;
@@ -90,11 +87,62 @@ fieldset > p {
     font-size: 10px;
     text-align: center;
 }
-.filter-box.enable {
+.filter-box.filter-box-enable {
     background-color: lightyellow;
     border-color: black;
     font-weight: bold;
 }
+.filter-box.filter-box-warn {
+    color: red;
+    font-weight: bold;
+}
 input + em {
     font-size: smaller;
+}
+
+/* Message Box */
+
+.msg-box {
+    position: absolute;
+    display: none;
+    padding: 5px;
+    border: 2px solid black;
+    border-radius: 7px;
+    background-color: yellow;
+    font-size: 9pt;
+}
+.msg-box-title {
+    display: inline-block;
+    font-weight: bold;
+}
+.msg-box-close {
+    display: inline-block;
+    margin-top: -2px;
+    float: right;
+    width: 1.35em;
+    text-align: center;
+    background-color: transparent;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    border-radius: 99px;
+    text-align: center;
+}
+.msg-box-close:hover {
+    color: yellow;
+    background-color: red;
+    border-color: red;
+}
+.msg-box-close:active {
+    color: red;
+    background-color: transparent;
+    border-color: red;
+}
+.msg-box-close:before {
+    content: '\d7'; /* multiplication sign */
+}
+.msg-box-content {
+    border-top: 1px solid black;
+    padding-top: 3px;
+    margin-top: 2px;
+    line-height: 1.5em;
 }

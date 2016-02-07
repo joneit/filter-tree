@@ -67,7 +67,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
 
         var root = this.el = document.createElement('span');
-        root.className = 'filter-tree-default';
+        root.className = 'filter-tree-editor filter-tree-default';
 
         this.view = {
             column: this.makeElement(root, fields, 'column', true),
@@ -107,22 +107,20 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      */
     makeElement: function(container, options, prompt, sort) {
-        var el, option, span,
+        var el, option, hidden,
             tagName = options ? 'select' : 'input';
 
         if (options && options.length === 1) {
             // hard text when there would be only 1 option in the dropdown
             option = options[0];
 
-            el = document.createElement('input');
-            el.type = 'hidden';
-            el.value = option.name || option.alias || option;
+            hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.value = option.name || option.alias || option;
 
-            span = document.createElement('span');
-            span.innerHTML = option.alias || option.name || option;
-            span.appendChild(el);
-
-            container.appendChild(span);
+            el = document.createElement('span');
+            el.innerHTML = option.alias || option.name || option;
+            el.appendChild(hidden);
         } else {
             el = addOptions(tagName, options, prompt, sort);
             if (el.type === 'text' && this.eventHandler) {
@@ -130,8 +128,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
             this.el.addEventListener('change', this.onChange = this.onChange || cleanUpAndMoveOn.bind(this));
             FilterNode.setWarningClass(el);
-            container.appendChild(el);
         }
+
+        container.appendChild(el);
 
         return el;
     },

@@ -20,7 +20,7 @@ var optionsSchema = {
      */
     nodeFields: { own: true },
 
-    /** Default list of fields for all descending terminal-node drop-downs.
+    /** Default list of fields for all descendant terminal-node drop-downs.
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
@@ -36,7 +36,14 @@ var optionsSchema = {
      * @type {string}
      * @memberOf FilterNode.prototype
      */
-    eventHandler: {}
+    eventHandler: {},
+
+    /** If this is the column filters subtree.
+     * Should only ever be first child of root tree.
+     * @type {boolean}
+     * @memberOf FilterNode.prototype
+     */
+    isColumnFilters: { own: true }
 };
 
 /**
@@ -114,13 +121,15 @@ var FilterNode = Base.extend({
 
         this.parent = parent;
 
-        // create each option
+        // create each option standard option from options, state, or parent
         _(optionsSchema).each(function(optionOptions, key) {
-            self[key] = (
-                options && options[key] ||
+            var option = options && options[key] ||
                 state && state[key] ||
-                parent && !optionOptions.own && parent[key] // reference parent value now so we don't have to search up the tree later
-            );
+                parent && !optionOptions.own && parent[key]; // reference parent value now so we don't have to search up the tree later
+
+            if (option) {
+                self[key] = option;
+            }
         });
 
         this.setState(state);

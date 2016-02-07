@@ -87,16 +87,25 @@
     content: '— NOR —';
 }
 
+/* Abstract filter editor */
+
+.filter-tree-editor > * {
+    font-weight: bold;
+}
+.filter-tree-editor > span {
+    font-size: smaller;
+}
+.filter-tree-editor > input[type=text] {
+    width: 8em;
+    padding: 1px 5px 2px 5px;
+}
+
 /* Default filter editor */
 
 .filter-tree-default > *:enabled {
     margin: 0 .4em;
     background-color: #ddd;
     border: 0;
-}
-.filter-tree-default > input[type=text] {
-    width: 8em;
-    padding: 0 5px;
 }
 .filter-tree-default > select {
     border: 0;

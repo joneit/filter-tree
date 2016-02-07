@@ -25,6 +25,25 @@ var templates = {
          */
     },
 
+    columnFilters: function() {
+        /*
+        <span class="filter-tree op-and">
+            <strong>This permanent subexpression is reserved for the grid's <em>column filters.</em></strong><br/>
+            <em style="white-space: normal; font-size:smaller; line-height: normal; display: block; margin:.5em 1em; padding-left: 1em; border-left: .7em solid lightgrey;">
+                Each subexpression in this section represents the contents of a column's filter cell (below header cell).
+            </em>
+            Row data must match <strong>all</strong> of the following conditionals:<br/>
+            <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
+               <div></div>conditional
+            </span>
+            <span class="filter-tree-add" title="Add a new sub-match under this match.">
+               <div></div>column filter subexpression
+            </span>
+            <ol></ol>
+        </span>
+        */
+    },
+
     removeButton: function() {
         /*
         <div class="filter-tree-remove" title="delete conditional"></div>

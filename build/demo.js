@@ -46,144 +46,269 @@ window.onload = function() {
 
     function enableEditor() {
         oldArg = this.value;
-        this.classList.add('enable');
+        this.classList.add('filter-box-enable');
         this.readOnly = false;
         this.focus();
+        updateFilter.call(this); // re-run the parser just to redisplay any errors from last edit
     }
     function disableEditor() {
-        this.classList.remove('enable');
+        this.classList.remove('filter-box-enable');
         this.readOnly = true;
     }
 
-    var EXP = '(.+?)',
-        REQEXP_BOOLS = / (AND|OR|NOR) /gi,
-        REGEXP_CELL_FILTER = /^((<= ?)|(>= ?)|(<> ?)|([<≤≠≥>=] ?)|((NOT )?(IN|CONTAINS|BEGINS|ENDS|LIKE) ))?(.*)$/i;
+    function closeMsgBox() {
+        this.parentElement.style.display = 'none';
+    }
 
-    function updateFilter(evt) {
+    /**
+     * Display an error message box.
+     * @this {Element} The offending input field.
+     * @param {string} messageHTML
+     */
+    function msgBox(messageHTML) {
+        var msgEl = document.querySelector('.msg-box'),
+            box = this.getBoundingClientRect();
+
+        msgEl.style.top = box.bottom + 8 + 'px';
+        msgEl.style.left = box.left + 8 + 'px';
+
+        msgEl.style.display = 'block';
+
+        msgEl.querySelector('.msg-box-close').addEventListener('click', closeMsgBox);
+        msgEl.querySelector('.msg-box-content').innerHTML = messageHTML;
+
+        this.classList.add('filter-box-warn');
+    }
+
+    function dismissMsgBox() {
+        var msgEl = document.querySelector('.msg-box');
+        msgEl.style.display = 'none';
+    }
+
+    var orphanedOpMsg;
+
+    function updateFilter() {
         // trim & collapse spaces
         var column = this.name,
-            expression = this.value = this.value.trim().replace(/\s\s+/g, ' '),
+            input = this.value.trim().replace(/\s\s+/g, ' '),
             newSubtree;
 
-        if (expression) {
-            newSubtree = makeSubtree(column, expression);
+        dismissMsgBox();
+
+        if (input) {
+            try {
+                newSubtree = makeSubtree(column, input);
+            } catch (error) {
+                msgBox.call(this, error.message);
+                return;
+            }
+
+            if (orphanedOpMsg) {
+                msgBox.call(this, orphanedOpMsg);
+            }
         }
 
-        if (typeof newSubtree === 'string') {
-            // subexpression had a syntax error
-            if (confirm(newSubtree)) {
-                evt.target.focus();
-                evt.preventDefault();
-            } else {
-                evt.target.value = '';
-                disableEditor.call(this);
-            }
-        } else {
-            // may be an object; or undefined if expression was blank
+        // newSubtree may be an object OR undefined (no input or no complete expression)
 
-            disableEditor.call(this);
+        var tree = filterTree.getState(),
+            rootExpressions = tree.children,
+            columnFilters = rootExpressions.length &&
+                rootExpressions[0].isColumnFilters && // would always be the first subexpression
+                rootExpressions[0].children;
 
-            var tree = filterTree.getState(),
-                subexpressions = tree.children;
-
+        if (columnFilters) { // do we already have the column filters subtree?
             // Search tree base for existing subexpression "locked" to this column
-            var subexpression = subexpressions.find(function(subexp) {
-                return (
-                    subexp.children && // we're looking for a subexpression...
-                    !subexp.children.find(function(child) { // ...all of whose children are...
-                        return !(
-                            child.column === column && // ...this column and...
-                            child.fields && child.fields.length === 1 // ...locked
-                        );
-                    })
-                );
+            var subexpression = columnFilters.find(function(subexp) {
+                return subexp.fields[0] === column;
             });
 
             if (subexpression) {
-                var reuseIndex = subexpressions.indexOf(subexpression);
+                var reuseIndex = columnFilters.indexOf(subexpression);
                 if (newSubtree) {
                     // replace existing subexpression locked to this column, with new one
-                    subexpressions[reuseIndex] = newSubtree;
+                    columnFilters[reuseIndex] = newSubtree;
                 } else {
                     // no new subexpression so delete the old one
-                    delete subexpressions[subexpressions.indexOf(subexpression)];
+                    if (columnFilters.length === 1) {
+                        delete rootExpressions[0]; // delete entire column filters subtree
+                    } else {
+                        delete columnFilters[columnFilters.indexOf(subexpression)];
+                    }
                 }
             } else if (newSubtree) {
                 // add new subexpression locked to this column
-                tree.children.unshift(newSubtree);
+                columnFilters.unshift(newSubtree);
             }
-
-            filterTree.setState(tree);
-
-            auto();
+        } else if (newSubtree) {
+            // create the missing column filters subtree
+            rootExpressions.unshift({
+                isColumnFilters: true,
+                operator: 'op-and',
+                children: [newSubtree]
+            });
         }
+
+        //if (subexpression || newSubtree) {
+            filterTree.setState(tree);
+            auto();
+        //}
     }
 
-    function makeSubtree(columnName, expressionChain) {
-        var booleans = expressionChain.match(REQEXP_BOOLS),
-            operator,
-            expressions;
+    var REGEXP_BOOLS = /\b(AND|OR|NOR)\b/gi,
+        REGEXP_CELL_FILTER = /^\s*(<=|>=|<>|[<≤≠≥>=]|(NOT )?(IN|CONTAINS|BEGINS|ENDS|LIKE) )?(.*?)\s*$/i,
+        EXP = '(.*?)', BR = '\\b',
+        PREFIX = '^' + EXP + BR,
+        INFIX = BR + EXP + BR,
+        POSTFIX = BR + EXP + '$',
+        opMap = { '>=': '≥', '<=': '≤', '<>': '≠' };
+
+    /**
+     * @summary Extract the boolean operators from an expression chain.
+     * @desc Returns list of homogeneous operators transformed to lower case.
+     *
+     * Throws an error if all the boolean operators in the chain are not identical.
+     * @param {string} expressionChain
+     * @returns {string[]}
+     */
+    function captureBooleans(expressionChain) {
+        var booleans = expressionChain.match(REGEXP_BOOLS);
 
         if (booleans) {
-            operator = booleans && booleans[0].toUpperCase();
+            var heterogeneousOperator = booleans.find(function(op, i) {
+                booleans[i] = op.toLowerCase();
+                return booleans[i] !== booleans[0];
+            });
 
-            if (booleans.find(function(op) { return op.toUpperCase() !== operator; })) {
-                return 'You cannot mix operators AND, OR, and NOR here.\n\n' +
-                    'For more complex filters, use Manage Filters.';
+            if (heterogeneousOperator) {
+                throw new Error([
+                    'Expected homogeneous boolean operators.',
+                    'You cannot mix <code>AND</code>, <code>OR</code>, and <code>NOR</code> operators here.',
+                    '(Everything after your <code style="color:red">' + heterogeneousOperator.toUpperCase() + '</code> was ignored.)',
+                    '<i>Tip: You can create more complex filters by using Manage Filters.</i>'
+                ].join('<br>'));
             }
+        }
 
-            expressions = expressionChain.match(new RegExp('^' + EXP + booleans.join(EXP) + EXP + '$'));
-            expressions.shift(); // [0] ::= regex input (discard)
+        return booleans;
+    }
+
+    /**
+     * Break an expression chain into a list of expressions.
+     * @param {string} expressionChain
+     * @returns {string[]}
+     */
+    function captureExpressions(expressionChain, booleans) {
+        var expressions, re;
+
+        if (booleans) {
+            re = PREFIX + booleans.join(INFIX) + POSTFIX;
+            expressions = expressionChain.match(new RegExp(re));
+            expressions.shift(); // discard [0] (input)
         } else {
-            operator = 'and';
             expressions = [expressionChain];
         }
 
-        return {
-            operator: 'op-' + operator.trim().toLowerCase(),
-            children: expressions.reduce(addChild, [])
-        };
+        return expressions;
+    }
 
-        function addChild(children, simpleExpression) {
-            var parts = simpleExpression.match(REGEXP_CELL_FILTER),
-                literal = parts[parts.length - 1],
-                op = parts[1] && parts[1].trim().toUpperCase() || '=';
+    /**
+     * @summary Make a list of children out of a list of expressions.
+     * @desc Uses only _complete_ expressions (a value OR an operator + a value).
+     *
+     * Ignores _inncomplete_ expressions (empty string OR an operator - a value).
+     * @param {string} columnName
+     * @param {string[]} expressions
+     * @returns {{operator: string, children: string[], fields: string[]}}
+     */
+    function makeChildren(columnName, expressions) {
+        var children = [],
+            orphanedOps = [];
 
-            switch (op) {
-                case '>=': op = '≥'; break;
-                case '<=': op = '≤'; break;
-                case '<>': op = '≠'; break;
+        expressions.forEach(function(expression) {
+            if (expression) {
+                var parts = expression.match(REGEXP_CELL_FILTER),
+                    op = parts[1] && parts[1].trim().toUpperCase() || '=',
+                    literal = parts[parts.length - 1];
+
+                if (literal) {
+                    children.push({
+                        column: columnName,
+                        operator: opMap[op] || op,
+                        literal: literal
+                    });
+                } else {
+                    orphanedOps.push(op);
+                }
             }
+        });
 
-            children.push({
-                fields: [columnName],
-                column: columnName,
-                operator: op,
-                literal: literal
-            });
+        if (children.length > 0 && orphanedOps.length > 0 || orphanedOps.length > 1) {
+            var RED = ' <code style="color:red">';
+            if (orphanedOps.length === 1) {
+                orphanedOps = [
+                    'Expected a value following' + RED + orphanedOps +
+                        '</code> to compare against the column.',
+                    'The incomplete expression was ignored.'
+                ];
+            } else {
+                orphanedOps = [
+                    'Expected values following' + RED + orphanedOps.join('</code> and' + RED) + '</code> to compare against the column.',
+                    'The incomplete expressions were ignored.'
+                ];
+            }
+            orphanedOpMsg = orphanedOps.join('<br>');
+        } else {
+            orphanedOpMsg = undefined;
+        }
 
-            return children;
+        return children;
+    }
+
+    /**
+     * @summary Make a "locked" subexpression definition object from an expression chain.
+     * @desc _Locked_ means it is locked to a single field.
+     *
+     * When there is only a single expression in the chain, the `operator` field defaults to `'op-and'`.
+     * @param {string} columnName
+     * @param {string} expressionChain
+     * @returns {undefined|{operator: string, children: string[], fields: string[]}}
+     * `undefined` when there are no complete expressions
+     */
+    function makeSubtree(columnName, expressionChain) {
+        var booleans = captureBooleans(expressionChain),
+            expressions = captureExpressions(expressionChain, booleans),
+            children = makeChildren(columnName, expressions),
+            operator = booleans && booleans[0] || 'and';
+
+        console.log(booleans, expressions, children, operator);
+
+        if (children.length) {
+            return {
+                operator: 'op-' + operator,
+                children: children,
+                fields: [columnName]
+            };
         }
     }
 
     var RETURN_KEY = 0x0d, ESCAPE_KEY = 0x1b;
-    function blurOnReturn(e) {
+    function editorKeyUp(e) {
         switch (e.keyCode) {
-            case RETURN_KEY:
-                this.blur();
-                break;
             case ESCAPE_KEY:
                 this.value = oldArg;
-                disableEditor.call(this);
+            case RETURN_KEY: // eslint-disable-line no-fallthrough
+                this.blur();
                 break;
+            default:
+                updateFilter.call(this, e);
         }
     }
 
     var els = document.querySelectorAll('.filter-box');
     for (var i = 0; i < els.length; ++i) {
         els[i].onclick = enableEditor;
-        els[i].onblur = updateFilter;
-        els[i].onkeyup = blurOnReturn;
+        els[i].onblur = disableEditor;
+        els[i].onkeyup = editorKeyUp;
     }
 };
 
@@ -226,11 +351,14 @@ function validate(options) { // eslint-disable-line no-unused-vars
 function toJSON(validateOptions) {
     var valid = !filterTree.validate(validateOptions),
         ctrl = document.getElementById('json-data');
-    ctrl.classList.toggle('warn', !valid);
+
+    ctrl.classList.toggle('filter-box-warn', !valid);
+
     if (valid) {
         filterTree.JSONspace = 3; // make it pretty
         ctrl.value = filterTree.getJSON();
     }
+
     return valid;
 }
 
