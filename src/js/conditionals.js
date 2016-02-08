@@ -1,12 +1,14 @@
 'use strict';
 
+
+var _ = require('object-iterators');
 var regExpLIKE = require('regexp-like');
 
 var LIKE = 'LIKE ',
     NOT_LIKE = 'NOT ' + LIKE,
     LIKE_WILD_CARD = '%';
 
-var leafOperators = {
+var operators = {
     '<': {
         test: function(a, b) { return a < b; },
         sql: sqlDiadic.bind(this, '<')
@@ -138,34 +140,44 @@ function getSqlIdentifier(id) {
 
 // List the operators as drop-down options in an hierarchical array (rendered as option groups):
 
-var equality, inequalities, sets, strings, patterns;
+var groups = {
+    equality: {
+        label: 'Equality',
+        options: ['=']
+    },
+    inequalities: {
+        label: 'Inequality',
+        options: ['<', '\u2264', '\u2260', '\u2265', '>']
+    },
+    sets: {
+        label: 'Set scan',
+        options: ['IN', 'NOT IN']
+    },
+    strings: {
+        label: 'String scan',
+        options: [
+            'CONTAINS', 'NOT CONTAINS',
+            'BEGINS', 'NOT BEGINS',
+            'ENDS', 'NOT ENDS'
+        ]
+    },
+    patterns: {
+        label: 'Pattern matching',
+        options: ['LIKE', 'NOT LIKE']
+    }
+};
 
-equality = ['='];
-equality.label = 'Equality';
+// add a `name` prop to each group to guide insertion of new groups into `.options`
+_(groups).each(function(group, key) { group.name = key; });
 
-inequalities = ['<', '\u2264', '\u2260', '\u2265', '>'];
-inequalities.label = 'Inquality';
-
-sets = ['IN', 'NOT IN'];
-sets.label = 'Set scan';
-
-strings = [
-    'CONTAINS', 'NOT CONTAINS',
-    'BEGINS', 'NOT BEGINS',
-    'ENDS', 'NOT ENDS'
-];
-strings.label = 'String scan';
-
-// Alternatively, option groups can also be set up as an object with .options and .label properties:
-
-patterns = { options: ['LIKE', 'NOT LIKE'], label: 'Pattern matching' };
-
-leafOperators.options = [
-    equality,
-    inequalities,
-    sets,
-    strings,
-    patterns
-];
-
-module.exports = leafOperators;
+module.exports = {
+    operators: operators,
+    groups: groups,
+    options: [
+        groups.equality,
+        groups.inequalities,
+        groups.sets,
+        groups.strings,
+        groups.patterns
+    ]
+};

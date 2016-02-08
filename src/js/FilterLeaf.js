@@ -5,7 +5,7 @@
 
 var FilterNode = require('./FilterNode');
 var template = require('./template');
-var operators = require('./leaf-operators');
+var conditionals = require('./conditionals');
 
 
 /** @typedef {object} converter
@@ -25,9 +25,6 @@ var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     name: 'Compare a column to a value',
-
-    operators: operators,
-    operatorOptions: operators.options,
 
     postInitialize: function() {
         var el = this.view.column;
@@ -141,7 +138,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         if (state) {
             var value, el, i, b, selected, notes = [];
             for (var key in state) {
-                if (key !== 'fields' && key !== 'editor') {
+                if (!FilterNode.optionsSchema[key]) {
                     value = state[key];
                     el = this.view[key];
                     switch (el.type) {
@@ -222,7 +219,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
         }
 
-        this.op = this.operators[this.operator];
+        this.op = conditionals.operators[this.operator];
 
         this.converter = undefined; // remains undefined when neither operator nor column is typed
         if (this.op.type) {
@@ -383,7 +380,7 @@ function controlValue(el) {
  * * `'select'` for a drop-down
  * * `'optgroup'` (for internal use only)
  * @param {fieldOption[]} [options] - Strings to add as `<option>...</option>` elements. Omit to create a text box.
- * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value in parentheses as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
+ * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value in parentheses as its `text`; and empty string as its `value`. Default is empty string, which creates a blank prompt; `null` suppresses prompt altogether.
  * @returns {Element} Either a `<select>` or `<optgroup>` element.
  */
 function addOptions(tagName, options, prompt, sort) {

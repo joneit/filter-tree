@@ -7,44 +7,12 @@ var _ = require('object-iterators');
 var Base = extend.Base;
 
 var template = require('./template');
+var conditionals = require('./conditionals');
 
 extend.debug = true;
 
 var CHILDREN_TAG = 'OL',
     CHILD_TAG = 'LI';
-
-var optionsSchema = {
-    /** Default list of fields only for direct child terminal-node drop-downs.
-     * @type {string[]}
-     * @memberOf FilterNode.prototype
-     */
-    nodeFields: { own: true },
-
-    /** Default list of fields for all descendant terminal-node drop-downs.
-     * @type {string[]}
-     * @memberOf FilterNode.prototype
-     */
-    fields: {},
-
-    /** Type of filter editor.
-     * @type {string}
-     * @memberOf FilterNode.prototype
-     */
-    editor: {},
-
-    /** Event handler for UI events.
-     * @type {string}
-     * @memberOf FilterNode.prototype
-     */
-    eventHandler: {},
-
-    /** If this is the column filters subtree.
-     * Should only ever be first child of root tree.
-     * @type {boolean}
-     * @memberOf FilterNode.prototype
-     */
-    isColumnFilters: { own: true }
-};
 
 /**
  * @constructor
@@ -122,13 +90,24 @@ var FilterNode = Base.extend({
         this.parent = parent;
 
         // create each option standard option from options, state, or parent
-        _(optionsSchema).each(function(optionOptions, key) {
+        _(FilterNode.optionsSchema).each(function(schema, key) {
             var option = options && options[key] ||
                 state && state[key] ||
-                parent && !optionOptions.own && parent[key]; // reference parent value now so we don't have to search up the tree later
+                !schema.own && (
+                    parent && parent[key] || // reference parent value now so we don't have to search up the tree later
+                    schema.default
+                );
+
 
             if (option) {
                 self[key] = option;
+            }
+        });
+
+        // transform conditionals with '@' as first char to reference to group of name
+        this.operatorOptions.forEach(function(option, index) {
+            if (typeof option === 'string' && option[0] === '@') {
+                self.operatorOptions[index] = conditionals.groups[option.substr(1)];
             }
         });
 
@@ -187,6 +166,41 @@ var FilterNode = Base.extend({
     SQL_QUOTED_IDENTIFIER: '"'
 
 });
+
+FilterNode.optionsSchema = {
+    /** Default list of fields only for direct child terminal-node drop-downs.
+     * @type {string[]}
+     * @memberOf FilterNode.prototype
+     */
+    nodeFields: { own: true },
+
+    /** Default list of fields for all descendant terminal-node drop-downs.
+     * @type {string[]}
+     * @memberOf FilterNode.prototype
+     */
+    fields: {},
+
+    /** Type of filter editor.
+     * @type {string}
+     * @memberOf FilterNode.prototype
+     */
+    editor: {},
+
+    /** Event handler for UI events.
+     * @type {string}
+     * @memberOf FilterNode.prototype
+     */
+    eventHandler: {},
+
+    /** If this is the column filters subtree.
+     * Should only ever be first child of root tree.
+     * @type {boolean}
+     * @memberOf FilterNode.prototype
+     */
+    isColumnFilters: { own: true },
+
+    operatorOptions: { default: conditionals.options }
+};
 
 FilterNode.setWarningClass = function(el, value) {
     if (arguments.length < 2) {
