@@ -69,8 +69,8 @@ window.onload = function() {
         var msgEl = document.querySelector('.msg-box'),
             box = this.getBoundingClientRect();
 
-        msgEl.style.top = box.bottom + 8 + 'px';
-        msgEl.style.left = box.left + 8 + 'px';
+        msgEl.style.top = box.bottom + 8 + window.scrollY + 'px';
+        msgEl.style.left = box.left + 8 + window.scrollX + 'px';
 
         msgEl.style.display = 'block';
 
@@ -91,7 +91,7 @@ window.onload = function() {
         // trim & collapse spaces
         var column = this.name,
             input = this.value.trim().replace(/\s\s+/g, ' '),
-            newSubtree;
+            newSubtree, err;
 
         dismissMsgBox();
 
@@ -100,12 +100,19 @@ window.onload = function() {
                 newSubtree = makeSubtree(column, input);
             } catch (error) {
                 msgBox.call(this, error.message);
+                err = true;
                 return;
             }
 
             if (orphanedOpMsg) {
                 msgBox.call(this, orphanedOpMsg);
+                err = true;
             }
+        }
+
+        if (!err) {
+            this.classList.remove('filter-box-warn');
+            dismissMsgBox();
         }
 
         // newSubtree may be an object OR undefined (no input or no complete expression)
@@ -351,8 +358,6 @@ function validate(options) { // eslint-disable-line no-unused-vars
 function toJSON(validateOptions) {
     var valid = !filterTree.validate(validateOptions),
         ctrl = document.getElementById('json-data');
-
-    ctrl.classList.toggle('filter-box-warn', !valid);
 
     if (valid) {
         filterTree.JSONspace = 3; // make it pretty
