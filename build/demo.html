@@ -12,10 +12,10 @@
 
     <fieldset>
         <legend>Initialize with this <code>fields</code> list and the <code>filterJSON</code> below</legend>
-        <input type="button" value="initialize({ fields: fields, json: filterJSON })" onclick="initialize()"
+        <input type="button" value="initialize({ fields: fields, state: filterJSON })" onclick="initialize()"
          title="Creates a new filter tree object bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." />
         <textarea id="fields" rows="6">[
-    { options: ['LastName', 'FirstName'], label: 'Names' },
+    { submenu: ['LastName', 'FirstName'], label: 'Names' },
     'BirthState',
     { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
     { name: 'Age', type: 'number' }
@@ -52,18 +52,21 @@
    ]
 }</textarea>
         <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>), with all property names and strings in double-quotes)</p>
-        <input type="button" value="filter.setJSON(filterJSON) // reset the UI state to match" onclick="fromJSON()" style="margin-top:.7em"
+        <input type="button" value="filter.setJSON(filterJSON) // reset the UI state to match" onclick="setState('json-data')" style="margin-top:.7em"
                title="Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
 
     <fieldset>
         <legend>SQL <code>WHERE</code> clause describing filter expression</legend>
-        <input type="button" value="WHERE = getSqlWhereClause()" onclick="getSqlWhereClause(true)" />
+        <input type="button" value="WHERE = getSqlWhereClause() // serialize the UI state" onclick="getSqlWhereClause(true)" />
         <label style="float:right; font-size:10pt"
-         title="Automatically regenerate the SQL on any manual change to the UI.">
+               title="Automatically regenerate the SQL on any manual change to the UI.">
             <input type="checkbox" id="autowhere" checked onclick="if(this.checked)getSqlWhereClause()"/>Auto
         </label>
-        <textarea id="SQL" rows="3"></textarea>
+        <textarea id="where-data" rows="3"></textarea>
+        <input type="button" value="setSqlWhereClause(WHERE) // reset the UI state to match"
+               onclick="setState('where-data')"
+               title="Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
     </fieldset>
 
     <fieldset>

@@ -88,8 +88,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
         if (!state) {
             this.add();
         } else {
-            throwIfJSON(state);
-
             // Validate `state.children` (required)
             if (!(state.children instanceof Array && state.children.length)) {
                 throw FilterNode.Error('Expected `children` property to be a non-empty array.');
@@ -110,7 +108,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     render: function() {
         // simulate click on the operator to display strike-through and operator between filters
-        var radioButton = this.el.querySelector('input[value=' + this.operator + ']'),
+        var radioButton = this.el.querySelector(':scope > label > input[value=' + this.operator + ']'),
             addFilterLink = this.el.querySelector('.filter-tree-add-filter');
 
         if (radioButton) {
@@ -310,10 +308,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return noChildrenDefined || (operator.negate ? !result : result);
     },
 
-    setJSON: function(json) {
-        this.setState(JSON.parse(json));
-    },
-
     getState: unstrungify,
 
     getJSON: function() {
@@ -377,22 +371,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
     }
 
 });
-
-/**
- * Checks to make sure `state` is defined as a plain object and not a JSON string.
- * If not, throws error and does not return.
- * @param {object} state
- * @private
- */
-function throwIfJSON(state) {
-    if (typeof state !== 'object') {
-        var errMsg = 'Expected `state` parameter to be an object.';
-        if (typeof state === 'string') {
-            errMsg += ' See `JSON.parse()`.';
-        }
-        throw FilterNode.Error(errMsg);
-    }
-}
 
 function catchClick(evt) { // must be called with context
     var elt = evt.target;

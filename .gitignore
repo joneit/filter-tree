@@ -1,6 +1,5 @@
 .DS_Store
-/build/filter-tree.js
-/build/filter-tree.min.js
+/build/lib
 /.idea
 /doc
 /node_modules

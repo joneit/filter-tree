@@ -19,7 +19,7 @@ function auto() {
 function makeNewTree() {
     return new FilterTree({
         fields: getLiteral('fields'),
-        json: document.getElementById('json-data').value,
+        state: document.getElementById('json-data').value,
         eventHandler: auto
     });
 }
@@ -28,15 +28,13 @@ window.onload = function() {
     try {
         filterTree = makeNewTree();
     } catch (e) {
-        if (!(e instanceof SyntaxError)) { throw e; }
-        alert('Bad JSON format:\n\n' + e);
-        return;
+        if (e.toString().indexOf('filter-tree') >= 0) { alert(e); return; } else { throw e; }
     }
 
     document.getElementById('filter').appendChild(filterTree.el);
 
     if (!filterTree.validate({ alert: false })) {
-        document.getElementById('SQL').value = filterTree.getSqlWhereClause();
+        document.getElementById('where-data').value = filterTree.getSqlWhereClause();
         test();
     }
 
@@ -69,8 +67,8 @@ window.onload = function() {
         var msgEl = document.querySelector('.msg-box'),
             box = this.getBoundingClientRect();
 
-        msgEl.style.top = box.bottom + 8 + window.scrollY + 'px';
-        msgEl.style.left = box.left + 8 + window.scrollX + 'px';
+        msgEl.style.top = window.scrollY + box.bottom + 8 + 'px';
+        msgEl.style.left = window.scrollX + box.left + 8 + 'px';
 
         msgEl.style.display = 'block';
 
@@ -99,7 +97,7 @@ window.onload = function() {
             try {
                 newSubtree = makeSubtree(column, input);
             } catch (error) {
-                msgBox.call(this, error.message);
+                msgBox.call(this, error);
                 err = true;
                 return;
             }
@@ -155,10 +153,9 @@ window.onload = function() {
             });
         }
 
-        //if (subexpression || newSubtree) {
-            filterTree.setState(tree);
-            auto();
-        //}
+        filterTree.setState(tree);
+
+        auto();
     }
 
     var REGEXP_BOOLS = /\b(AND|OR|NOR)\b/gi,
@@ -208,8 +205,8 @@ window.onload = function() {
         var expressions, re;
 
         if (booleans) {
-            re = PREFIX + booleans.join(INFIX) + POSTFIX;
-            expressions = expressionChain.match(new RegExp(re));
+            re = new RegExp(PREFIX + booleans.join(INFIX) + POSTFIX, 'i');
+            expressions = expressionChain.match(re);
             expressions.shift(); // discard [0] (input)
         } else {
             expressions = [expressionChain];
@@ -323,9 +320,7 @@ function initialize() { // eslint-disable-line no-unused-vars
     try {
         var newTree = makeNewTree();
     } catch (e) {
-        if (!(e instanceof SyntaxError)) { throw e; }
-        alert('Bad JSON format:\n\n' + e);
-        return;
+        if (e.toString().indexOf('filter-tree') >= 0) { alert(e); return; } else { throw e; }
     }
 
     document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
@@ -367,13 +362,12 @@ function toJSON(validateOptions) {
     return valid;
 }
 
-function fromJSON() { // eslint-disable-line no-unused-vars
+function setState(id) { // eslint-disable-line no-unused-vars
+    var value = document.getElementById(id).value;
     try {
-        filterTree.setJSON(document.getElementById('json-data').value);
+        filterTree.setState(value);
     } catch (e) {
-        if (!(e instanceof SyntaxError)) { throw e; }
-        alert('Bad JSON format:\n\n' + e);
-        return;
+        if (e.toString().indexOf('filter-tree') >= 0) { alert(e); return; } else { throw e; }
     }
     test();
 }
@@ -383,7 +377,7 @@ function getSqlWhereClause(force) {
         (force || document.getElementById('autowhere').checked) &&
         !filterTree.validate(!force && quietValidation)
     ) {
-        document.getElementById('SQL').value = filterTree.getSqlWhereClause();
+        document.getElementById('where-data').value = filterTree.getSqlWhereClause();
     }
 }
 

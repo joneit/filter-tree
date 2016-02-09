@@ -1,6 +1,5 @@
 'use strict';
 
-
 var _ = require('object-iterators');
 var regExpLIKE = require('regexp-like');
 
@@ -138,24 +137,23 @@ function getSqlIdentifier(id) {
     return '\"' + sqEsc(id) + '\"';
 }
 
-// List the operators as drop-down options in an hierarchical array (rendered as option groups):
-
+// the operators as drop-down "option groups":
 var groups = {
     equality: {
         label: 'Equality',
-        options: ['=']
+        submenu: ['=']
     },
     inequalities: {
         label: 'Inequality',
-        options: ['<', '\u2264', '\u2260', '\u2265', '>']
+        submenu: ['<', '\u2264', '\u2260', '\u2265', '>']
     },
     sets: {
         label: 'Set scan',
-        options: ['IN', 'NOT IN']
+        submenu: ['IN', 'NOT IN']
     },
     strings: {
         label: 'String scan',
-        options: [
+        submenu: [
             'CONTAINS', 'NOT CONTAINS',
             'BEGINS', 'NOT BEGINS',
             'ENDS', 'NOT ENDS'
@@ -163,17 +161,17 @@ var groups = {
     },
     patterns: {
         label: 'Pattern matching',
-        options: ['LIKE', 'NOT LIKE']
+        submenu: ['LIKE', 'NOT LIKE']
     }
 };
 
-// add a `name` prop to each group to guide insertion of new groups into `.options`
+// add a `name` prop to each group
 _(groups).each(function(group, key) { group.name = key; });
 
 module.exports = {
     operators: operators,
     groups: groups,
-    options: [
+    menu: [ // hierarchical menu of relational operators
         groups.equality,
         groups.inequalities,
         groups.sets,

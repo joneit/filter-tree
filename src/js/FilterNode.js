@@ -8,6 +8,7 @@ var Base = extend.Base;
 
 var template = require('./template');
 var conditionals = require('./conditionals');
+var sqlWhereParse = require('./sql-where-parse');
 
 extend.debug = true;
 
@@ -58,7 +59,7 @@ var CHILDREN_TAG = 'OL',
  * * Terminal node's parent node's `option.nodeFields` (or `option.state.nodesFields`) definition.
  * * Any of terminal node's ancestor's `options.fields` (or `options.state.fields`) definition.
  *
- * @param {object} [options.state] - A data structure that describes a tree, subtree, or leaf:
+ * @param {object|string} [options.state] - A data structure that describes a tree, subtree, or leaf (terminal node):
  *
  * * May describe a terminal node with properties:
  *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
@@ -71,7 +72,10 @@ var CHILDREN_TAG = 'OL',
  *
  * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
- * > Note that this is a JSON object; not a JSON string (_i.e.,_ "parsed"; not "stringified").
+ * The constructor auto-detects the type:
+ *  * plain object
+ *  * JSON string to be parsed by `JSON.parse()` into a plain object
+ *  * SQL WHERE clause string to be parsed into a plain object
  *
  * @param {function} [options.editor='Default'] - Type of simple expression.
  *
@@ -82,10 +86,7 @@ var FilterNode = Base.extend({
     initialize: function(options) {
         var self = this,
             parent = options && options.parent,
-            state = options && (
-                options.state ||
-                options.json && JSON.parse(options.json)
-            );
+            state = options && options.state && detectState(options.state);
 
         this.parent = parent;
 
@@ -105,9 +106,9 @@ var FilterNode = Base.extend({
         });
 
         // transform conditionals with '@' as first char to reference to group of name
-        this.operatorOptions.forEach(function(option, index) {
+        this.operatorMenu.forEach(function(option, index) {
             if (typeof option === 'string' && option[0] === '@') {
-                self.operatorOptions[index] = conditionals.groups[option.substr(1)];
+                self.operatorMenu[index] = conditionals.groups[option.substr(1)];
             }
         });
 
@@ -132,7 +133,7 @@ var FilterNode = Base.extend({
 
     setState: function(state) {
         var oldEl = this.el;
-        this.state = state;
+        this.state = detectState(state);
         this.createView();
         this.loadState();
         this.render();
@@ -168,38 +169,43 @@ var FilterNode = Base.extend({
 });
 
 FilterNode.optionsSchema = {
-    /** Default list of fields only for direct child terminal-node drop-downs.
+    /** @summary Default list of fields only for direct child terminal-node drop-downs.
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
     nodeFields: { own: true },
 
-    /** Default list of fields for all descendant terminal-node drop-downs.
+    /** @summary Default list of fields for all descendant terminal-node drop-downs.
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
     fields: {},
 
-    /** Type of filter editor.
+    /** @summary Type of filter editor.
      * @type {string}
      * @memberOf FilterNode.prototype
      */
     editor: {},
 
-    /** Event handler for UI events.
+    /** @summary Event handler for UI events.
      * @type {string}
      * @memberOf FilterNode.prototype
      */
     eventHandler: {},
 
-    /** If this is the column filters subtree.
-     * Should only ever be first child of root tree.
+    /** @summary This is the _column filters_ subtree if truthy.
+     * @desc Should only ever be at most 1 node with this set, always positioned as first child of root tree.
      * @type {boolean}
      * @memberOf FilterNode.prototype
      */
     isColumnFilters: { own: true },
 
-    operatorOptions: { default: conditionals.options }
+    /** @summary Override operator list at any node.
+     * Should only ever be first child of root tree.
+     * @type {fieldOption}
+     * @memberOf FilterNode.prototype
+     */
+    operatorMenu: { default: conditionals.menu }
 };
 
 FilterNode.setWarningClass = function(el, value) {
@@ -224,5 +230,28 @@ FilterNode.clickIn = function(el) {
         }
     }
 };
+
+var reJSON = /^\s*[\[\{]/;
+
+function detectState(state) {
+    switch (typeof state) {
+        case 'object':
+            return state;
+        case 'string':
+            if (reJSON.test(state)) {
+                try {
+                    return JSON.parse(state);
+                } catch (error) {
+                    throw FilterNode.Error('JSON parser: ' + error);
+                }
+            } else {
+                try {
+                    return sqlWhereParse(state);
+                } catch (error) {
+                    throw FilterNode.Error('SQL WHERE clause parser: ' + error);
+                }
+            }
+    }
+}
 
 module.exports = FilterNode;

@@ -6,6 +6,7 @@
 var FilterNode = require('./FilterNode');
 var template = require('./template');
 var conditionals = require('./conditionals');
+var buildElement = require('./build-element');
 
 
 /** @typedef {object} converter
@@ -68,48 +69,31 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         this.view = {
             column: this.makeElement(root, fields, 'column', true),
-            operator: this.makeElement(root, this.operatorOptions, 'operator'),
+            operator: this.makeElement(root, this.operatorMenu, 'operator'),
             literal: this.makeElement(root)
         };
 
         root.appendChild(document.createElement('br'));
     },
 
-    /** @typedef {object} valueOption
-     * You should supply both `name` and `alias` but you could omit one or the other and whichever you provide will be used for both. (In such case you might as well just give a string for {@link fieldOption} rather than this object.)
-     * @property {string} [name]
-     * @property {string} [alias]
-     * @property {string} [type] One of the keys of `this.converters`. If not one of these (including `undefined`), field values will be tested with a string comparison.
-     * @property {boolean} [hidden=false]
-     */
-    /** @typedef {object} optionGroup
-     * @property {string} label
-     * @property {fieldOption[]} options
-     */
-    /** @typedef {string|valueOption|optionGroup} fieldOption
-     * The three possible types specify either an `<option>....</option>` element or an `<optgroup>....</optgroup>` element as follows:
-     * * `string` - specifies only the text of an `<option>....</option>` element (the value naturally defaults to the text)
-     * * {@link valueOption} - specifies both the text (`.name`) and the value (`.alias`) of an `<option....</option>` element
-     * * {@link optionGroup} - specifies an `<optgroup>....</optgroup>` element
-     */
     /**
      * @summary HTML form controls factory.
      * @desc Creates and appends a text box or a drop-down.
      * @returns The new element.
      * @param {Element} container - An element to which to append the new element.
-     * @param {fieldOption[]} [options] - Overloads:
+     * @param {fieldOption[]} [menu] - Overloads:
      * * If omitted, will create an `<input/>` (text box) element.
      * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
-     * * Otherwise, creates a `<select>...</select>` element with these options.
+     * * Otherwise, creates a `<select>...</select>` element with these menu.
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      */
-    makeElement: function(container, options, prompt, sort) {
+    makeElement: function(container, menu, prompt, sort) {
         var el, option, hidden,
-            tagName = options ? 'select' : 'input';
+            tagName = menu ? 'select' : 'input';
 
-        if (options && options.length === 1) {
+        if (menu && menu.length === 1) {
             // hard text when there would be only 1 option in the dropdown
-            option = options[0];
+            option = menu[0];
 
             hidden = document.createElement('input');
             hidden.type = 'hidden';
@@ -119,7 +103,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             el.innerHTML = option.alias || option.name || option;
             el.appendChild(hidden);
         } else {
-            el = addOptions(tagName, options, prompt, sort);
+            el = buildElement(tagName, menu, prompt, sort);
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
@@ -296,8 +280,8 @@ function findField(fields, name) {
     var complex, simple;
 
     simple = fields.find(function(field) {
-        if ((field.options || field) instanceof Array) {
-            return (complex = findField(field.options || field, name));
+        if ((field.submenu || field) instanceof Array) {
+            return (complex = findField(field.submenu || field, name));
         } else {
             return field.name === name;
         }
@@ -371,66 +355,6 @@ function controlValue(el) {
     }
 
     return value;
-}
-
-/**
- * @summary Creates a new element and adds options to it.
- * @param {string} tagName - Must be one of:
- * * `'input'` for a text box
- * * `'select'` for a drop-down
- * * `'optgroup'` (for internal use only)
- * @param {fieldOption[]} [options] - Strings to add as `<option>...</option>` elements. Omit to create a text box.
- * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value in parentheses as its `text`; and empty string as its `value`. Default is empty string, which creates a blank prompt; `null` suppresses prompt altogether.
- * @returns {Element} Either a `<select>` or `<optgroup>` element.
- */
-function addOptions(tagName, options, prompt, sort) {
-    var el = document.createElement(tagName);
-
-    if (options) {
-        var add, newOption;
-        if (tagName === 'select') {
-            add = el.add;
-            if (prompt) {
-                newOption = new Option('(' + prompt, '');
-                newOption.innerHTML += '&hellip;)';
-                el.add(newOption);
-            } else if (prompt !== null) {
-                el.add(new Option());
-            }
-        } else {
-            add = el.appendChild;
-            el.label = prompt;
-        }
-
-        if (sort) {
-            options = options.slice().sort(fieldComparator); // clone it and sort the clone
-        }
-
-        options.forEach(function(option) {
-            if ((option.options || option) instanceof Array) {
-                var optgroup = addOptions('optgroup', option.options || option, option.label);
-                el.add(optgroup);
-            } else {
-                var newElement = typeof option !== 'object'
-                    ? new Option(option)
-                    : new Option(
-                        option.alias || option.name,
-                        option.name || option.alias
-                    );
-                add.call(el, newElement);
-            }
-        });
-    } else {
-        el.type = 'text';
-    }
-
-    return el;
-}
-
-function fieldComparator(a, b) {
-    a = a.alias || a.name || a.label || a;
-    b = b.alias || b.name || b.label || b;
-    return a < b ? -1 : a > b ? 1 : 0;
 }
 
 module.exports = FilterLeaf;
