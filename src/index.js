@@ -13,6 +13,8 @@ var FilterNode = require('./js/FilterNode');
 var TerminalNode = require('./js/FilterLeaf');
 var template = require('./js/template');
 var operators = require('./js/tree-operators');
+var conditionals = require('./js/conditionals');
+var sqlWhereParse = require('./js/sql-where-parse');
 
 var ordinal = 0;
 var reFilterTreeErrorString = /^filter-tree: /;
@@ -368,6 +370,24 @@ var FilterTree = FilterNode.extend('FilterTree', {
         }
 
         return lexeme.beg + where + lexeme.end;
+    },
+
+    getFilterCellExpression: function() {
+        var operator = operators[this.operator].filterCell.op,
+            syntax = '';
+
+        this.children.forEach(function(child, idx) {
+            if (child) {
+                if (child instanceof TerminalNode) {
+                    if (idx) { syntax += ' ' + operator + ' '; }
+                    syntax += child.getFilterCellExpression();
+                } else if (child.children.length) {
+                    throw FilterNode.Error('Subexpressions not supported in filter cell syntax.');
+                }
+            }
+        });
+
+        return syntax;
     }
 
 });
@@ -477,5 +497,16 @@ function detachChooser() { // must be called with context
         delete this.chooser;
     }
 }
+
+/**
+ * @param {string} [beg='"']
+ * @param {string} [end=beg]
+ */
+FilterTree.setSqlIdentifierQuoteChars = function(beg, end) {
+    beg = beg || '"';
+    end = end || beg;
+    conditionals.setSqlIdentifierQuoteChars(beg, end);
+    sqlWhereParse.setSqlIdentifierQuoteChars(beg, end);
+};
 
 module.exports = FilterTree;

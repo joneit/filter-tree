@@ -46,6 +46,9 @@ var treeOperators = {
         seed: true,
         abort: false,
         negate: false,
+        filterCell: {
+            op: 'and'
+        },
         SQL: {
             op: 'AND',
             beg: '(',
@@ -57,6 +60,9 @@ var treeOperators = {
         seed: false,
         abort: true,
         negate: false,
+        filterCell: {
+            op: 'or'
+        },
         SQL: {
             op: 'OR',
             beg: '(',
@@ -68,6 +74,9 @@ var treeOperators = {
         seed: false,
         abort: true,
         negate: true,
+        filterCell: {
+            op: 'nor'
+        },
         SQL: {
             op: 'OR',
             beg: 'NOT (',

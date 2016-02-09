@@ -1,7 +1,7 @@
 'use strict';
 
-var reName = /^("(.+?)"|([A-Z_][A-Z_@\$#]*)\b)/i, // [2] || [3]
-    reOp = /^((=|>=?|<[>=]?)|(NOT )?(LIKE|IN)\b)/i, // [1]
+var reName = setSqlIdentifierQuoteChars('"'),
+    reOp = /^((=|>=?|<[>=]?)|(NOT )?(LIKE|IN)\b)/i, // match[1]
     reLit = /^'(\d+)'/,
     reLitAnywhere = /'(\d+)'/,
     reIn = /^\((.*?)\)/,
@@ -12,7 +12,11 @@ var SQT = '\'';
 
 var literals;
 
-function sqlWhereParse(whereClause) {
+function setSqlIdentifierQuoteChars(beg, end) {
+    reName = new RegExp('^(' + beg + '(.+?)' + end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i'); // match[2] || match[3]
+}
+
+function parser(whereClause) {
     return walk(stripLiterals(whereClause));
 }
 
@@ -149,4 +153,4 @@ function stripLiterals(t) {
     return t;
 }
 
-module.exports = sqlWhereParse;
+module.exports = parser;

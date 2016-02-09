@@ -88,22 +88,22 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      */
     makeElement: function(container, menu, prompt, sort) {
-        var el, option, hidden,
+        var el, option, result,
             tagName = menu ? 'select' : 'input';
 
         if (menu && menu.length === 1) {
             // hard text when there would be only 1 option in the dropdown
             option = menu[0];
 
-            hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.value = option.name || option.alias || option;
+            result = document.createElement('input');
+            result.type = 'hidden';
+            result.value = option.name || option.alias || option;
 
             el = document.createElement('span');
             el.innerHTML = option.alias || option.name || option;
-            el.appendChild(hidden);
+            el.appendChild(result);
         } else {
-            el = buildElement(tagName, menu, prompt, sort);
+            result = el = buildElement(tagName, menu, prompt, sort);
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
@@ -113,7 +113,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         container.appendChild(el);
 
-        return el;
+        return result;
     },
 
     loadState: function() {
@@ -272,7 +272,19 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     getSqlWhereClause: function() {
-        return this.op.sql(this.column, this.literal);
+        return this.getSyntax(conditionals.sqlOperators);
+    },
+
+    getFilterCellExpression: function() {
+        var exp = this.getSyntax(conditionals.filterCellOperators);
+        if (exp[0] === '=') {
+            exp = exp.substr(1);
+        }
+        return exp;
+    },
+
+    getSyntax: function(ops) {
+        return ops[this.operator].make.call(ops, this.column, this.literal);
     }
 });
 

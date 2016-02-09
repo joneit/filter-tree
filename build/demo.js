@@ -20,20 +20,39 @@ function makeNewTree() {
     return new FilterTree({
         fields: getLiteral('fields'),
         state: document.getElementById('json-data').value,
-        eventHandler: auto
+        eventHandler: function() {
+            auto();
+            updateFilterCells();
+        }
     });
+}
+
+function updateFilterCells() {
+    var rootExpressions = filterTree.children,
+        columnFilterExpressions = rootExpressions.length &&
+            rootExpressions[0].isColumnFilters && // would always be the first subexpression
+            rootExpressions[0].children;
+
+    if (columnFilterExpressions) {
+        columnFilterExpressions.forEach(function(subexp) {
+            var cell = document.querySelector('input[name=' + subexp.children[0].column + ']');
+            if (cell && !subexp.validate(quietValidation)) {
+                cell.value = subexp.getFilterCellExpression();
+            }
+        });
+    }
 }
 
 window.onload = function() {
     try {
         filterTree = makeNewTree();
     } catch (e) {
-        if (e.toString().indexOf('filter-tree') >= 0) { alert(e); return; } else { throw e; }
+        rethrow(e);
     }
 
     document.getElementById('filter').appendChild(filterTree.el);
 
-    if (!filterTree.validate({ alert: false })) {
+    if (!validate({ alert: false })) {
         document.getElementById('where-data').value = filterTree.getSqlWhereClause();
         test();
     }
@@ -99,7 +118,7 @@ window.onload = function() {
             } catch (error) {
                 msgBox.call(this, error);
                 err = true;
-                return;
+                newSubtree = undefined;
             }
 
             if (orphanedOpMsg) {
@@ -117,32 +136,32 @@ window.onload = function() {
 
         var tree = filterTree.getState(),
             rootExpressions = tree.children,
-            columnFilters = rootExpressions.length &&
+            columnFilterExpressions = rootExpressions.length &&
                 rootExpressions[0].isColumnFilters && // would always be the first subexpression
                 rootExpressions[0].children;
 
-        if (columnFilters) { // do we already have the column filters subtree?
+        if (columnFilterExpressions) { // do we already have the column filters subtree?
             // Search tree base for existing subexpression "locked" to this column
-            var subexpression = columnFilters.find(function(subexp) {
+            var subexpression = columnFilterExpressions.find(function(subexp) {
                 return subexp.fields[0] === column;
             });
 
             if (subexpression) {
-                var reuseIndex = columnFilters.indexOf(subexpression);
+                var reuseIndex = columnFilterExpressions.indexOf(subexpression);
                 if (newSubtree) {
                     // replace existing subexpression locked to this column, with new one
-                    columnFilters[reuseIndex] = newSubtree;
+                    columnFilterExpressions[reuseIndex] = newSubtree;
                 } else {
                     // no new subexpression so delete the old one
-                    if (columnFilters.length === 1) {
+                    if (columnFilterExpressions.length === 1) {
                         delete rootExpressions[0]; // delete entire column filters subtree
                     } else {
-                        delete columnFilters[columnFilters.indexOf(subexpression)];
+                        delete columnFilterExpressions[columnFilterExpressions.indexOf(subexpression)];
                     }
                 }
             } else if (newSubtree) {
                 // add new subexpression locked to this column
-                columnFilters.unshift(newSubtree);
+                columnFilterExpressions.unshift(newSubtree);
             }
         } else if (newSubtree) {
             // create the missing column filters subtree
@@ -284,7 +303,7 @@ window.onload = function() {
             children = makeChildren(columnName, expressions),
             operator = booleans && booleans[0] || 'and';
 
-        console.log(booleans, expressions, children, operator);
+        //console.log(booleans, expressions, children, operator);
 
         if (children.length) {
             return {
@@ -316,11 +335,19 @@ window.onload = function() {
     }
 };
 
+function rethrow(error) {
+    if (error.toString().indexOf('filter-tree') >= 0) {
+        alert(error);
+    } else {
+        throw error;
+    }
+}
+
 function initialize() { // eslint-disable-line no-unused-vars
     try {
         var newTree = makeNewTree();
     } catch (e) {
-        if (e.toString().indexOf('filter-tree') >= 0) { alert(e); return; } else { throw e; }
+        rethrow(e);
     }
 
     document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
@@ -334,7 +361,6 @@ function getLiteral(id, options) {
         value = document.getElementById(id).value;
 
     try {
-
         var object;
         eval('object = ' + value); // eslint-disable-line no-eval
         return object;
@@ -351,7 +377,7 @@ function validate(options) { // eslint-disable-line no-unused-vars
 }
 
 function toJSON(validateOptions) {
-    var valid = !filterTree.validate(validateOptions),
+    var valid = !validate(validateOptions),
         ctrl = document.getElementById('json-data');
 
     if (valid) {
@@ -367,7 +393,7 @@ function setState(id) { // eslint-disable-line no-unused-vars
     try {
         filterTree.setState(value);
     } catch (e) {
-        if (e.toString().indexOf('filter-tree') >= 0) { alert(e); return; } else { throw e; }
+        rethrow(e);
     }
     test();
 }
@@ -375,7 +401,7 @@ function setState(id) { // eslint-disable-line no-unused-vars
 function getSqlWhereClause(force) {
     if (
         (force || document.getElementById('autowhere').checked) &&
-        !filterTree.validate(!force && quietValidation)
+        !validate(!force && quietValidation)
     ) {
         document.getElementById('where-data').value = filterTree.getSqlWhereClause();
     }
@@ -385,7 +411,7 @@ function test(force) {
     if (force || document.getElementById('autotest').checked) {
         var result, data,
             options = !force && quietValidation;
-        if (filterTree.validate(options)) {
+        if (validate(options)) {
             result = 'invalid-filter';
         } else if (!(data = getLiteral('dataRow', options))) {
             result = 'invalid-data';
@@ -433,7 +459,7 @@ if (querystringHasParam('cc')) {
             return dataRow[this.column2];
         },
         getSqlWhereClause: function() {
-            return this.op.sql(this.column, { identifier: this.column2 });
+            return this.sqlOp(this.column, { identifier: this.column2 });
         }
     });
 }

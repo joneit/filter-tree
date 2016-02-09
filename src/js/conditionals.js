@@ -1,88 +1,101 @@
 'use strict';
 
+var Base = require('extend-me').Base;
 var _ = require('object-iterators');
 var regExpLIKE = require('regexp-like');
 
-var LIKE = 'LIKE ',
+var IN = 'IN',
+    NOT_IN = 'NOT ' + IN,
+    LIKE = 'LIKE',
     NOT_LIKE = 'NOT ' + LIKE,
-    LIKE_WILD_CARD = '%';
+    LIKE_WILD_CARD = '%',
+    SQT = '\'',
+    SPC = ' ',
+    NIL = '';
 
-var operators = {
+var Operators = Base.extend({
     '<': {
         test: function(a, b) { return a < b; },
-        sql: sqlDiadic.bind(this, '<')
+        make: function(a, b) { return this.makeDiadic('<', a, b); }
     },
     '\u2264': {
         test: function(a, b) { return a <= b; },
-        sql: sqlDiadic.bind(this, '<=')
+        make: function(a, b) { return this.makeDiadic('<=', a, b); }
     },
     '=': {
         test: function(a, b) { return a === b; },
-        sql: sqlDiadic.bind(this, '=')
+        make: function(a, b) { return this.makeDiadic('=', a, b); }
     },
     '\u2265': {
         test: function(a, b) { return a >= b; },
-        sql: sqlDiadic.bind(this, '>=')
+        make: function(a, b) { return this.makeDiadic('>=', a, b); }
     },
     '>': {
         test: function(a, b) { return a > b; },
-        sql: sqlDiadic.bind(this, '>')
+        make: function(a, b) { return this.makeDiadic('>', a, b); }
     },
     '\u2260': {
         test: function(a, b) { return a !== b; },
-        sql: sqlDiadic.bind(this, '<>')
+        make: function(a, b) { return this.makeDiadic('<>', a, b); }
     },
     LIKE: {
         test: function(a, b) { return regExpLIKE.cached(b, true).test(a); },
-        sql: sqlDiadic.bind(this, 'LIKE'),
+        make: function(a, b) { return this.makeDiadic(LIKE, a, b); },
         type: 'string'
     },
     'NOT LIKE': {
         test: function(a, b) { return !regExpLIKE.cached(b, true).test(a); },
-        sql: sqlDiadic.bind(this, 'NOT LIKE'),
+        make: function(a, b) { return this.makeDiadic(NOT_LIKE, a, b); },
         type: 'string'
     },
     IN: { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) >= 0; },
-        sql: sqlIN.bind(this, 'IN'),
+        make: function(a, b) { return this.makeIN(IN, a, b); },
         type: 'string'
     },
     'NOT IN': { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) < 0; },
-        sql: sqlIN.bind(this, 'NOT IN'),
+        make: function(a, b) { return this.makeIN(NOT_IN, a, b); },
         type: 'string'
     },
     CONTAINS: {
         test: function(a, b) { return containsOp(a, b) >= 0; },
-        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE),
+        make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE, a, b); },
         type: 'string'
     },
     'NOT CONTAINS': {
         test: function(a, b) { return containsOp(a, b) < 0; },
-        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE),
+        make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE, a, b); },
         type: 'string'
     },
     BEGINS: {
         test: function(a, b) { b = b.toString().toLowerCase(); return beginsOp(a, b.length) === b; },
-        sql: sqlLIKE.bind(this, '', LIKE_WILD_CARD, LIKE),
+        make: function(a, b) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, a, b); },
         type: 'string'
     },
     'NOT BEGINS': {
         test: function(a, b) { b = b.toString().toLowerCase(); return beginsOp(a, b.length) !== b; },
-        sql: sqlLIKE.bind(this, '', LIKE_WILD_CARD, NOT_LIKE),
+        make: function(a, b) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, a, b); },
         type: 'string'
     },
     ENDS: {
         test: function(a, b) { b = b.toString().toLowerCase(); return endsOp(a, b.length) === b; },
-        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, '', LIKE),
+        make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, a, b); },
         type: 'string'
     },
     'NOT ENDS': {
         test: function(a, b) { b = b.toString().toLowerCase(); return endsOp(a, b.length) !== b; },
-        sql: sqlLIKE.bind(this, LIKE_WILD_CARD, '', NOT_LIKE),
+        make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, a, b); },
         type: 'string'
-    }
-};
+    },
+    makeLIKE: pureVirtualMethod.bind(this, 'makeLIKE'),
+    makeIN: pureVirtualMethod.bind(this, 'makeIN'),
+    makeDiadic: pureVirtualMethod.bind(this, 'makeDiadic')
+});
+
+function pureVirtualMethod(name) {
+    throw 'Pure virtual method `Conditionals.prototype.' + name + '` has no implementation on this instance.';
+}
 
 function inOp(a, b) {
     return b
@@ -104,38 +117,59 @@ function endsOp(a, length) {
     return a.toString().toLowerCase().substr(-length, length);
 }
 
-function sqlLIKE(beg, end, LIKE_OR_NOT_LIKE, a, likePattern) {
-    var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
-    return identifier(a) + ' ' + LIKE_OR_NOT_LIKE + ' ' + getSqlString(beg + escaped + end);
-}
-
-function sqlIN(op, a, b) {
-    return identifier(a) + ' ' + op + ' (\'' + sqEsc(b).replace(/\s*,\s*/g, '\', \'') + '\')';
-}
-
-function identifier(s) {
-    return s.literal ? getSqlString(s.literal) : getSqlIdentifier(s.identifier ? s.identifier : s);
-}
-
-function literal(s) {
-    return s.identifier ? getSqlIdentifier(s.identifier) : getSqlString(s.literal ? s.literal : s);
-}
-
-function sqlDiadic(op, a, b) {
-    return identifier(a) + op + literal(b);
-}
-
 function sqEsc(string) {
-    return string.replace(/'/g, '\'\'');
+    return string.replace(/'/g, SQT + SQT);
 }
 
 function getSqlString(string) {
-    return '\'' + sqEsc(string) + '\'';
+    return SQT + sqEsc(string) + SQT;
+}
+
+var sqlIdentifierBeg, sqlIdentifierEnd;
+
+function setSqlIdentifierQuoteChars(beg, end) {
+    sqlIdentifierBeg = beg;
+    sqlIdentifierEnd = end;
 }
 
 function getSqlIdentifier(id) {
-    return '\"' + sqEsc(id) + '\"';
+    return sqlIdentifierBeg + id + sqlIdentifierEnd;
 }
+
+var SqlOperators = Operators.extend({
+    makeLIKE: function(beg, end, op, a, likePattern) {
+        var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
+        return sqlIdentifier(a) + SPC + op + SPC + getSqlString(beg + escaped + end);
+    },
+    makeIN: function(op, a, b) {
+        return sqlIdentifier(a) + SPC + op + SPC + '(' + SQT + sqEsc(b).replace(/\s*,\s*/g, SQT + ', ' + SQT) + SQT + ')';
+    },
+    makeDiadic: function(op, a, b) {
+        return sqlIdentifier(a) + SPC + op + SPC + sqlLiteral(b);
+    }
+});
+
+function sqlIdentifier(s) {
+    return s.literal ? getSqlString(s.literal) : getSqlIdentifier(s.identifier ? s.identifier : s);
+}
+
+function sqlLiteral(s) {
+    return s.identifier ? getSqlIdentifier(s.identifier) : getSqlString(s.literal ? s.literal : s);
+}
+
+var FilterCellOperators = Operators.extend({
+    makeLIKE: function(beg, end, op, a, likePattern) {
+        var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
+        return op.toLowerCase() + SPC + beg + escaped + end;
+    },
+    makeIN: function(op, a, b) {
+        return op.toLowerCase() + SPC + b.replace(/\s*,\s*/g, ',');
+    },
+    makeDiadic: function(op, a, b) {
+        return op + b;
+    }
+});
+
 
 // the operators as drop-down "option groups":
 var groups = {
@@ -169,7 +203,9 @@ var groups = {
 _(groups).each(function(group, key) { group.name = key; });
 
 module.exports = {
-    operators: operators,
+    operators: new Operators(),
+    sqlOperators: new SqlOperators(),
+    filterCellOperators: new FilterCellOperators(),
     groups: groups,
     menu: [ // hierarchical menu of relational operators
         groups.equality,
@@ -177,5 +213,6 @@ module.exports = {
         groups.sets,
         groups.strings,
         groups.patterns
-    ]
+    ],
+    setSqlIdentifierQuoteChars: setSqlIdentifierQuoteChars
 };

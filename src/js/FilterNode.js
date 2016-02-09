@@ -162,10 +162,7 @@ var FilterNode = Base.extend({
         }
 
         return state;
-    },
-
-    SQL_QUOTED_IDENTIFIER: '"'
-
+    }
 });
 
 FilterNode.optionsSchema = {
