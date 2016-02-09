@@ -400,7 +400,7 @@ function setState(id) { // eslint-disable-line no-unused-vars
 
 function getSqlWhereClause(force) {
     if (
-        (force || document.getElementById('autowhere').checked) &&
+        (force || document.getElementById('autoGetWhere').checked) &&
         !validate(!force && quietValidation)
     ) {
         document.getElementById('where-data').value = filterTree.getSqlWhereClause();

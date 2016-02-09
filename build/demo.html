@@ -61,12 +61,16 @@
         <input type="button" value="WHERE = getSqlWhereClause() // serialize the UI state" onclick="getSqlWhereClause(true)" />
         <label style="float:right; font-size:10pt"
                title="Automatically regenerate the SQL on any manual change to the UI.">
-            <input type="checkbox" id="autowhere" checked onclick="if(this.checked)getSqlWhereClause()"/>Auto
+            <input type="checkbox" id="autoGetWhere" checked onclick="if(this.checked)getSqlWhereClause()"/>Auto
         </label>
-        <textarea id="where-data" rows="3"></textarea>
+        <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)setState('where-data')"></textarea>
         <input type="button" value="setSqlWhereClause(WHERE) // reset the UI state to match"
                onclick="setState('where-data')"
                title="Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
+        <label style="float:right; font-size:10pt"
+               title="Automatically regenerate the SQL on any manual change to the UI.">
+            <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)setState('where-data')"/>Auto
+        </label>
     </fieldset>
 
     <fieldset>

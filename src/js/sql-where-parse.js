@@ -1,6 +1,6 @@
 'use strict';
 
-var reName = setSqlIdentifierQuoteChars('"'),
+var reName = setSqlIdentifierQuoteChars('"', '"'),
     reOp = /^((=|>=?|<[>=]?)|(NOT )?(LIKE|IN)\b)/i, // match[1]
     reLit = /^'(\d+)'/,
     reLitAnywhere = /'(\d+)'/,
@@ -13,7 +13,7 @@ var SQT = '\'';
 var literals;
 
 function setSqlIdentifierQuoteChars(beg, end) {
-    reName = new RegExp('^(' + beg + '(.+?)' + end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i'); // match[2] || match[3]
+    return (reName = new RegExp('^(' + beg + '(.+?)' + end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i')); // match[2] || match[3]
 }
 
 function parser(whereClause) {

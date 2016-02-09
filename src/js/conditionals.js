@@ -13,6 +13,16 @@ var IN = 'IN',
     SPC = ' ',
     NIL = '';
 
+var sqlIdentifierBeg,
+    sqlIdentifierEnd;
+
+setSqlIdentifierQuoteChars('"', '"');
+
+function setSqlIdentifierQuoteChars(beg, end) {
+    sqlIdentifierBeg = beg;
+    sqlIdentifierEnd = end;
+}
+
 var Operators = Base.extend({
     '<': {
         test: function(a, b) { return a < b; },
@@ -123,13 +133,6 @@ function sqEsc(string) {
 
 function getSqlString(string) {
     return SQT + sqEsc(string) + SQT;
-}
-
-var sqlIdentifierBeg, sqlIdentifierEnd;
-
-function setSqlIdentifierQuoteChars(beg, end) {
-    sqlIdentifierBeg = beg;
-    sqlIdentifierEnd = end;
 }
 
 function getSqlIdentifier(id) {
