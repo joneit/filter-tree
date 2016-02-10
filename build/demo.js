@@ -28,19 +28,14 @@ function makeNewTree() {
 }
 
 function updateFilterCells() {
-    var rootExpressions = filterTree.children,
-        columnFilterExpressions = rootExpressions.length &&
-            rootExpressions[0].isColumnFilters && // would always be the first subexpression
-            rootExpressions[0].children;
-
-    if (columnFilterExpressions) {
-        columnFilterExpressions.forEach(function(subexp) {
+    filterTree.children.forEach(function(subexp) {
+        if (subexp.isColumnFilter) {
             var cell = document.querySelector('input[name=' + subexp.children[0].column + ']');
             if (cell && !subexp.validate(quietValidation)) {
                 cell.value = subexp.getFilterCellExpression();
             }
-        });
-    }
+        }
+    });
 }
 
 window.onload = function() {
@@ -106,7 +101,7 @@ window.onload = function() {
 
     function updateFilter() {
         // trim & collapse spaces
-        var column = this.name,
+        var columnName = this.name,
             input = this.value.trim().replace(/\s\s+/g, ' '),
             newSubtree, err;
 
@@ -114,7 +109,7 @@ window.onload = function() {
 
         if (input) {
             try {
-                newSubtree = makeSubtree(column, input);
+                newSubtree = makeSubtree(columnName, input);
             } catch (error) {
                 msgBox.call(this, error);
                 err = true;
@@ -135,41 +130,25 @@ window.onload = function() {
         // newSubtree may be an object OR undefined (no input or no complete expression)
 
         var tree = filterTree.getState(),
-            rootExpressions = tree.children,
-            columnFilterExpressions = rootExpressions.length &&
-                rootExpressions[0].isColumnFilters && // would always be the first subexpression
-                rootExpressions[0].children;
+            rootExpressions = tree.children;
 
-        if (columnFilterExpressions) { // do we already have the column filters subtree?
-            // Search tree base for existing subexpression "locked" to this column
-            var subexpression = columnFilterExpressions.find(function(subexp) {
-                return subexp.fields[0] === column;
-            });
+        // Find column filter subexpression for this column
+        var subexpression = rootExpressions.find(function(subexp) {
+            return subexp.isColumnFilter && (subexp.fields[0].name || subexp.fields[0]) === columnName;
+        });
 
-            if (subexpression) {
-                var reuseIndex = columnFilterExpressions.indexOf(subexpression);
-                if (newSubtree) {
-                    // replace existing subexpression locked to this column, with new one
-                    columnFilterExpressions[reuseIndex] = newSubtree;
-                } else {
-                    // no new subexpression so delete the old one
-                    if (columnFilterExpressions.length === 1) {
-                        delete rootExpressions[0]; // delete entire column filters subtree
-                    } else {
-                        delete columnFilterExpressions[columnFilterExpressions.indexOf(subexpression)];
-                    }
-                }
-            } else if (newSubtree) {
-                // add new subexpression locked to this column
-                columnFilterExpressions.unshift(newSubtree);
+        if (subexpression) {
+            var reuseIndex = rootExpressions.indexOf(subexpression);
+            if (newSubtree) {
+                // replace existing subexpression locked to this column, with new one
+                rootExpressions[reuseIndex] = newSubtree;
+            } else {
+                // no new subexpression so delete the old one
+                delete rootExpressions[reuseIndex];
             }
         } else if (newSubtree) {
-            // create the missing column filters subtree
-            rootExpressions.unshift({
-                isColumnFilters: true,
-                operator: 'op-and',
-                children: [newSubtree]
-            });
+            // add new subexpression for this column
+            rootExpressions.unshift(newSubtree);
         }
 
         filterTree.setState(tree);
@@ -309,7 +288,8 @@ window.onload = function() {
             return {
                 operator: 'op-' + operator,
                 children: children,
-                fields: [columnName]
+                fields: [columnName],
+                isColumnFilter: true
             };
         }
     }

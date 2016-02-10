@@ -67,6 +67,7 @@
         <input type="button" value="setSqlWhereClause(WHERE) // reset the UI state to match"
                onclick="setState('where-data')"
                title="Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
+        <span style="font-style:italic; font-size: 7pt">(beta)</span>
         <label style="float:right; font-size:10pt"
                title="Automatically regenerate the SQL on any manual change to the UI.">
             <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)setState('where-data')"/>Auto
@@ -116,9 +117,9 @@
 
     <br/><br/>
 
-    <fieldset id="filter" style="white-space:nowrap; height:635px">
+    <fieldset id="filter" style="white-space:nowrap; min-height:635px">
         <legend>Filter expression user interface</legend>
-        <input type="button" value="validate()" onclick="validate()" style="float:right" />
+        <input type="button" value="validate()" onclick="validate()" style="margin:-1em 0 1em .5em;float:right" />
     </fieldset>
 
     <div class="msg-box">

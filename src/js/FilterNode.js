@@ -195,7 +195,7 @@ FilterNode.optionsSchema = {
      * @type {boolean}
      * @memberOf FilterNode.prototype
      */
-    isColumnFilters: { own: true },
+    isColumnFilter: { own: true },
 
     /** @summary Override operator list at any node.
      * Should only ever be first child of root tree.

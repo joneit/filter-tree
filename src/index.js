@@ -77,7 +77,11 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     createView: function() {
-        this.el = template(this.isColumnFilters ? 'columnFilters' : 'tree', ++ordinal);
+        this.el = template(
+            !this.parent ? 'root' : this.isColumnFilter ? 'columnFilter' : 'subtree',
+            ++ordinal,
+            this.fields[0].name || this.fields[0]
+        );
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
@@ -329,13 +333,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
                     state.children.push(child);
                 } else if (child.children.length) {
                     var ready = toJSON.call(child);
-                    if (child.isColumnFilters) {
-                        ready.isColumnFilters = true;
-                    }
-                    if (child.fields !== child.parent.fields) {
-                        ready.fields = child.fields;
-                    }
                     if (ready) {
+                        if (child.isColumnFilter) {
+                            ready.isColumnFilter = true;
+                        }
+                        if (child.fields !== child.parent.fields) {
+                            ready.fields = child.fields;
+                        }
                         state.children.push(ready);
                     }
                 }

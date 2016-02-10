@@ -6,7 +6,7 @@ var templex = require('templex');
 
 var templates = {
 
-    tree: function() {
+    subtree: function() {
         /*
          <span class="filter-tree">
              Match
@@ -25,16 +25,52 @@ var templates = {
          */
     },
 
-    columnFilters: function() {
+    columnFilter: function() {
+        /*
+         <span class="filter-tree">
+             <span style="margin:0;white-space:normal;line-height:1.25em;font-weight:bold">
+                 Column &ldquo;{2}&rdquo; filter cell:
+             </span>
+             Match
+             <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-or">any</label>
+             <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-and">all</label>
+             <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
+             of the following conditionals:<br/>
+             <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
+                 <div></div>conditional
+             </span>
+             <ol></ol>
+         </span>
+         */
+    },
+
+    root: function() {
         /*
         <span class="filter-tree op-and">
-            <strong>This permanent subexpression is reserved for the grid's <em>column filters.</em></strong><br/>
-            <em style="white-space: normal; font-size:smaller; line-height: normal; display: block; margin:.5em 1em; padding-left: 1em; border-left: .7em solid lightgrey;">
-                Each subexpression in this section represents the contents of a column's filter cell (below header cell).
-            </em>
-            Row data must match <strong>all</strong> of the following subexpressions:<br/>
+            <div style="margin:0;white-space:normal;line-height:initial;">
+                <p style="margin:0">
+                    <strong>This is the &ldquo;root&rdquo; of the filter tree.</strong>
+                    It's called a &ldquo;tree&rdquo; because it contains both <i>branches</i> and <i>leaves</i>.
+                    The leaves represent <i>conditional expressions</i> (or simply <i>conditionals</i>).
+                    The branches, also known as <i>subtrees</i>, contain leaves and/or other branches and represent subexpressions that group conditionals together.
+                    Grouped conditionals are evaluated together, before conditionals outside the group.
+                </p>
+                <p style="margin:.5em 0">
+                    Things to understand about the root expression include&hellip;
+                </p>
+                <ul style="margin:.4em;padding-left:1.7em">
+                    <li>The root expression is permanent. I cannot be deleted, although it may be empty.</li>
+                    <li>The root match operator is <em>always</em> set to <strong>all</strong>.</li>
+                    <li>All the column filter cell subexpressions are found on the root level of the tree.</li>
+                    <li>You may add additional subexpressions to the root for more complex filtering.</li>
+                </ul>
+                Match all of the following conditionals:
+            </div>
+            <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
+                <div></div>conditional
+            </span>
             <span class="filter-tree-add" title="Add a new sub-match under this match.">
-               <div></div>column filter subexpression
+                <div></div>subexpression
             </span>
             <ol></ol>
         </span>
