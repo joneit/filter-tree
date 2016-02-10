@@ -12,7 +12,7 @@
 
     <fieldset>
         <legend>Initialize with this <code>fields</code> list and the <code>filterJSON</code> below</legend>
-        <input type="button" value="initialize({ fields: fields, state: filterJSON })" onclick="initialize()"
+        <input type="button" value="initialize({ fields: fields, state: filterJSON })" onclick="harness.initialize()"
          title="Creates a new filter tree object bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." />
         <textarea id="fields" rows="6">[
     { submenu: ['LastName', 'FirstName'], label: 'Names' },
@@ -25,11 +25,11 @@
 
     <fieldset>
         <legend><code>filterJSON</code></legend>
-        <input type="button" value="filterJSON = filter.getJSON() // serialize the UI state" onclick="toJSON()"
+        <input type="button" value="filterJSON = filter.getJSON() // serialize the UI state" onclick="harness.toJSON()"
          title="Generate JSON describing the filter expression in the UI."/>
         <label style="float:right; font-size:10pt"
          title="Automatically regenerate the JSON on any manual change to the UI.">
-            <input type="checkbox" id="autoget" onclick="if(this.checked)toJSON()"/>Auto
+            <input type="checkbox" id="autoget" onclick="if(this.checked)harness.toJSON()"/>Auto
         </label>
         <textarea id="json-data" rows="6">{
    "operator": "op-and",
@@ -52,34 +52,34 @@
    ]
 }</textarea>
         <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>), with all property names and strings in double-quotes)</p>
-        <input type="button" value="filter.setJSON(filterJSON) // reset the UI state to match" onclick="setState('json-data')" style="margin-top:.7em"
+        <input type="button" value="filter.setJSON(filterJSON) // reset the UI state to match" onclick="harness.setState('json-data')" style="margin-top:.7em"
                title="Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
 
     <fieldset>
         <legend>SQL <code>WHERE</code> clause describing filter expression</legend>
-        <input type="button" value="WHERE = getSqlWhereClause() // serialize the UI state" onclick="getSqlWhereClause(true)" />
+        <input type="button" value="WHERE = getSqlWhereClause() // serialize the UI state" onclick="harness.getSqlWhereClause(true)" />
         <label style="float:right; font-size:10pt"
                title="Automatically regenerate the SQL on any manual change to the UI.">
-            <input type="checkbox" id="autoGetWhere" checked onclick="if(this.checked)getSqlWhereClause()"/>Auto
+            <input type="checkbox" id="autoGetWhere" checked onclick="if(this.checked)harness.getSqlWhereClause()"/>Auto
         </label>
-        <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)setState('where-data')"></textarea>
+        <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)harness.setState('where-data')"></textarea>
         <input type="button" value="setSqlWhereClause(WHERE) // reset the UI state to match"
-               onclick="setState('where-data')"
+               onclick="harness.setState('where-data')"
                title="Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
         <span style="font-style:italic; font-size: 7pt">(beta)</span>
         <label style="float:right; font-size:10pt"
                title="Automatically regenerate the SQL on any manual change to the UI.">
-            <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)setState('where-data')"/>Auto
+            <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)harness.setState('where-data')"/>Auto
         </label>
     </fieldset>
 
     <fieldset>
         <legend>Test the filter expression against this <code>dataRow</code></legend>
-        <input type="button" value="test(dataRow)" onclick="test(true)" /> &#x27f9;
+        <input type="button" value="test(dataRow)" onclick="harness.test(true)" /> &#x27f9;
         <label style="float:right; font-size:10pt"
          title="Automatically retest this data row against the filter expression in the UI on any manual change to same.">
-            <input type="checkbox" id="autotest" checked onclick="if(this.checked)test()"/>Auto
+            <input type="checkbox" id="autotest" checked onclick="if(this.checked)harness.test()"/>Auto
         </label>
         <span id="test-result"></span><br/>
         <textarea id="dataRow" rows="6">{
@@ -99,9 +99,9 @@
 
     <div style="display: inline-block; font-size: small; margin-left: 1em">
         <div style="color: red">
-            <em style="margin-left:2.5em">click</em><br/>
-            <em style="margin-left:2.5em">these</em><br/>
-            &#x27f8; &nbsp; <em>filters!</em>
+            <em style="margin-left:2em">click</em><br/>
+            <em style="margin-left:2em">these</em><br/>
+            &#x21D0; &nbsp; <em>filters!</em>
         </div>
         <div style="font-size:xx-small">&nbsp;</div>
     </div>
@@ -114,12 +114,16 @@
             &nbsp;>=A and <=L&nbsp;<br/>
         </code>
     </div>
-
-    <br/><br/>
+    <div id="properties" style="font-size:9pt; margin:1em">
+    Recognize column names typed in above by
+        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_NAME" checked> name</label>
+        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_ALIAS" checked> alias</label>
+        (<label><input type="checkbox" class="property" id="CASE_SENSITIVE_COLUMN_NAMES"> case-sensitive</label>)
+    </div>
 
     <fieldset id="filter" style="white-space:nowrap; min-height:635px">
         <legend>Filter expression user interface</legend>
-        <input type="button" value="validate()" onclick="validate()" style="margin:-1em 0 1em .5em;float:right" />
+        <input type="button" value="validate()" onclick="harness.validate()" style="margin:-1em 0 1em .5em;float:right" />
     </fieldset>
 
     <div class="msg-box">

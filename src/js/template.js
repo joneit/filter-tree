@@ -50,9 +50,9 @@ var templates = {
             <div style="margin:0;white-space:normal;line-height:initial;">
                 <p style="margin:0">
                     <strong>This is the &ldquo;root&rdquo; of the filter tree.</strong>
-                    It's called a &ldquo;tree&rdquo; because it contains both <i>branches</i> and <i>leaves</i>.
-                    The leaves represent <i>conditional expressions</i> (or simply <i>conditionals</i>).
-                    The branches, also known as <i>subtrees</i>, contain leaves and/or other branches and represent subexpressions that group conditionals together.
+                    It's called a <dfn>tree</dfn> because it contains both <dfn>branches</dfn> and <dfn>leaves</dfn>.
+                    The leaves represent <dfn>conditional expressions</dfn> (or simply <dfn>conditionals</dfn>).
+                    The branches, also known as <dfn>subtrees</dfn>, contain leaves and/or other branches and represent subexpressions that group conditionals together.
                     Grouped conditionals are evaluated together, before conditionals outside the group.
                 </p>
                 <p style="margin:.5em 0">
@@ -64,7 +64,7 @@ var templates = {
                     <li>All the column filter cell subexpressions are found on the root level of the tree.</li>
                     <li>You may add additional subexpressions to the root for more complex filtering.</li>
                 </ul>
-                Match all of the following conditionals:
+                Match <strong>all</strong> of the following conditionals:
             </div>
             <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
                 <div></div>conditional

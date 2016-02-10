@@ -513,4 +513,6 @@ FilterTree.setSqlIdentifierQuoteChars = function(beg, end) {
     sqlWhereParse.setSqlIdentifierQuoteChars(beg, end);
 };
 
+FilterTree.conditionals = conditionals; // expose for purposes of extending
+
 module.exports = FilterTree;

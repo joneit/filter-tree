@@ -92,16 +92,17 @@ var FilterNode = Base.extend({
 
         // create each option standard option from options, state, or parent
         _(FilterNode.optionsSchema).each(function(schema, key) {
-            var option = options && options[key] ||
-                state && state[key] ||
-                !schema.own && (
-                    parent && parent[key] || // reference parent value now so we don't have to search up the tree later
-                    schema.default
-                );
+            if (!(key in self)) {
+                var option = options && options[key] ||
+                    state && state[key] ||
+                    !schema.own && (
+                        parent && parent[key] || // reference parent value now so we don't have to search up the tree later
+                        schema.default
+                    );
 
-
-            if (option) {
-                self[key] = option;
+                if (option) {
+                    self[key] = option;
+                }
             }
         });
 

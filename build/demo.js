@@ -3,42 +3,30 @@
 
 'use strict';
 
-var filterTree;
-var quietValidation = {alert: false, focus: false};
-
-function auto() {
-    if (document.getElementById('autoget').checked) {
-        toJSON(quietValidation);
-    }
-
-    getSqlWhereClause();
-
-    test();
-}
-
-function makeNewTree() {
-    return new FilterTree({
-        fields: getLiteral('fields'),
-        state: document.getElementById('json-data').value,
-        eventHandler: function() {
-            auto();
-            updateFilterCells();
-        }
-    });
-}
-
-function updateFilterCells() {
-    filterTree.children.forEach(function(subexp) {
-        if (subexp.isColumnFilter) {
-            var cell = document.querySelector('input[name=' + subexp.children[0].column + ']');
-            if (cell && !subexp.validate(quietValidation)) {
-                cell.value = subexp.getFilterCellExpression();
-            }
-        }
-    });
-}
-
 window.onload = function() {
+    window.harness = {
+        initialize: initialize,
+        toJSON: toJSON,
+        setState: setState,
+        getSqlWhereClause: getSqlWhereClause,
+        test: test,
+        validate: validate
+    };
+
+    var filterTree;
+
+    var PROPERTY = {
+        AUTO_COLUMN_LOOKUP_BY_NAME: undefined,
+        AUTO_COLUMN_LOOKUP_BY_ALIAS: undefined,
+        CASE_SENSITIVE_COLUMN_NAMES: undefined
+    };
+
+    toArray(document.querySelectorAll('input.property')).forEach(function(propertyCheckbox) {
+        PROPERTY[propertyCheckbox.id] = propertyCheckbox.checked;
+    });
+
+    var quietValidation = {alert: false, focus: false};
+
     try {
         filterTree = makeNewTree();
     } catch (e) {
@@ -53,6 +41,49 @@ window.onload = function() {
     }
 
     document.getElementById('dataRow').addEventListener('keyup', test.bind(this, false));
+
+    function auto() {
+        if (document.getElementById('autoget').checked) {
+            toJSON(quietValidation);
+        }
+
+        getSqlWhereClause();
+
+        test();
+    }
+
+    function makeNewTree() {
+        return new FilterTree({
+            fields: getLiteral('fields'),
+            state: document.getElementById('json-data').value,
+            eventHandler: function() {
+                auto();
+                updateCellsFromTree();
+            }
+        });
+    }
+
+    function updateCellsFromTree() {
+        filterTree.children.forEach(function(subexp) {
+            if (subexp.isColumnFilter) {
+                var cell = document.querySelector('input[name=' + subexp.children[0].column + ']');
+                if (cell && !subexp.validate(quietValidation)) {
+                    cell.value = subexp.getFilterCellExpression();
+                }
+            }
+        });
+    }
+
+    document.getElementById('properties').addEventListener('click', function(evt) {
+        toArray(document.querySelectorAll('.filter-box')).forEach(function(cell) {
+            PROPERTY[this.id] = this.checked;
+            updateFilter.call(cell);
+        }.bind(evt.target));
+    });
+
+    function toArray(arrayLikeObject) {
+        return Array.prototype.slice.call(arrayLikeObject);
+    }
 
     var oldArg;
 
@@ -232,17 +263,41 @@ window.onload = function() {
                     op = parts[1] && parts[1].trim().toUpperCase() || '=',
                     literal = parts[parts.length - 1];
 
-                if (literal) {
-                    children.push({
-                        column: columnName,
-                        operator: opMap[op] || op,
-                        literal: literal
-                    });
-                } else {
+                if (!literal) {
                     orphanedOps.push(op);
+                } else {
+                    var compareLiteral = comparable(literal);
+                    var fieldName = filterTree.fields.find(function(field) {
+                        return (
+                            compareLiteral === (PROPERTY.AUTO_COLUMN_LOOKUP_BY_NAME && comparable(field.name || field)) ||
+                            compareLiteral === (PROPERTY.AUTO_COLUMN_LOOKUP_BY_ALIAS && comparable(field.alias))
+                        );
+                    });
+
+                    var child = {
+                        column: columnName,
+                        operator: opMap[op] || op
+                    };
+
+                    if (fieldName) {
+                        child.column2 = fieldName.name || fieldName;
+                        child.editor = 'Columns';
+                    } else {
+                        child.literal = literal;
+                    }
+
+                    children.push(child);
                 }
             }
         });
+
+        function comparable(name) {
+            if (!PROPERTY.CASE_SENSITIVE_COLUMN_NAMES && typeof name === 'string') {
+                name = name.toLowerCase();
+            }
+
+            return name;
+        }
 
         if (children.length > 0 && orphanedOps.length > 0 || orphanedOps.length > 1) {
             var RED = ' <code style="color:red">';
@@ -313,133 +368,144 @@ window.onload = function() {
         els[i].onblur = disableEditor;
         els[i].onkeyup = editorKeyUp;
     }
-};
 
-function rethrow(error) {
-    if (error.toString().indexOf('filter-tree') >= 0) {
-        alert(error);
-    } else {
-        throw error;
-    }
-}
-
-function initialize() { // eslint-disable-line no-unused-vars
-    try {
-        var newTree = makeNewTree();
-    } catch (e) {
-        rethrow(e);
-    }
-
-    document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
-    filterTree = newTree;
-}
-
-function getLiteral(id, options) {
-    options = options || {};
-
-    var alert = options.alert === undefined || options.alert,
-        value = document.getElementById(id).value;
-
-    try {
-        var object;
-        eval('object = ' + value); // eslint-disable-line no-eval
-        return object;
-
-    } catch (e) {
-        if (alert) {
-            window.alert('Bad ' + id + ' JavaScript literal!');
-        }
-    }
-}
-
-function validate(options) { // eslint-disable-line no-unused-vars
-    return filterTree.validate(options);
-}
-
-function toJSON(validateOptions) {
-    var valid = !validate(validateOptions),
-        ctrl = document.getElementById('json-data');
-
-    if (valid) {
-        filterTree.JSONspace = 3; // make it pretty
-        ctrl.value = filterTree.getJSON();
-    }
-
-    return valid;
-}
-
-function setState(id) { // eslint-disable-line no-unused-vars
-    var value = document.getElementById(id).value;
-    try {
-        filterTree.setState(value);
-    } catch (e) {
-        rethrow(e);
-    }
-    test();
-}
-
-function getSqlWhereClause(force) {
-    if (
-        (force || document.getElementById('autoGetWhere').checked) &&
-        !validate(!force && quietValidation)
-    ) {
-        document.getElementById('where-data').value = filterTree.getSqlWhereClause();
-    }
-}
-
-function test(force) {
-    if (force || document.getElementById('autotest').checked) {
-        var result, data,
-            options = !force && quietValidation;
-        if (validate(options)) {
-            result = 'invalid-filter';
-        } else if (!(data = getLiteral('dataRow', options))) {
-            result = 'invalid-data';
+    function rethrow(error) {
+        if (error.toString().indexOf('filter-tree') >= 0) {
+            alert(error);
         } else {
-            result = filterTree.test(data);
+            throw error;
         }
-        document.getElementById('test-result').className = result;
     }
-}
 
-function querystringHasParam(param) {
-    return new RegExp('[\\?&]' + param + '[\\?&=]|[\\?&]' + param + '$').test(location.search);
-}
-
-if (querystringHasParam('cc')) {
-    // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
-
-    var DefaultEditor = FilterTree.prototype.editors.Default;
-
-    FilterTree.prototype.addEditor('Columns', {
-        name: 'Compare one column to another',
-        createView: function() {
-            // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
-            DefaultEditor.prototype.createView.call(this);
-
-            // Remove the `literal` element from the `view` hash
-            delete this.view.literal;
-
-            // Clone the first element and call it `column2`
-            this.view.column2 = this.el.firstElementChild.cloneNode(true);
-
-            // Replace the 3rd element with the clone. There are no event listeners to worry about.
-            this.el.replaceChild(this.view.column2, this.el.children[2]);
-
-            var select = this.view.operator,
-                optgroups = select.querySelectorAll('optgroup:not([label$=quality])');
-            for (var i = 0; i < optgroups.length; ++i) {
-                select.removeChild(optgroups[i]);
-            }
-        },
-        p: function(dataRow) {
-            return dataRow[this.column];
-        },
-        q: function(dataRow) {
-            return dataRow[this.column2];
-        },
-        getSqlWhereClause: function() {
-            return this.sqlOp(this.column, { identifier: this.column2 });
+    function initialize() { // eslint-disable-line no-unused-vars
+        try {
+            var newTree = makeNewTree();
+        } catch (e) {
+            rethrow(e);
         }
-    });
-}
+
+        document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
+        filterTree = newTree;
+    }
+
+    function getLiteral(id, options) {
+        options = options || {};
+
+        var alert = options.alert === undefined || options.alert,
+            value = document.getElementById(id).value;
+
+        try {
+            var object;
+            eval('object = ' + value); // eslint-disable-line no-eval
+            return object;
+
+        } catch (e) {
+            if (alert) {
+                window.alert('Bad ' + id + ' JavaScript literal!');
+            }
+        }
+    }
+
+    function validate(options) { // eslint-disable-line no-unused-vars
+        return filterTree.validate(options);
+    }
+
+    function toJSON(validateOptions) {
+        var valid = !validate(validateOptions),
+            ctrl = document.getElementById('json-data');
+
+        if (valid) {
+            filterTree.JSONspace = 3; // make it pretty
+            ctrl.value = filterTree.getJSON();
+        }
+
+        return valid;
+    }
+
+    function setState(id) { // eslint-disable-line no-unused-vars
+        var value = document.getElementById(id).value;
+        try {
+            filterTree.setState(value);
+        } catch (e) {
+            rethrow(e);
+        }
+        test();
+    }
+
+    function getSqlWhereClause(force) {
+        if (
+            (force || document.getElementById('autoGetWhere').checked) &&
+            !validate(!force && quietValidation)
+        ) {
+            document.getElementById('where-data').value = filterTree.getSqlWhereClause();
+        }
+    }
+
+    function test(force) {
+        if (force || document.getElementById('autotest').checked) {
+            var result, data,
+                options = !force && quietValidation;
+            if (validate(options)) {
+                result = 'invalid-filter';
+            } else if (!(data = getLiteral('dataRow', options))) {
+                result = 'invalid-data';
+            } else {
+                result = filterTree.test(data);
+            }
+            document.getElementById('test-result').className = result;
+        }
+    }
+
+    function querystringHasParam(param) {
+        return new RegExp('[\\?&]' + param + '[\\?&=]|[\\?&]' + param + '$').test(location.search);
+    }
+
+    if (querystringHasParam('cc')) {
+        // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
+
+        var DefaultEditor = FilterTree.prototype.editors.Default;
+
+        FilterTree.prototype.addEditor('Columns', {
+            name: 'Compare one column to another',
+            createView: function() {
+                // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
+                DefaultEditor.prototype.createView.call(this);
+
+                // Remove the `literal` element from the `view` hash
+                delete this.view.literal;
+
+                // Add the `column2` element to the view hash using the secondary fields list
+                var fields2 = this.fields2;
+                if (!fields2) {
+                    // fall back to the root fields list (or most senior list available)
+                    var root = this;
+                    do {
+                        root = root.parent;
+                        if (root && root.fields) {
+                            fields2 = root.fields;
+                        }
+                    } while (root);
+                }
+
+                this.view.column2 = fields2
+                    ? this.makeElement(this.el, fields2, 'column', true)
+                    : this.el.firstElementChild.cloneNode(true);
+
+                // Replace the 3rd element with the new one. There are no event listeners to worry about.
+                this.el.replaceChild(this.view.column2, this.el.children[2]);
+            },
+            operatorMenu: [
+                FilterTree.conditionals.groups.equality,
+                FilterTree.conditionals.groups.inequalities,
+                FilterTree.conditionals.groups.sets
+            ],
+            q: function(dataRow) {
+                return dataRow[this.column2];
+            },
+            getSyntax: function(ops) {
+                return ops[this.operator].make.call(ops, this.column, this.column2);
+            }
+        });
+    }
+
+};

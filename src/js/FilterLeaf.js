@@ -58,7 +58,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      *  > Prototypes extended from `FilterLeaf` may have different controls as needed. The only required control is `column`, which all such "editors" must support.
      */
     createView: function() {
-        var fields = this.parent.nodeFields || this.fields;
+        var fields = this.nodeFields || this.parent.nodeFields || this.fields;
 
         if (!fields) {
             throw FilterNode.Error('Terminal node requires a fields list.');
@@ -88,13 +88,21 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      */
     makeElement: function(container, menu, prompt, sort) {
-        var el, option, result,
-            tagName = menu ? 'select' : 'input';
+        var el, result,
+            tagName = menu ? 'select' : 'input',
+            option = menu;
 
-        if (menu && menu.length === 1) {
-            // hard text when there would be only 1 option in the dropdown
-            option = menu[0];
+        // determine if there would be only a single item in the dropdown
+        while (option instanceof Array) {
+            if (option.lengh === 1) {
+                option = option[0];
+            } else {
+                option = undefined;
+            }
+        }
 
+        if (option) {
+            // hard text when single item
             result = document.createElement('input');
             result.type = 'hidden';
             result.value = option.name || option.alias || option;
