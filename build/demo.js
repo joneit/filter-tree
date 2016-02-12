@@ -3,6 +3,8 @@
 
 'use strict';
 
+var filterTree;  // top-level so debugger can look at easily
+
 window.onload = function() {
     window.harness = {
         initialize: initialize,
@@ -12,8 +14,6 @@ window.onload = function() {
         test: test,
         validate: validate
     };
-
-    var filterTree;
 
     var PROPERTY = {
         AUTO_COLUMN_LOOKUP_BY_NAME: undefined,
@@ -33,17 +33,19 @@ window.onload = function() {
         rethrow(e);
     }
 
-    document.getElementById('filter').appendChild(filterTree.el);
+    function el(id) { return document.getElementById(id); }
+
+    el('filter').appendChild(filterTree.el);
 
     if (!validate({ alert: false })) {
-        document.getElementById('where-data').value = filterTree.getSqlWhereClause();
+        el('where-data').value = filterTree.getState({ syntax: 'SQL' });
         test();
     }
 
-    document.getElementById('dataRow').addEventListener('keyup', test.bind(this, false));
+    el('dataRow').addEventListener('keyup', test.bind(this, false));
 
     function auto() {
-        if (document.getElementById('autoget').checked) {
+        if (el('autoget').checked) {
             toJSON(quietValidation);
         }
 
@@ -55,7 +57,8 @@ window.onload = function() {
     function makeNewTree() {
         return new FilterTree({
             fields: getLiteral('fields'),
-            state: document.getElementById('json-data').value,
+            columnOpMenus: getLiteral('columnOpMenus'),
+            state: el('state').value,
             eventHandler: function() {
                 auto();
                 updateCellsFromTree();
@@ -68,13 +71,13 @@ window.onload = function() {
             if (subexp.isColumnFilter) {
                 var cell = document.querySelector('input[name=' + subexp.children[0].column + ']');
                 if (cell && !subexp.validate(quietValidation)) {
-                    cell.value = subexp.getFilterCellExpression();
+                    cell.value = subexp.getState({ syntax: 'filter-cell' });
                 }
             }
         });
     }
 
-    document.getElementById('properties').addEventListener('click', function(evt) {
+    el('properties').addEventListener('click', function(evt) {
         toArray(document.querySelectorAll('.filter-box')).forEach(function(cell) {
             PROPERTY[this.id] = this.checked;
             updateFilter.call(cell);
@@ -110,10 +113,10 @@ window.onload = function() {
      */
     function msgBox(messageHTML) {
         var msgEl = document.querySelector('.msg-box'),
-            box = this.getBoundingClientRect();
+            rect = this.getBoundingClientRect();
 
-        msgEl.style.top = window.scrollY + box.bottom + 8 + 'px';
-        msgEl.style.left = window.scrollX + box.left + 8 + 'px';
+        msgEl.style.top = window.scrollY + rect.bottom + 8 + 'px';
+        msgEl.style.left = window.scrollX + rect.left + 8 + 'px';
 
         msgEl.style.display = 'block';
 
@@ -370,7 +373,7 @@ window.onload = function() {
     }
 
     function rethrow(error) {
-        if (error.toString().indexOf('filter-tree') >= 0) {
+        if (/filter-?tree/i.test(error)) {
             alert(error);
         } else {
             throw error;
@@ -384,7 +387,7 @@ window.onload = function() {
             rethrow(e);
         }
 
-        document.getElementById('filter').replaceChild(newTree.el, filterTree.el);
+        el('filter').replaceChild(newTree.el, filterTree.el);
         filterTree = newTree;
     }
 
@@ -392,7 +395,7 @@ window.onload = function() {
         options = options || {};
 
         var alert = options.alert === undefined || options.alert,
-            value = document.getElementById(id).value;
+            value = el(id).value;
 
         try {
             var object;
@@ -412,18 +415,18 @@ window.onload = function() {
 
     function toJSON(validateOptions) {
         var valid = !validate(validateOptions),
-            ctrl = document.getElementById('json-data');
+            ctrl = el('state');
 
         if (valid) {
             filterTree.JSONspace = 3; // make it pretty
-            ctrl.value = filterTree.getJSON();
+            ctrl.value = filterTree.getState({ syntax: 'JSON' }, { space: 3 });
         }
 
         return valid;
     }
 
     function setState(id) { // eslint-disable-line no-unused-vars
-        var value = document.getElementById(id).value;
+        var value = el(id).value;
         try {
             filterTree.setState(value);
         } catch (e) {
@@ -434,15 +437,15 @@ window.onload = function() {
 
     function getSqlWhereClause(force) {
         if (
-            (force || document.getElementById('autoGetWhere').checked) &&
+            (force || el('autoGetWhere').checked) &&
             !validate(!force && quietValidation)
         ) {
-            document.getElementById('where-data').value = filterTree.getSqlWhereClause();
+            el('where-data').value = filterTree.getState({ syntax: 'SQL' });
         }
     }
 
     function test(force) {
-        if (force || document.getElementById('autotest').checked) {
+        if (force || el('autotest').checked) {
             var result, data,
                 options = !force && quietValidation;
             if (validate(options)) {
@@ -452,7 +455,7 @@ window.onload = function() {
             } else {
                 result = filterTree.test(data);
             }
-            document.getElementById('test-result').className = result;
+            el('test-result').className = result;
         }
     }
 

@@ -13,14 +13,16 @@ var IN = 'IN',
     SPC = ' ',
     NIL = '';
 
-var sqlIdentifierBeg,
-    sqlIdentifierEnd;
-
-setSqlIdentifierQuoteChars('"', '"');
-
-function setSqlIdentifierQuoteChars(beg, end) {
-    sqlIdentifierBeg = beg;
-    sqlIdentifierEnd = end;
+var idQt = [];
+pushSqlIdQts({
+    beg: '"',
+    end: '"'
+});
+function pushSqlIdQts(qts) {
+    return idQt.unshift(qts);
+}
+function popSqlIdQts() {
+    return idQt.shift();
 }
 
 var Operators = Base.extend({
@@ -136,7 +138,7 @@ function getSqlString(string) {
 }
 
 function getSqlIdentifier(id) {
-    return sqlIdentifierBeg + id + sqlIdentifierEnd;
+    return idQt[0].beg + id + idQt[0].end;
 }
 
 var SqlOperators = Operators.extend({
@@ -173,8 +175,18 @@ var FilterCellOperators = Operators.extend({
     }
 });
 
+/** @typedef {string|operatorGroup} operatorGroup
+ * @property {string} label - The <optgroup> label.
+ * @property {operatorItem[]} submenu - Hierarchical list of operators.
+ */
 
-// the operators as drop-down "option groups":
+/** @typedef {string[]|operatorGroup} operatorItem
+ * @property {string} [label] - The <optgroup> label when string[]. Default to a generated name.
+ */
+
+/** Hash of column names, each being an array of {@link operatorItem} objects that represents an `<optgroup>...<optgroup>` element (submenu in a drop-down). For building operator drop-downs.
+ * @type {object}
+ */
 var groups = {
     equality: {
         label: 'Equality',
@@ -217,5 +229,6 @@ module.exports = {
         groups.strings,
         groups.patterns
     ],
-    setSqlIdentifierQuoteChars: setSqlIdentifierQuoteChars
+    pushSqlIdQts: pushSqlIdQts,
+    popSqlIdQts: popSqlIdQts
 };

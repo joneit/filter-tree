@@ -1,6 +1,6 @@
 'use strict';
 
-var reName = setSqlIdentifierQuoteChars('"', '"'),
+var reName,
     reOp = /^((=|>=?|<[>=]?)|(NOT )?(LIKE|IN)\b)/i, // match[1]
     reLit = /^'(\d+)'/,
     reLitAnywhere = /'(\d+)'/,
@@ -12,13 +12,37 @@ var SQT = '\'';
 
 var literals;
 
-function setSqlIdentifierQuoteChars(beg, end) {
-    return (reName = new RegExp('^(' + beg + '(.+?)' + end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i')); // match[2] || match[3]
+var idQt = [];
+pushSqlIdQts({
+    beg: '"',
+    end: '"'
+});
+function pushSqlIdQts(qts) {
+    reName = new RegExp('^(' + qts.beg + '(.+?)' + qts.end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i'); // match[2] || match[3]
+    return idQt.unshift(qts);
+
+}
+function popSqlIdQts() {
+    return idQt.shift();
 }
 
-function parser(whereClause) {
-    return walk(stripLiterals(whereClause));
+function parser(whereClause, options) {
+    var whereTree;
+
+    if (options) {
+        pushSqlIdQts(options);
+    }
+
+    whereTree = walk(stripLiterals(whereClause));
+
+    if (options) {
+        popSqlIdQts();
+    }
+
+    return whereTree;
 }
+parser.pushSqlIdQts = pushSqlIdQts;
+parser.popSqlIdQts = popSqlIdQts;
 
 function walk(t) {
     var m, name, op, arg, bool, token, tokens = [];

@@ -106,14 +106,19 @@ var FilterNode = Base.extend({
             }
         });
 
-        // transform conditionals with '@' as first char to reference to group of name
-        this.operatorMenu.forEach(function(option, index) {
-            if (typeof option === 'string' && option[0] === '@') {
-                self.operatorMenu[index] = conditionals.groups[option.substr(1)];
-            }
-        });
 
-        this.setState(state);
+        // For each item in the root of each of the following hierarchical lists that starts
+        // with a lowercase letter, transform into a reference to the group of that name.
+        // TODO: Redundant on lists inherited from parent.
+        this.operatorMenu.forEach(groupLookup);
+
+        if (this.columnOpMenus) {
+            _(this.columnOpMenus).each(function(column) {
+                column.forEach(groupLookup);
+            });
+        }
+
+        this.setState(state, options); // forward `options.beg` and `options.end` for use by `sqlWhereParse()`
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
@@ -132,9 +137,9 @@ var FilterNode = Base.extend({
         }
     },
 
-    setState: function(state) {
+    setState: function(state, options) {
         var oldEl = this.el;
-        this.state = detectState(state);
+        this.state = detectState(state, options);
         this.createView();
         this.loadState();
         this.render();
@@ -168,24 +173,28 @@ var FilterNode = Base.extend({
 
 FilterNode.optionsSchema = {
     /** @summary Default list of fields only for direct child terminal-node drop-downs.
+     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
     nodeFields: { own: true },
 
     /** @summary Default list of fields for all descendant terminal-node drop-downs.
-     * @type {string[]}
+     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+     * @type {fieldOption[]}
      * @memberOf FilterNode.prototype
      */
     fields: {},
 
     /** @summary Type of filter editor.
+     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string}
      * @memberOf FilterNode.prototype
      */
     editor: {},
 
     /** @summary Event handler for UI events.
+     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string}
      * @memberOf FilterNode.prototype
      */
@@ -193,17 +202,29 @@ FilterNode.optionsSchema = {
 
     /** @summary This is the _column filters_ subtree if truthy.
      * @desc Should only ever be at most 1 node with this set, always positioned as first child of root tree.
+     * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {boolean}
      * @memberOf FilterNode.prototype
      */
     isColumnFilter: { own: true },
 
     /** @summary Override operator list at any node.
-     * Should only ever be first child of root tree.
-     * @type {fieldOption}
+     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+     * @type {string[]}
      * @memberOf FilterNode.prototype
      */
-    operatorMenu: { default: conditionals.menu }
+    operatorMenu: { default: conditionals.menu },
+
+    /** @summary Override operator list one or more columns.
+     * @desc Hash of column names, each being an array of {@link operatorItem} objects that represents an `<optgroup>...<optgroup>` element (submenu in a drop-down). For building operator drop-downs.
+     * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+     * The operator names must all be defined in conditionals.operators.
+     * Typically defined once at the root node.
+     * When a column is set to a name in this hash, that name's operator list takes priority of `operatorMenu`.
+     * @type {object}
+     * @memberOf FilterNode.prototype
+     */
+    columnOpMenus: {}
 };
 
 FilterNode.setWarningClass = function(el, value) {
@@ -212,7 +233,6 @@ FilterNode.setWarningClass = function(el, value) {
     }
     el.classList[value ? 'remove' : 'add']('filter-tree-warning');
     return value;
-
 };
 
 FilterNode.Error = function(msg) {
@@ -229,9 +249,19 @@ FilterNode.clickIn = function(el) {
     }
 };
 
+function groupLookup(option, index, array) {
+    if (typeof option === 'string' && /^[a-z]/.test(option)) {
+        var group = conditionals.groups[option];
+        if (!group) {
+            throw FilterNode.Error('Expected name of a defined operator group but found "' + option + '" instead.');
+        }
+        array[index] = group;
+    }
+}
+
 var reJSON = /^\s*[\[\{]/;
 
-function detectState(state) {
+function detectState(state, options) {
     switch (typeof state) {
         case 'object':
             return state;
@@ -244,7 +274,7 @@ function detectState(state) {
                 }
             } else {
                 try {
-                    return sqlWhereParse(state);
+                    return sqlWhereParse(state, options);
                 } catch (error) {
                     throw FilterNode.Error('SQL WHERE clause parser: ' + error);
                 }

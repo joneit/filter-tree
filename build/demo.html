@@ -9,29 +9,46 @@
 </head>
 <body>
 <table style="width:100%"><tr><td>
+    <pre style="margin:0 0 .4em 0">
+var options = {
+    fields: fields,
+    columnOpMenus: columnOpMenus,
+    state: state
+};
+    </pre>
+    <input type="button" value="var filterTree = new FilterTree(options);" onclick="harness.initialize()"
+           title="Creates a new filter tree object (using the options below) bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." />
 
     <fieldset>
-        <legend>Initialize with this <code>fields</code> list and the <code>filterJSON</code> below</legend>
-        <input type="button" value="initialize({ fields: fields, state: filterJSON })" onclick="harness.initialize()"
-         title="Creates a new filter tree object bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." />
+        <legend><code>fields</code></legend>
         <textarea id="fields" rows="6">[
     { submenu: ['LastName', 'FirstName'], label: 'Names' },
     'BirthState',
     { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
     { name: 'Age', type: 'number' }
 ]</textarea>
-    <p>Format: JavaScript array literal syntax</p>
+        <p>Format: JavaScript array literal syntax</p>
     </fieldset>
 
     <fieldset>
-        <legend><code>filterJSON</code></legend>
-        <input type="button" value="filterJSON = filter.getJSON() // serialize the UI state" onclick="harness.toJSON()"
-         title="Generate JSON describing the filter expression in the UI."/>
+        <legend><code>columnOpMenus</code></legend>
+        <textarea id="columnOpMenus" rows="6">{
+    LastName: [ "<", ">" ],
+    "FirstName": [ "inequalities" ]
+}</textarea>
+    <p>Format: JavaScript object literal syntax</p>
+    </fieldset>
+
+    <fieldset>
+        <legend><code>state</code></legend>
+        <input type="button" value="state = filterTree.getState({syntax:'JSON'},{space:3});" onclick="harness.toJSON()"
+         title="SERIALIZE THE UI STATE
+Generate JSON describing the filter expression in the UI."/>
         <label style="float:right; font-size:10pt"
-         title="Automatically regenerate the JSON on any manual change to the UI.">
+               title="Automatically regenerate the JSON on any manual change to the UI.">
             <input type="checkbox" id="autoget" onclick="if(this.checked)harness.toJSON()"/>Auto
         </label>
-        <textarea id="json-data" rows="6">{
+        <textarea id="state" rows="6">{
    "operator": "op-and",
    "children": [
       {
@@ -51,23 +68,28 @@
       }
    ]
 }</textarea>
-        <p>Format: JSON syntax (<a href="http://www.json.org/" target="json_org">strict</a>), with all property names and strings in double-quotes)</p>
-        <input type="button" value="filter.setJSON(filterJSON) // reset the UI state to match" onclick="harness.setState('json-data')" style="margin-top:.7em"
-               title="Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
+        <p>
+            Format: JSON syntax, <a href="http://www.json.org/" target="json_org">strict</a> (with all property names and strings in double-quotes)<br>
+        </p>
+        <input type="button" value="filterTree.setState(state);" onclick="harness.setState('state')" style="margin-top:.7em"
+               title="RESET THE UI STATE TO MATCH THIS
+Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
 
     <fieldset>
         <legend>SQL <code>WHERE</code> clause describing filter expression</legend>
-        <input type="button" value="WHERE = getSqlWhereClause() // serialize the UI state" onclick="harness.getSqlWhereClause(true)" />
+        <input type="button" value="WHERE = filterTree.getSqlWhereClause();" onclick="harness.getSqlWhereClause(true)" />
         <label style="float:right; font-size:10pt"
-               title="Automatically regenerate the SQL on any manual change to the UI.">
+               title="SERIALIZE THE UI STATE INTO THIS
+Automatically regenerate the SQL on any manual change to the UI.">
             <input type="checkbox" id="autoGetWhere" checked onclick="if(this.checked)harness.getSqlWhereClause()"/>Auto
         </label>
         <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)harness.setState('where-data')"></textarea>
-        <input type="button" value="setSqlWhereClause(WHERE) // reset the UI state to match"
+        <input type="button" value="filterTree.setState(WHERE);"
                onclick="harness.setState('where-data')"
-               title="Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
-        <span style="font-style:italic; font-size: 7pt">(beta)</span>
+               title="SERIALIZE THE UI STATE INTO THIS
+Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
+        <sup style="font-style:italict; font-size:8pt; margin-left:5px">(beta)</sup>
         <label style="float:right; font-size:10pt"
                title="Automatically regenerate the SQL on any manual change to the UI.">
             <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)harness.setState('where-data')"/>Auto
@@ -76,7 +98,7 @@
 
     <fieldset>
         <legend>Test the filter expression against this <code>dataRow</code></legend>
-        <input type="button" value="test(dataRow)" onclick="harness.test(true)" /> &#x27f9;
+        <input type="button" value="test(dataRow);" onclick="harness.test(true)" /> &#x27f9;
         <label style="float:right; font-size:10pt"
          title="Automatically retest this data row against the filter expression in the UI on any manual change to same.">
             <input type="checkbox" id="autotest" checked onclick="if(this.checked)harness.test()"/>Auto
@@ -106,7 +128,7 @@
         <div style="font-size:xx-small">&nbsp;</div>
     </div>
 
-    <div style="display: inline-block; white-space: nowrap; margin-left: 1em; font-size: 9pt; text-align: center; border:1px solid grey;padding-bottom:2px">
+    <div style="display: inline-block; white-space: nowrap; margin-left: 1em; text-align: center; border:1px solid grey;padding-bottom:2px">
         <div style="margin-bottom: 3px; padding-bottom: 3px; padding-top:2px; background-color:grey; color:white; font-weight:bold">examples:</div>
         <code style="font-size: 8pt; letter-spacing: 1px; font-weight: normal">
             50<br/>
@@ -114,14 +136,14 @@
             &nbsp;>=A and <=L&nbsp;<br/>
         </code>
     </div>
-    <div id="properties" style="font-size:9pt; margin:1em">
+    <div id="properties" style="margin:1em">
     Recognize column names typed in above by
-        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_NAME" checked> name</label>
-        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_ALIAS" checked> alias</label>
-        (<label><input type="checkbox" class="property" id="CASE_SENSITIVE_COLUMN_NAMES"> case-sensitive</label>)
+        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_NAME" checked>name</label>
+        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_ALIAS" checked>alias</label>
+        (<label><input type="checkbox" class="property" id="CASE_SENSITIVE_COLUMN_NAMES">case-sensitive</label>)
     </div>
 
-    <fieldset id="filter" style="white-space:nowrap; min-height:635px">
+    <fieldset id="filter" style="white-space:nowrap; min-height:887px">
         <legend>Filter expression user interface</legend>
         <input type="button" value="validate()" onclick="harness.validate()" style="margin:-1em 0 1em .5em;float:right" />
     </fieldset>

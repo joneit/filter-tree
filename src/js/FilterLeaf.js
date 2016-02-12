@@ -76,54 +76,6 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         root.appendChild(document.createElement('br'));
     },
 
-    /**
-     * @summary HTML form controls factory.
-     * @desc Creates and appends a text box or a drop-down.
-     * @returns The new element.
-     * @param {Element} container - An element to which to append the new element.
-     * @param {fieldOption[]} [menu] - Overloads:
-     * * If omitted, will create an `<input/>` (text box) element.
-     * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
-     * * Otherwise, creates a `<select>...</select>` element with these menu.
-     * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
-     */
-    makeElement: function(container, menu, prompt, sort) {
-        var el, result,
-            tagName = menu ? 'select' : 'input',
-            option = menu;
-
-        // determine if there would be only a single item in the dropdown
-        while (option instanceof Array) {
-            if (option.lengh === 1) {
-                option = option[0];
-            } else {
-                option = undefined;
-            }
-        }
-
-        if (option) {
-            // hard text when single item
-            result = document.createElement('input');
-            result.type = 'hidden';
-            result.value = option.name || option.alias || option;
-
-            el = document.createElement('span');
-            el.innerHTML = option.alias || option.name || option;
-            el.appendChild(result);
-        } else {
-            result = el = buildElement(tagName, menu, prompt, sort);
-            if (el.type === 'text' && this.eventHandler) {
-                this.el.addEventListener('keyup', this.eventHandler);
-            }
-            this.el.addEventListener('change', this.onChange = this.onChange || cleanUpAndMoveOn.bind(this));
-            FilterNode.setWarningClass(el);
-        }
-
-        container.appendChild(el);
-
-        return result;
-    },
-
     loadState: function() {
         var state = this.state;
 
@@ -278,21 +230,89 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
         return state;
     },
+    /**
+     * @param {string} options.syntax - See {@link FilterTree#getState|subtree version} for more info.
+     * > For `'object'` and `'JSON'` note that the subtree's version of `getState` will not call this leaf verison of `getState` because the former uses `unstrungify()` and `JSON.stringify()`, respectively, both of which recurse on their own.
+     */
+    getState: function getState(options, suboptions) {
+        var result = '',
+            syntax = options && options.syntax || 'object';
 
-    getSqlWhereClause: function() {
-        return this.getSyntax(conditionals.sqlOperators);
-    },
-
-    getFilterCellExpression: function() {
-        var exp = this.getSyntax(conditionals.filterCellOperators);
-        if (exp[0] === '=') {
-            exp = exp.substr(1);
+        switch (syntax) {
+            case 'object': // see note above
+                result = this.toJSON();
+                break;
+            case 'JSON': // see note above
+                result = JSON.stringify(this, null, suboptions && suboptions.space) || '';
+                break;
+            case 'SQL':
+                result = this.getSyntax(conditionals.sqlOperators);
+                break;
+            case 'filter-cell':
+                result = this.getSyntax(conditionals.filterCellOperators);
+                if (result[0] === '=') {
+                    result = result.substr(1);
+                }
+                break;
+            default:
+                throw FilterNode.Error('FilterLeaf.getState: Unknown syntax option "' + syntax[0] + '"');
         }
-        return exp;
+
+        return result;
     },
 
-    getSyntax: function(ops) {
-        return ops[this.operator].make.call(ops, this.column, this.literal);
+    getSyntax: function(operators) {
+        return operators[this.operator].make.call(operators, this.column, this.literal);
+    },
+
+
+    /** @summary HTML form controls factory.
+     * @desc Creates and appends a text box or a drop-down.
+     * > Defined on the FilterTree prototype for access by derived types (alternate filter editors).
+     * @returns The new element.
+     * @param {Element} container - An element to which to append the new element.
+     * @param {fieldOption[]} [menu] - Overloads:
+     * * If omitted, will create an `<input/>` (text box) element.
+     * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
+     * * Otherwise, creates a `<select>...</select>` element with these menu.
+     * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
+     */
+    makeElement: function(container, menu, prompt, sort) {
+        var el, result,
+            option = menu,
+            tagName = menu ? 'select' : 'input';
+
+        // determine if there would be only a single item in the dropdown
+        while (option instanceof Array) {
+            if (option.lengh === 1) {
+                option = option[0];
+            } else {
+                option = undefined;
+            }
+        }
+
+        if (option) {
+            // hard text when single item
+            result = document.createElement('input');
+            result.type = 'hidden';
+            result.value = option.name || option.alias || option;
+
+            el = document.createElement('span');
+            el.innerHTML = option.alias || option.name || option;
+            el.appendChild(result);
+        } else {
+            result = el = buildElement(tagName, menu, prompt, sort);
+            if (el.type === 'text' && this.eventHandler) {
+                this.el.addEventListener('keyup', this.eventHandler);
+            }
+            this.onChange = this.onChange || cleanUpAndMoveOn.bind(this);
+            this.el.addEventListener('change', this.onChange);
+            FilterNode.setWarningClass(el);
+        }
+
+        container.appendChild(el);
+
+        return result;
     }
 });
 
@@ -310,10 +330,12 @@ function findField(fields, name) {
     return complex || simple;
 }
 
-/** `change` or `click` event handler for all form controls.
+/** `change` event handler for all form controls.
+ * Rebuilds the operator drop-down as needed.
  * Removes error CSS class from control.
  * Adds warning CSS class from control if blank; removes if not blank.
  * Moves focus to next non-blank sibling control.
+ * @this Bound to this node.
  */
 function cleanUpAndMoveOn(evt) {
     var el = evt.target;
@@ -323,6 +345,8 @@ function cleanUpAndMoveOn(evt) {
 
     // set or remove 'warning' CSS class, as per el.value
     FilterNode.setWarningClass(el);
+
+    rebuildOperatorListAsPerColumnOperators.call(this);
 
     if (el.value) {
         // find next sibling control, if any
@@ -339,6 +363,20 @@ function cleanUpAndMoveOn(evt) {
 
     if (this.eventHandler) {
         this.eventHandler(evt);
+    }
+}
+
+function rebuildOperatorListAsPerColumnOperators() {
+    var columnOpMenus = this.columnOpMenus && this.columnOpMenus[this.view.column.value];
+    if (columnOpMenus !== this.oldColumnOperators) {
+        var newMenu = columnOpMenus || this.operatorMenu,
+            newOpDrop = this.makeElement(this.el, newMenu, 'operator');
+
+        newOpDrop.value = this.view.operator.value;
+        this.el.replaceChild(newOpDrop, this.view.operator);
+        this.view.operator = newOpDrop;
+
+        this.oldColumnOperators = columnOpMenus;
     }
 }
 

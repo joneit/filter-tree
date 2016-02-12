@@ -3,21 +3,21 @@
 }
 body {
     font-family: sans-serif;
+    font-size: 9pt;
 }
 code {
     font-weight: bold;
     font-style: normal;
-    font-size: large;
     margin: 0 .25em;
 }
 textarea {
     display: block;
-    margin: 1em 0 3px 0;
+    margin: 9px 0;
     width: 100%;
 }
 input[type='button'] {
     border: 0;
-    background-color: #777;
+    background-color: #999;
     color: white;
     font-weight: bold;
     border-radius: 10px;
@@ -26,6 +26,7 @@ input[type='button'] {
     font-family: monospace;
     border: 1px transparent solid;
     box-sizing: border-box;
+    box-shadow: 2px 2px 5px #444;
 }
 input[type='button']:active {
     background-color: #bbb;
@@ -33,14 +34,14 @@ input[type='button']:active {
     border: 1px #555 solid;
 }
 fieldset {
-    margin-bottom: 1.5em;
+    margin: 1.4em 0;
     background-color: #f8f8ff;
     padding-top: .75em;
     border-radius: 5px;
     box-shadow: 4px 4px 10px #aaa;
 }
 legend {
-    font-size: smaller;
+    font-size: 11pt;
     font-style: italic;
     background-color: ivory;
     border: 1px #555 solid;
@@ -48,14 +49,17 @@ legend {
     border-radius: 5px;
     box-shadow: 2px 2px 5px grey;
 }
+legend > code {
+    font-size: 11pt;
+}
 td {
     vertical-align: top;
     padding: .5em;
     width: 50%;
 }
 fieldset > p {
-    font-size: 8pt;
-    margin: 0;
+    font-size: 7pt;
+    margin: -6px 0 0 0;
 }
 .false, .true {
     font-weight: bold
@@ -109,7 +113,6 @@ input + em {
     border: 2px solid black;
     border-radius: 7px;
     background-color: yellow;
-    font-size: 9pt;
 }
 .msg-box-title {
     display: inline-block;

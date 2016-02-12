@@ -48,23 +48,28 @@ var templates = {
         /*
         <span class="filter-tree op-and">
             <div style="margin:0;white-space:normal;line-height:initial;">
-                <p style="margin:0">
-                    <strong>This is the &ldquo;root&rdquo; of the filter tree.</strong>
+                <strong>
+                    &#x21D0;
+                    This edge represents the
+                    <a href="javascript:void(0)" onclick="with(this.parentElement.nextElementSibling.style){display=display==='none'?'block':'none'}">root level</a>
+                    of the filter tree.
+                </strong>
+                <div style="display:none">
                     It's called a <dfn>tree</dfn> because it contains both <dfn>branches</dfn> and <dfn>leaves</dfn>.
                     The leaves represent <dfn>conditional expressions</dfn> (or simply <dfn>conditionals</dfn>).
                     The branches, also known as <dfn>subtrees</dfn>, contain leaves and/or other branches and represent subexpressions that group conditionals together.
                     Grouped conditionals are evaluated together, before conditionals outside the group.
-                </p>
-                <p style="margin:.5em 0">
-                    Things to understand about the root expression include&hellip;
-                </p>
-                <ul style="margin:.4em;padding-left:1.7em">
-                    <li>The root expression is permanent. I cannot be deleted, although it may be empty.</li>
-                    <li>The root match operator is <em>always</em> set to <strong>all</strong>.</li>
-                    <li>All the column filter cell subexpressions are found on the root level of the tree.</li>
-                    <li>You may add additional subexpressions to the root for more complex filtering.</li>
-                </ul>
-                Match <strong>all</strong> of the following conditionals:
+                    <p style="margin:.5em 0">
+                        Things to understand about the root expression include&hellip;
+                    </p>
+                    <ul style="margin:.4em;padding-left:1.7em">
+                        <li>The root expression is permanent. It cannot be deleted, although it may be empty.</li>
+                        <li>The root match operator is <em>always</em> set to <strong>all</strong>.</li>
+                        <li>All the column filter cell subexpressions are found on the root level of the tree.</li>
+                        <li>You may add additional subexpressions to the root for more complex filtering.</li>
+                    </ul>
+                </div>
+                <p style="margin:.5em 0">Match <strong>all</strong> of the following conditionals:</p>
             </div>
             <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
                 <div></div>conditional

@@ -14,7 +14,6 @@ var TerminalNode = require('./js/FilterLeaf');
 var template = require('./js/template');
 var operators = require('./js/tree-operators');
 var conditionals = require('./js/conditionals');
-var sqlWhereParse = require('./js/sql-where-parse');
 
 var ordinal = 0;
 var reFilterTreeErrorString = /^filter-tree: /;
@@ -314,11 +313,73 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return noChildrenDefined || (operator.negate ? !result : result);
     },
 
-    getState: unstrungify,
+    /**
+     * Get a representation of the filer (sub)tree state.
+     * @param {string} [options.syntax='object'] - A case-sensitive string indicating the expected type and format of the return value:
+     * * `'object'` (default) walks the tree using {@link https://www.npmjs.com/package/unstrungify|unstrungify()}, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterTree#setState|setState}.
+     * * `'JSON`` walks the tree using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
+     * * `'SQL'` walks the tree, returning a SQL where clause string. Suitable for creating SQL `SELECT` statements.
+     * * `'filter-cell'` walks the tree, returning a string suitable for a Hypergrid filter cell. This syntax should only be called for from a subtree containing homogeneous column names and no subexpressions.
+     * @param {number|string} [suboptions.space] - When `options.syntax === 'JSON'`, forwarded to `JSON.stringify`'s third parameter, `space` (see).
+     * @param {object}} [suboptions.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
+     * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
+     */
+    getState: function getState(options, suboptions) {
+        var result = '',
+            syntax = options && options.syntax && options.syntax.split(':') || ['object'];
 
-    getJSON: function() {
-        var ready = JSON.stringify(this, null, this.JSONspace);
-        return ready ? ready : '';
+        switch (syntax[0]) {
+            case 'object':
+                result = unstrungify.call(this);
+                break;
+            case 'JSON':
+                result = JSON.stringify(this, null, suboptions && suboptions.space) || '';
+                break;
+            case 'SQL':
+                var lexeme = operators[this.operator].SQL,
+                    qts = !this.parent && suboptions && suboptions.sqlIdQts;
+
+                if (qts) {
+                    conditionals.pushSqlIdQts(qts);
+                }
+
+                this.children.forEach(function(child, idx) {
+                    var op = idx ? ' ' + lexeme.op + ' ' : '';
+                    if (child) {
+                        if (child instanceof TerminalNode) {
+                            result += op + child.getState(options);
+                        } else if (child.children.length) {
+                            result += op + getState.call(child, options);
+                        }
+                    }
+                });
+
+                if (qts) {
+                    conditionals.popSqlIdQts();
+                }
+
+                result = lexeme.beg + (result || 'NULL IS NULL') + lexeme.end;
+                break;
+            case 'filter-cell':
+                var operator = operators[this.operator].filterCell.op;
+                this.children.forEach(function(child, idx) {
+                    if (child) {
+                        if (child instanceof TerminalNode) {
+                            if (idx) {
+                                syntax += ' ' + operator + ' ';
+                            }
+                            syntax += child.getState(options);
+                        } else if (child.children.length) {
+                            throw FilterNode.Error('FilterTree.Expected conditional but found subexpression (not supported in filter cell syntax).');
+                        }
+                    }
+                });
+                break;
+            default:
+                throw FilterNode.Error('getState: Unknown syntax option "' + syntax[0] + '"');
+        }
+
+        return result;
     },
 
     toJSON: function toJSON() {
@@ -352,46 +413,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
         });
 
         return state.children.length ? state : undefined;
-    },
-
-    getSqlWhereClause: function getSqlWhereClause() {
-        var lexeme = operators[this.operator].SQL,
-            where = '';
-
-        this.children.forEach(function(child, idx) {
-            var op = idx ? ' ' + lexeme.op + ' ' : '';
-            if (child) {
-                if (child instanceof TerminalNode) {
-                    where += op + child.getSqlWhereClause();
-                } else if (child.children.length) {
-                    where += op + getSqlWhereClause.call(child);
-                }
-            }
-        });
-
-        if (!where) {
-            where = 'NULL IS NULL';
-        }
-
-        return lexeme.beg + where + lexeme.end;
-    },
-
-    getFilterCellExpression: function() {
-        var operator = operators[this.operator].filterCell.op,
-            syntax = '';
-
-        this.children.forEach(function(child, idx) {
-            if (child) {
-                if (child instanceof TerminalNode) {
-                    if (idx) { syntax += ' ' + operator + ' '; }
-                    syntax += child.getFilterCellExpression();
-                } else if (child.children.length) {
-                    throw FilterNode.Error('Subexpressions not supported in filter cell syntax.');
-                }
-            }
-        });
-
-        return syntax;
     }
 
 });
@@ -463,8 +484,8 @@ function attachChooser(evt) { // must be called with context
     };
 
     // Position it
-    chooser.style.left = rect.left + 19 + 'px';
-    chooser.style.top = rect.bottom + 'px';
+    chooser.style.left = window.scrollX + rect.left + 19 + 'px';
+    chooser.style.top = window.scrollY + rect.bottom + 'px';
 
     this.detachChooser = detachChooser.bind(this);
     window.addEventListener('click', this.detachChooser); // detach chooser if click outside
@@ -501,17 +522,6 @@ function detachChooser() { // must be called with context
         delete this.chooser;
     }
 }
-
-/**
- * @param {string} [beg='"']
- * @param {string} [end=beg]
- */
-FilterTree.setSqlIdentifierQuoteChars = function(beg, end) {
-    beg = beg || '"';
-    end = end || beg;
-    conditionals.setSqlIdentifierQuoteChars(beg, end);
-    sqlWhereParse.setSqlIdentifierQuoteChars(beg, end);
-};
 
 FilterTree.conditionals = conditionals; // expose for purposes of extending
 
