@@ -52,6 +52,9 @@ legend {
 legend > code {
     font-size: 11pt;
 }
+label {
+    white-space: nowrap;
+}
 td {
     vertical-align: top;
     padding: .5em;
@@ -84,10 +87,13 @@ fieldset > p {
     position: absolute;
     left: 11px;
     top: 39px;
-    width: 96px;
+    width: 84px;
     height: 11px;
     background-color: transparent;
-    border: 1px solid transparent;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    border-left: 1px solid transparent;
+    border-right: 0;
     font-size: 10px;
     text-align: center;
 }
@@ -99,6 +105,28 @@ fieldset > p {
 .filter-box.filter-box-warn {
     color: red;
     font-weight: bold;
+}
+.filter-box-dropdown-icon {
+    position: absolute;
+    left: 98px;
+    top: 39px;
+    width: 13px;
+    height: 13px;
+    color: transparent;
+    background-color: transparent;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    border-right: 1px solid transparent;
+    font-size: 15px;
+    line-height: 11px;
+}
+.filter-box-dropdown-icon:after {
+    content: '\25BE';
+}
+.filter-box.filter-box-enable + .filter-box-dropdown-icon {
+    background-color: lightyellow;
+    border-color: black;
+    color: black;
 }
 input + em {
     font-size: smaller;
@@ -148,4 +176,11 @@ input + em {
     padding-top: 3px;
     margin-top: 2px;
     line-height: 1.5em;
+}
+pre  i {
+    color: green;
+    font-family: sans-serif;
+}
+pre  i:before {
+    content: '// ';
 }

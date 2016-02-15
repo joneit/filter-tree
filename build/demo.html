@@ -11,9 +11,10 @@
 <table style="width:100%"><tr><td>
     <pre style="margin:0 0 .4em 0">
 var options = {
-    fields: fields,
-    columnOpMenus: columnOpMenus,
-    state: state
+    fields: fields, <i>required <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array for columns</i>
+    typeOpMenus: typeOpMenus, <i>optional hash (by type) of operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> arrays</i>
+    treeOpMenus: treeOpMenus, <i>optional operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array</i>
+    state: state <i>optional</i>
 };
     </pre>
     <input type="button" value="var filterTree = new FilterTree(options);" onclick="harness.initialize()"
@@ -21,8 +22,25 @@ var options = {
 
     <fieldset>
         <legend><code>fields</code></legend>
+        <a href="javascript:void(0)" style="display:block; margin-top:-15px; margin-bottom:5px; text-align:right" onclick="with(this.nextElementSibling.style){display=display==='none'?'block':'none'}">explanation</a>
+        <div style="font-size:9pt; display:none">
+            <p style="margin:0">
+                Typically defined on the root of the filter tree, the <code>fields</code> list defines the columns available to all descending conditionals in the tree. At a minimum each entry in the list defines a column name. This is a <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs"><code>menuItem</code></a> object, which means it could simply be a string. To organize fields into groups (shown as an optgroup in column drop-downs), this can also be an array of such objects (or strings). Specifying a string is very limiting; specifying an object allows defining the following additional properties on the column:
+            </p>
+            <ol>
+                <li><code>alias</code> A string used for display purposes in the UI instead of the raw column name.</li>
+                <li><code>type</code> The type of the column data for collation purposes. That is, the filtering algorithm attempts to convert the data to this type before comparing. If conversion fails on any row, it falls back to string comparison (for that row only).</li>
+                <li><code>opMenus</code> (See the <i>explanation</i> in the next section.)</li>
+            </ol>
+        </div>
         <textarea id="fields" rows="6">[
-    { submenu: ['LastName', 'FirstName'], label: 'Names' },
+    {
+        label: 'Names',
+        submenu: [
+            { name: 'LastName', alias: 'Last Name', opMenus: [ "<", ">" ] },
+            { name: 'FirstName', alias: 'First Name', opMenus: [ "group(inequalities)" ] }
+        ]
+    },
     'BirthState',
     { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
     { name: 'Age', type: 'number' }
@@ -31,12 +49,31 @@ var options = {
     </fieldset>
 
     <fieldset>
-        <legend><code>columnOpMenus</code></legend>
-        <textarea id="columnOpMenus" rows="6">{
-    LastName: [ "<", ">" ],
-    "FirstName": [ "inequalities" ]
+        <legend id="opMenus">
+            <label><input type="radio" name="opMenu" value="typeOpMenus" checked /><code>typeOpMenus</code></label>
+            <label style="margin-left:.5em"><input type="radio" name="opMenu" value="treeOpMenus" /><code>treeOpMenus</code></label>
+        </legend>
+        <a href="javascript:void(0)" style="display:block; margin-top:-15px; margin-bottom:5px; text-align:right" onclick="with(this.nextElementSibling.style){display=display==='none'?'block':'none'}">explanation</a>
+        <div style="display:none">
+            <p style="font-size:9pt; margin:0">
+                Each terminal node in the filter tree (<i>i.e.,</i> each conditional expression) requires a list of operators to display in it's operator drop-down. This list can come from several sources. In priority order, these sources are:
+            </p>
+            <ol>
+                <li>The node's <code>fields</code> array. This would be the <code>opMenu</code> property, if defined on the column.*</li>
+                <li>The node's <code>typeOpMenus</code> hash, if defined. This would be the property in <code>typeOpMenus</code> named for the <code>type</code> property if defined on the column.*
+                <li>The node's <code>treeOpMenus</code> array, if defined.</li>
+                <li>The default operator menu, as defined in <code><a href="http://joneit.github.io/filter-tree/module-conditionals.html#/.menu" target="jsdocs">conditionals.menu</a></code>.</li>
+            </ol>
+            <small>
+                * The phrase <i>the column</i> as used above refers to the element in the node's <code>fields</code> array named for the currently selected column.
+            </small>
+        </div>
+        <textarea id="typeOpMenus" rows="6">{
+    date: [ "group(equality)", "<", ">" ]
 }</textarea>
-    <p>Format: JavaScript object literal syntax</p>
+        <textarea id="treeOpMenus" rows="6" style="display:none"></textarea>
+        <p>Format: JavaScript object literal syntax<br/>
+            Note: <code>treeOpMenus</code> defaults when empty to a standard menu.</p>
     </fieldset>
 
     <fieldset>
@@ -69,7 +106,7 @@ Generate JSON describing the filter expression in the UI."/>
    ]
 }</textarea>
         <p>
-            Format: JSON syntax, <a href="http://www.json.org/" target="json_org">strict</a> (with all property names and strings in double-quotes)<br>
+            Format: strict <a href="http://www.json.org/" target="json_org">JSON syntax</a> (with all property names and strings in double-quotes)<br>
         </p>
         <input type="button" value="filterTree.setState(state);" onclick="harness.setState('state')" style="margin-top:.7em"
                title="RESET THE UI STATE TO MATCH THIS
@@ -115,8 +152,8 @@ Regenerate the filter tree UI element based on the filter expression described b
 </td><td style="white-space:nowrap">
 
     <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(filters.png); background-size:100%; background-repeat: no-repeat">
-        <input name="LastName" class="filter-box" readonly autocomplete="off" />
-        <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" />
+        <input name="LastName" class="filter-box" readonly autocomplete="off" /><div class="filter-box-dropdown-icon"></div>
+        <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" /><div class="filter-box-dropdown-icon" style="left:195px"></div>
     </div>
 
     <div style="display: inline-block; font-size: small; margin-left: 1em">

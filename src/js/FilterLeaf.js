@@ -52,10 +52,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * The view for this base `FilterLeaf` object consists of the following controls:
      *
      * * `this.view.column` - A drop-down with options from `this.fields`. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
-     * * `this.view.operator` - A drop-down with options from {@link leafOperators}. Value is one of the keys therein.
+     * * `this.view.operator` - A drop-down with options from {@link columnOpMenus}, {@link typeOpMenus}, or {@link treeOpMenus}. Value is the string representation of the operator.
      * * `this.view.literal` - A text box.
      *
      *  > Prototypes extended from `FilterLeaf` may have different controls as needed. The only required control is `column`, which all such "editors" must support.
+     * @memberOf FilterLeaf.prototype
      */
     createView: function() {
         var fields = this.nodeFields || this.parent.nodeFields || this.fields;
@@ -69,7 +70,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         this.view = {
             column: this.makeElement(root, fields, 'column', true),
-            operator: this.makeElement(root, this.operatorMenu, 'operator'),
+            operator: this.makeElement(root, [], 'operator'),
             literal: this.makeElement(root)
         };
 
@@ -105,6 +106,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             el.value = value;
                             if (!FilterNode.setWarningClass(el) && el.value !== value) {
                                 notes.push({ key: key, value: value });
+                            } else if (key === 'column') {
+                                rebuildOperatorList.call(this, value);
                             }
                     }
                 }
@@ -112,15 +115,15 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             if (notes.length) {
                 var multiple = notes.length > 1,
                     footnotes = template(multiple ? 'notes' : 'note'),
-                    inner = footnotes.lastElementChild;
+                    inner = footnotes.querySelector('.footnote');
                 notes.forEach(function(note) {
                     var footnote = multiple ? document.createElement('li') : inner;
                     note = template('optionMissing', note.key, note.value);
                     while (note.length) { footnote.appendChild(note[0]); }
                     if (multiple) { inner.appendChild(footnote); }
                 });
-                el.parentNode.replaceChild(footnotes, el.parentNode.lastElementChild);
             }
+            this.notesEl = footnotes;
         }
     },
 
@@ -145,6 +148,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      *
      * @param {boolean} [options.focus=false] - Move focus to offending control.
      * @returns {undefined} if valid
+     * @memberOf FilterLeaf.prototype
      */
     validate: function(options) {
         var elementName, fields, field;
@@ -170,7 +174,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             this.converter = this.converters[this.op.type];
         } else {
             for (elementName in this.view) {
-                if (/^column/.test(elementName)) {
+                if (elementName === 'column' || elementName === 'column2') {
                     fields = this.parent.nodeFields || this.fields;
                     field = findField(fields, this[elementName]);
                     if (field && field.type) {
@@ -204,6 +208,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * > This is the default "find" function.
      * @param {string} fieldName
      * @returns {boolean}
+     * @memberOf FilterLeaf.prototype
      */
     find: function(fieldName) {
         return this.column === fieldName;
@@ -212,6 +217,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     /** Tests this leaf node for given column `Element` ownership.
      * @param {function} Editor (leaf constructor)
      * @returns {boolean}
+     * @memberOf FilterLeaf.prototype
      */
     findByEl: function(el) {
         return this.el === el;
@@ -233,6 +239,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     /**
      * @param {string} options.syntax - See {@link FilterTree#getState|subtree version} for more info.
      * > For `'object'` and `'JSON'` note that the subtree's version of `getState` will not call this leaf verison of `getState` because the former uses `unstrungify()` and `JSON.stringify()`, respectively, both of which recurse on their own.
+     * @memberOf FilterLeaf.prototype
      */
     getState: function getState(options, suboptions) {
         var result = '',
@@ -271,14 +278,15 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * > Defined on the FilterTree prototype for access by derived types (alternate filter editors).
      * @returns The new element.
      * @param {Element} container - An element to which to append the new element.
-     * @param {fieldOption[]} [menu] - Overloads:
+     * @param {menuItem[]} [menu] - Overloads:
      * * If omitted, will create an `<input/>` (text box) element.
      * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
      * * Otherwise, creates a `<select>...</select>` element with these menu.
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
+     * @memberOf FilterLeaf.prototype
      */
     makeElement: function(container, menu, prompt, sort) {
-        var el, result,
+        var el, result, options,
             option = menu,
             tagName = menu ? 'select' : 'input';
 
@@ -301,7 +309,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             el.innerHTML = option.alias || option.name || option;
             el.appendChild(result);
         } else {
-            result = el = buildElement(tagName, menu, prompt, sort);
+            options = {
+                prompt: prompt,
+                sort: sort,
+                group: function(groupName) { return conditionals.groups[groupName]; }
+            };
+            result = el = buildElement(tagName, menu, options);
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
@@ -323,7 +336,7 @@ function findField(fields, name) {
         if ((field.submenu || field) instanceof Array) {
             return (complex = findField(field.submenu || field, name));
         } else {
-            return field.name === name;
+            return (field.name || field) === name;
         }
     });
 
@@ -333,6 +346,7 @@ function findField(fields, name) {
 /** `change` event handler for all form controls.
  * Rebuilds the operator drop-down as needed.
  * Removes error CSS class from control.
+ * Adds warning CSS class from control if blank; removes if not blank.
  * Adds warning CSS class from control if blank; removes if not blank.
  * Moves focus to next non-blank sibling control.
  * @this Bound to this node.
@@ -346,7 +360,7 @@ function cleanUpAndMoveOn(evt) {
     // set or remove 'warning' CSS class, as per el.value
     FilterNode.setWarningClass(el);
 
-    rebuildOperatorListAsPerColumnOperators.call(this);
+    rebuildOperatorList.call(this, this.view.column.value);
 
     if (el.value) {
         // find next sibling control, if any
@@ -366,17 +380,26 @@ function cleanUpAndMoveOn(evt) {
     }
 }
 
-function rebuildOperatorListAsPerColumnOperators() {
-    var columnOpMenus = this.columnOpMenus && this.columnOpMenus[this.view.column.value];
-    if (columnOpMenus !== this.oldColumnOperators) {
-        var newMenu = columnOpMenus || this.operatorMenu,
-            newOpDrop = this.makeElement(this.el, newMenu, 'operator');
+function getOpMenus(columnName) {
+    var fields = this.parent.nodeFields || this.fields,
+        field = findField(fields, columnName);
+
+    return field && field.opMenus ||
+        this.typeOpMenus && this.typeOpMenus[field.type] ||
+        this.treeOpMenus;
+}
+
+function rebuildOperatorList(columnName) {
+    var opMenus = getOpMenus.call(this, columnName);
+
+    if (opMenus !== this.oldOpMenus) {
+        var newOpDrop = this.makeElement(this.el, opMenus, 'operator');
 
         newOpDrop.value = this.view.operator.value;
         this.el.replaceChild(newOpDrop, this.view.operator);
         this.view.operator = newOpDrop;
 
-        this.oldColumnOperators = columnOpMenus;
+        this.opMenus = opMenus;
     }
 }
 

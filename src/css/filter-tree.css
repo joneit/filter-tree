@@ -6,16 +6,20 @@
 .filter-tree label {
     font-weight: normal; /* damn you, bootstrap! */
 }
-.filter-tree input[type=radio], .filter-tree input[type=checkbox] {
+.filter-tree input[type=radio],
+.filter-tree input[type=checkbox] {
     left: 3px; /* damn you, bootstrap! */
     margin-right: 3px; /* damn you, bootstrap! */
 }
 .filter-tree ol { margin-top: 0 }
 
-.filter-tree-remove, .filter-tree-add-filter, .filter-tree-add {
+.filter-tree-remove,
+.filter-tree-add-filter,
+.filter-tree-add {
     cursor: pointer;
 }
-.filter-tree-add-filter, .filter-tree-add {
+.filter-tree-add-filter,
+.filter-tree-add {
     font-style: italic;
     color: #444;
     font-size: 90%;
@@ -24,10 +28,12 @@
     margin: 3px 0;
     display: inline-block;
 }
-.filter-tree-add-filter:hover, .filter-tree-add:hover {
+.filter-tree-add-filter:hover,
+.filter-tree-add:hover {
     text-decoration: underline;
 }
-.filter-tree-add-filter.as-menu-header, .filter-tree-add.as-menu-header {
+.filter-tree-add-filter.as-menu-header,
+.filter-tree-add.as-menu-header {
     background-color: white;
     font-weight: bold;
     font-style: normal;
@@ -35,7 +41,9 @@
 .filter-tree-add-filter.as-menu-header:hover {
     text-decoration: inherit;
 }
-.filter-tree-add > div, .filter-tree-add-filter > div, .filter-tree-remove {
+.filter-tree-add > div,
+.filter-tree-add-filter > div,
+.filter-tree-remove {
     display: inline-block;
     width: 15px;
     height: 15px;
@@ -51,7 +59,8 @@
     text-shadow: 0 0 1.5px grey;
     margin-right: 4px;
 }
-.filter-tree-add > div:before, .filter-tree-add-filter > div:before {
+.filter-tree-add > div:before,
+.filter-tree-add-filter > div:before {
     content: '\ff0b'; /* plus sign */
 }
 .filter-tree-remove {
@@ -70,7 +79,11 @@
 
 .filter-tree > ol > li:last-child::after { display: none }
 
-.filter-tree-add-filter, .filter-tree-add, .op-or > ol, .op-and > ol, .op-nor > ol {
+.filter-tree-add-filter,
+.filter-tree-add,
+.op-or > ol,
+.op-and > ol,
+.op-nor > ol {
     padding-left: 32px;
 }
 
@@ -120,28 +133,37 @@
 /* Footnotes */
 
 .filter-tree .footnotes {
-    font-size: 6pt;
-    margin: 2px 0 0 0;
+    margin: 0 0 6px 0;
+    font-size: 8pt;
+    font-weight: normal;
     line-height: normal;
     white-space: normal;
-    color: #999;
+    font-style: italic;
+    color: #c00;
 }
-.filter-tree .footnotes > ol {
+.filter-tree .footnotes > p {
     margin: 0;
-    padding-left: 2em;
 }
-.filter-tree .footnotes > ol > li {
+.filter-tree .footnotes > ul {
+    margin: -3px 0 0 0;
+    padding-left: 17px;
+    text-index: -6px
+}
+.filter-tree .footnotes > ul > li {
     margin: 2px 0;
 }
-.filter-tree .footnotes .field-name, .filter-tree .footnotes .field-value {
+.filter-tree .footnotes .field-name,
+.filter-tree .footnotes .field-value {
     font-weight: bold;
-    color: #777;
-}
-.filter-tree .footnotes .field-value:before, .filter-tree .footnotes .field-value:after {
-    content: '"';
+    font-style: normal;
 }
 .filter-tree .footnotes .field-value {
     font-family: monospace;
+    color: black;
+    background-color: #ddd;
+    padding: 0 5px;
+    margin: 0 3px;
+    border-radius: 3px;
 }
 
 /* Filter editor chooser */

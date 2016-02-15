@@ -316,12 +316,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
     /**
      * Get a representation of the filer (sub)tree state.
      * @param {string} [options.syntax='object'] - A case-sensitive string indicating the expected type and format of the return value:
-     * * `'object'` (default) walks the tree using {@link https://www.npmjs.com/package/unstrungify|unstrungify()}, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterTree#setState|setState}.
-     * * `'JSON`` walks the tree using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
+     * * `'object'` (default) walks the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterTree#setState|setState}.
+     * * `'JSON'` walks the tree using `{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}`, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
      * * `'SQL'` walks the tree, returning a SQL where clause string. Suitable for creating SQL `SELECT` statements.
      * * `'filter-cell'` walks the tree, returning a string suitable for a Hypergrid filter cell. This syntax should only be called for from a subtree containing homogeneous column names and no subexpressions.
      * @param {number|string} [suboptions.space] - When `options.syntax === 'JSON'`, forwarded to `JSON.stringify`'s third parameter, `space` (see).
-     * @param {object}} [suboptions.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
+     * @param {object} [suboptions.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
      * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
      */
     getState: function getState(options, suboptions) {
@@ -484,8 +484,8 @@ function attachChooser(evt) { // must be called with context
     };
 
     // Position it
-    chooser.style.left = window.scrollX + rect.left + 19 + 'px';
-    chooser.style.top = window.scrollY + rect.bottom + 'px';
+    chooser.style.left = window.scrollX + rect.left + 48 + 'px';
+    chooser.style.top = window.scrollY + rect.bottom - 2 + 'px';
 
     this.detachChooser = detachChooser.bind(this);
     window.addEventListener('click', this.detachChooser); // detach chooser if click outside

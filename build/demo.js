@@ -21,7 +21,7 @@ window.onload = function() {
         CASE_SENSITIVE_COLUMN_NAMES: undefined
     };
 
-    toArray(document.querySelectorAll('input.property')).forEach(function(propertyCheckbox) {
+    els('input.property').forEach(function(propertyCheckbox) {
         PROPERTY[propertyCheckbox.id] = propertyCheckbox.checked;
     });
 
@@ -33,19 +33,22 @@ window.onload = function() {
         rethrow(e);
     }
 
-    function el(id) { return document.getElementById(id); }
+    function elid(id) { return document.getElementById(id); }
+    //function el(selector) { return document.querySelector(selector); }
+    function els(selector, context) { return toArray((context || document).querySelectorAll(selector)); }
+    function toArray(arrayLikeObject) { return Array.prototype.slice.call(arrayLikeObject); }
 
-    el('filter').appendChild(filterTree.el);
+    elid('filter').appendChild(filterTree.el);
 
     if (!validate({ alert: false })) {
-        el('where-data').value = filterTree.getState({ syntax: 'SQL' });
+        elid('where-data').value = filterTree.getState({ syntax: 'SQL' });
         test();
     }
 
-    el('dataRow').addEventListener('keyup', test.bind(this, false));
+    elid('dataRow').addEventListener('keyup', test.bind(this, false));
 
     function auto() {
-        if (el('autoget').checked) {
+        if (elid('autoget').checked) {
             toJSON(quietValidation);
         }
 
@@ -57,8 +60,9 @@ window.onload = function() {
     function makeNewTree() {
         return new FilterTree({
             fields: getLiteral('fields'),
-            columnOpMenus: getLiteral('columnOpMenus'),
-            state: el('state').value,
+            typeOpMenus: getLiteral('typeOpMenus'),
+            treeOpMenus: getLiteral('treeOpMenus'),
+            state: elid('state').value,
             eventHandler: function() {
                 auto();
                 updateCellsFromTree();
@@ -77,16 +81,12 @@ window.onload = function() {
         });
     }
 
-    el('properties').addEventListener('click', function(evt) {
-        toArray(document.querySelectorAll('.filter-box')).forEach(function(cell) {
+    elid('properties').addEventListener('click', function(evt) {
+        els('.filter-box').forEach(function(cell) {
             PROPERTY[this.id] = this.checked;
             updateFilter.call(cell);
         }.bind(evt.target));
     });
-
-    function toArray(arrayLikeObject) {
-        return Array.prototype.slice.call(arrayLikeObject);
-    }
 
     var oldArg;
 
@@ -251,7 +251,7 @@ window.onload = function() {
      * @summary Make a list of children out of a list of expressions.
      * @desc Uses only _complete_ expressions (a value OR an operator + a value).
      *
-     * Ignores _inncomplete_ expressions (empty string OR an operator - a value).
+     * Ignores _incomplete_ expressions (empty string OR an operator - a value).
      * @param {string} columnName
      * @param {string[]} expressions
      * @returns {{operator: string, children: string[], fields: string[]}}
@@ -365,12 +365,28 @@ window.onload = function() {
         }
     }
 
-    var els = document.querySelectorAll('.filter-box');
-    for (var i = 0; i < els.length; ++i) {
-        els[i].onclick = enableEditor;
-        els[i].onblur = disableEditor;
-        els[i].onkeyup = editorKeyUp;
+    els('.filter-box').forEach(function(filterBox) {
+        filterBox.onclick = enableEditor;
+        filterBox.onblur = disableEditor;
+        filterBox.onkeyup = editorKeyUp;
+
+        filterBox.nextElementSibling.onclick = openEditorMenu;
+    });
+
+    function openEditorMenu() {
+        //var ops = filterTree.columnOpMenus[this.previousElementSibling.name];
+        //if (ops) {
+        //
+        //}
     }
+
+    elid('opMenus').onclick = function(e) {
+        if (e.target.type === 'radio') {
+            els('input', e.currentTarget).forEach(function(radioButton) {
+                elid(radioButton.value).style.display = radioButton.checked ? 'inline' : 'none';
+            });
+        }
+    };
 
     function rethrow(error) {
         if (/filter-?tree/i.test(error)) {
@@ -387,26 +403,30 @@ window.onload = function() {
             rethrow(e);
         }
 
-        el('filter').replaceChild(newTree.el, filterTree.el);
+        elid('filter').replaceChild(newTree.el, filterTree.el);
         filterTree = newTree;
+
+        els('.filter-box').forEach(function(cell) { cell.value = ''; });
     }
 
     function getLiteral(id, options) {
         options = options || {};
 
-        var alert = options.alert === undefined || options.alert,
-            value = el(id).value;
+        var object,
+            alert = options.alert === undefined || options.alert,
+            value = elid(id).value.replace(/^\s+/, '').replace(/\s+$/, '');
 
-        try {
-            var object;
-            eval('object = ' + value); // eslint-disable-line no-eval
-            return object;
-
-        } catch (e) {
-            if (alert) {
-                window.alert('Bad ' + id + ' JavaScript literal!');
+        if (value) {
+            try {
+                eval('object = ' + value); // eslint-disable-line no-eval
+            } catch (e) {
+                if (alert) {
+                    window.alert('Bad ' + id + ' JavaScript literal!');
+                }
             }
         }
+
+        return object;
     }
 
     function validate(options) { // eslint-disable-line no-unused-vars
@@ -415,7 +435,7 @@ window.onload = function() {
 
     function toJSON(validateOptions) {
         var valid = !validate(validateOptions),
-            ctrl = el('state');
+            ctrl = elid('state');
 
         if (valid) {
             filterTree.JSONspace = 3; // make it pretty
@@ -426,7 +446,7 @@ window.onload = function() {
     }
 
     function setState(id) { // eslint-disable-line no-unused-vars
-        var value = el(id).value;
+        var value = elid(id).value;
         try {
             filterTree.setState(value);
         } catch (e) {
@@ -437,15 +457,15 @@ window.onload = function() {
 
     function getSqlWhereClause(force) {
         if (
-            (force || el('autoGetWhere').checked) &&
+            (force || elid('autoGetWhere').checked) &&
             !validate(!force && quietValidation)
         ) {
-            el('where-data').value = filterTree.getState({ syntax: 'SQL' });
+            elid('where-data').value = filterTree.getState({ syntax: 'SQL' });
         }
     }
 
     function test(force) {
-        if (force || el('autotest').checked) {
+        if (force || elid('autotest').checked) {
             var result, data,
                 options = !force && quietValidation;
             if (validate(options)) {
@@ -455,15 +475,37 @@ window.onload = function() {
             } else {
                 result = filterTree.test(data);
             }
-            el('test-result').className = result;
+            elid('test-result').className = result;
         }
     }
 
-    function querystringHasParam(param) {
-        return new RegExp('[\\?&]' + param + '[\\?&=]|[\\?&]' + param + '$').test(location.search);
+    /**
+     * @param {string} param - querystring parameter
+     * @param {boolean} [caseSensitive=false] - Case matters
+     * @returns {null|boolean|number|string}
+     * * `null` - querystring parameter not found
+     * * `undefined` - querystring parameter found but with no associated value
+     * * `true` - querystring parameter found with true or yes
+     * * `false` - querystring parameter found with false or no
+     * * number - querystring parameter found with a string convertible to a number with Number()
+     * * string - querystring parameter found with some other value
+     */
+    function querystring(param, caseSensitive) {
+        var matches = (location.search + '&').match(new RegExp('[?&]' + param + '(=(.+?))?&', !caseSensitive && 'i')),
+            result = matches && matches.pop();
+        if (result === 'true' || result === 'yes') {
+            result = true;
+        } else if (result === 'false' || result === 'no') {
+            result = false;
+        } else if (result != null && !isNaN(Number(result))) {
+            result = Number(result);
+        }
+        return result;
     }
 
-    if (querystringHasParam('cc')) {
+    var cc = querystring('cc');
+
+    if (cc == null || cc) {
         // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
 
         var DefaultEditor = FilterTree.prototype.editors.Default;
@@ -497,7 +539,7 @@ window.onload = function() {
                 // Replace the 3rd element with the new one. There are no event listeners to worry about.
                 this.el.replaceChild(this.view.column2, this.el.children[2]);
             },
-            operatorMenu: [
+            treeOpMenus: [
                 FilterTree.conditionals.groups.equality,
                 FilterTree.conditionals.groups.inequalities,
                 FilterTree.conditionals.groups.sets
