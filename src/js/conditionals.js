@@ -272,7 +272,7 @@ var groups = {
         submenu: ['=']
     },
     inequalities: {
-        label: 'Inequality',
+        label: 'Inequalities',
         submenu: [
             '<',
             '\u2264', // UNICODE 'LESS-THAN OR EQUAL TO'; on a Mac, type option-comma (≤)
@@ -282,11 +282,11 @@ var groups = {
         ]
     },
     sets: {
-        label: 'Set scan',
+        label: 'Set scans',
         submenu: ['IN', 'NOT IN']
     },
     strings: {
-        label: 'String scan',
+        label: 'String scans',
         submenu: [
             'CONTAINS', 'NOT CONTAINS',
             'BEGINS', 'NOT BEGINS',
@@ -294,7 +294,7 @@ var groups = {
         ]
     },
     patterns: {
-        label: 'Pattern matching',
+        label: 'Pattern scans',
         submenu: ['LIKE', 'NOT LIKE']
     }
 };

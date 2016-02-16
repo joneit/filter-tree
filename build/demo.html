@@ -69,7 +69,10 @@ var options = {
             </small>
         </div>
         <textarea id="typeOpMenus" rows="6">{
-    date: [ "group(equality)", "<", ">" ]
+    date: [
+        "group(equality)",
+        { label: "More or less", submenu: [ "<", ">" ] }
+    ]
 }</textarea>
         <textarea id="treeOpMenus" rows="6" style="display:none"></textarea>
         <p>Format: JavaScript object literal syntax<br/>

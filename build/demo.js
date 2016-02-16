@@ -473,11 +473,12 @@ window.onload = function() {
         els('.filter-box').forEach(function(el) {
             el.value = '';
 
-            var field = findField(getLiteral('fields'), el.name),
-                menu = field && field.opMenus || FilterTree.conditionals.defaultOpMenus,
-                dropdown = el.nextElementSibling.nextElementSibling;
+            var dropdown = el.nextElementSibling.nextElementSibling;
 
-            FilterTree.buildElement(dropdown, menu, { prompt: null });
+            FilterTree.buildElement(dropdown, opMenus(el.name), {
+                prompt: null,
+                group: function(groupName) { return FilterTree.conditionals.groups[groupName]; }
+            });
 
             var optgroup = document.createElement('optgroup');
             optgroup.label = 'Conjunctions';
@@ -493,6 +494,18 @@ window.onload = function() {
             optgroup.appendChild(option);
             dropdown.add(optgroup);
         });
+    }
+
+    function opMenus(fieldName) {
+        var typeOps = getLiteral('typeOpMenus'),
+            fields = getLiteral('fields'),
+            field = findField(fields, fieldName);
+
+        return (
+            field && field.opMenus ||
+            field && field.type && typeOps && typeOps[field.type] ||
+            FilterTree.conditionals.defaultOpMenus
+        );
     }
 
     function getLiteral(id, options) {
