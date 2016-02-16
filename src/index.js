@@ -30,7 +30,7 @@ var reFilterTreeErrorString = /^filter-tree: /;
  *
  * Each of the `children` can be either:
  *
- * * a terminal node `Filter` (or an object inheriting from `Filter`) representing a simple conditional expression; or
+ * * a terminal node `FilterLeaf` (or an object inheriting from `FilterLeaf`) representing a simple conditional expression; or
  * * a nested `FilterTree` representing a complex subexpression.
  *
  * The `operator` must be one of the {@link operators|tree operators} or may be left undefined iff there is only one child node.
@@ -38,7 +38,7 @@ var reFilterTreeErrorString = /^filter-tree: /;
  * Notes:
  * 1. A `FilterTree` may consist of a single leaf, in which case the `operator` is not used and may be left undefined. However, if a second child is added and the operator is still undefined, it will be set to the default (`'op-and'`).
  * 2. The order of the children is undefined as all operators are commutative. For the '`op-or`' operator, evaluation ceases on the first positive result and for efficiency, all simple conditional expressions will be evaluated before any complex subexpressions.
- * 3. A nested `FilterTree` is distinguished in the JSON object from a `Filter` by the presence of a `children` member.
+ * 3. A nested `FilterTree` is distinguished from a `Filter` by the presence of a `children` member.
  * 4. Nesting a `FilterTree` containing a single child is valid (albeit pointless).
  *
  * See {@link FilterNode} for additional `options` properties.

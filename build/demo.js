@@ -388,9 +388,9 @@ window.onload = function() {
 
         filterBoxDropDown.onchange = function() {
             if (filterBoxDropDown.value === 'load') {
-                var elapsedTime = Date.now();
-
+                // make sure we show progress cursor for at least 1/3 second, possibly more but no less
                 filterBoxDropDown.style.cursor = 'progress';
+                setTimeout(function() { filterBoxDropDown.style.cursor = null; }, 333);
 
                 var lastOptGroup = filterBoxDropDown.lastElementChild;
                 lastOptGroup.firstElementChild.remove();
@@ -398,15 +398,8 @@ window.onload = function() {
                     lastOptGroup.appendChild(new Option(word));
                 });
 
+                // scroll down a 6 lines so optgroup label moves to top
                 filterBoxDropDown.scrollTop += 6 / 8 * filterBoxDropDown.getBoundingClientRect().height;
-
-                elapsedTime = Date.now() - elapsedTime;
-                if (elapsedTime >= 333) {
-                    filterBoxDropDown.style.cursor = null;
-                } else {
-                    // make sure we show spinner cursor for no less than 1/3 second
-                    setTimeout(function() { filterBoxDropDown.style.cursor = null; }, 333 - elapsedTime);
-                }
             } else {
                 filterBox.focus();
                 filterBox.setRangeText(filterBoxDropDown.value, selectionStart, selectionEnd, 'end');
