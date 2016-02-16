@@ -87,7 +87,7 @@ fieldset > p {
     position: absolute;
     left: 11px;
     top: 39px;
-    width: 84px;
+    width: 97px;
     height: 11px;
     background-color: transparent;
     border-top: 1px solid transparent;
@@ -98,6 +98,7 @@ fieldset > p {
     text-align: center;
 }
 .filter-box.filter-box-enable {
+    width: 84px;
     background-color: lightyellow;
     border-color: black;
     font-weight: bold;
@@ -108,15 +109,16 @@ fieldset > p {
 }
 .filter-box-dropdown-icon {
     position: absolute;
+    display: none;
     left: 98px;
     top: 39px;
     width: 13px;
     height: 13px;
-    color: transparent;
-    background-color: transparent;
-    border-top: 1px solid transparent;
-    border-bottom: 1px solid transparent;
-    border-right: 1px solid transparent;
+    background-color: lightyellow;
+    color: black;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
     font-size: 15px;
     line-height: 11px;
 }
@@ -124,9 +126,16 @@ fieldset > p {
     content: '\25BE';
 }
 .filter-box.filter-box-enable + .filter-box-dropdown-icon {
-    background-color: lightyellow;
-    border-color: black;
-    color: black;
+    display: block;
+}
+.filter-box-dropdown {
+    position: absolute;
+    display: none;
+    font-size: 8pt;
+    left: 11px;
+    top: 53px;
+    min-width: 101px;
+    height: 112px;
 }
 input + em {
     font-size: smaller;

@@ -206,7 +206,7 @@ FilterNode.optionsSchema = {
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
-    treeOpMenus: { default: conditionals.menu },
+    treeOpMenus: { default: conditionals.defaultOpMenus },
 
     typeOpMenus: {}
 };

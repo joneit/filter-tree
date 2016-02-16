@@ -14,6 +14,8 @@ var TerminalNode = require('./js/FilterLeaf');
 var template = require('./js/template');
 var operators = require('./js/tree-operators');
 var conditionals = require('./js/conditionals');
+var buildElement = require('./js/build-element'); ///// TEMP
+
 
 var ordinal = 0;
 var reFilterTreeErrorString = /^filter-tree: /;
@@ -526,3 +528,6 @@ function detachChooser() { // must be called with context
 FilterTree.conditionals = conditionals; // expose for purposes of extending
 
 module.exports = FilterTree;
+
+
+FilterTree.buildElement = buildElement; ///// TEMP

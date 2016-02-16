@@ -27,18 +27,13 @@ window.onload = function() {
 
     var quietValidation = {alert: false, focus: false};
 
-    try {
-        filterTree = makeNewTree();
-    } catch (e) {
-        rethrow(e);
-    }
+    initialize();
 
     function elid(id) { return document.getElementById(id); }
     //function el(selector) { return document.querySelector(selector); }
     function els(selector, context) { return toArray((context || document).querySelectorAll(selector)); }
     function toArray(arrayLikeObject) { return Array.prototype.slice.call(arrayLikeObject); }
 
-    elid('filter').appendChild(filterTree.el);
 
     if (!validate({ alert: false })) {
         elid('where-data').value = filterTree.getState({ syntax: 'SQL' });
@@ -55,19 +50,6 @@ window.onload = function() {
         getSqlWhereClause();
 
         test();
-    }
-
-    function makeNewTree() {
-        return new FilterTree({
-            fields: getLiteral('fields'),
-            typeOpMenus: getLiteral('typeOpMenus'),
-            treeOpMenus: getLiteral('treeOpMenus'),
-            state: elid('state').value,
-            eventHandler: function() {
-                auto();
-                updateCellsFromTree();
-            }
-        });
     }
 
     function updateCellsFromTree() {
@@ -97,9 +79,14 @@ window.onload = function() {
         this.focus();
         updateFilter.call(this); // re-run the parser just to redisplay any errors from last edit
     }
+
+    var selectionStart, selectionEnd;
+
     function disableEditor() {
-        this.classList.remove('filter-box-enable');
-        this.readOnly = true;
+        if (selectionStart === undefined) {
+            this.classList.remove('filter-box-enable');
+            this.readOnly = true;
+        }
     }
 
     function closeMsgBox() {
@@ -370,15 +357,78 @@ window.onload = function() {
         filterBox.onblur = disableEditor;
         filterBox.onkeyup = editorKeyUp;
 
-        filterBox.nextElementSibling.onclick = openEditorMenu;
-    });
+        var filterBoxDropDownIcon = filterBox.nextElementSibling;
+        var filterBoxDropDown = filterBoxDropDownIcon.nextElementSibling;
+        var menuVisible = false;
 
-    function openEditorMenu() {
-        //var ops = filterTree.columnOpMenus[this.previousElementSibling.name];
-        //if (ops) {
-        //
-        //}
-    }
+        filterBoxDropDown.style.display = 'none';
+
+        filterBoxDropDownIcon.onmousedown = function(event) {
+            if (!menuVisible) {
+                selectionStart = filterBox.selectionStart;
+                selectionEnd = filterBox.selectionEnd;
+
+                filterBoxDropDown.style.display = 'block';
+                filterBoxDropDown.scrollTop = 0;
+                filterBoxDropDown.selectedIndex = -1;
+                menuVisible = true;
+
+                event.stopPropagation();
+            }
+        };
+
+        window.addEventListener('mousedown', function() {
+            hideMe(true);
+
+        });
+
+        filterBoxDropDown.onmousedown = function(event) {
+            event.stopPropagation(); // so window's mousedown listener won't hide me before click received
+        };
+
+        filterBoxDropDown.onchange = function() {
+            if (filterBoxDropDown.value === 'load') {
+                var elapsedTime = Date.now();
+
+                filterBoxDropDown.style.cursor = 'progress';
+
+                var lastOptGroup = filterBoxDropDown.lastElementChild;
+                lastOptGroup.firstElementChild.remove();
+                'these are some random words for demonstration purposes'.split(' ').forEach(function(word) {
+                    lastOptGroup.appendChild(new Option(word));
+                });
+
+                filterBoxDropDown.scrollTop += 6 / 8 * filterBoxDropDown.getBoundingClientRect().height;
+
+                elapsedTime = Date.now() - elapsedTime;
+                if (elapsedTime >= 333) {
+                    filterBoxDropDown.style.cursor = null;
+                } else {
+                    // make sure we show spinner cursor for no less than 1/3 second
+                    setTimeout(function() { filterBoxDropDown.style.cursor = null; }, 333 - elapsedTime);
+                }
+            } else {
+                filterBox.focus();
+                filterBox.setRangeText(filterBoxDropDown.value, selectionStart, selectionEnd, 'end');
+                hideMe(false);
+                updateFilter.call(filterBox);
+            }
+        };
+
+        function hideMe(doneEditing) {
+            if (menuVisible) {
+                // hide all the drop-downs
+                selectionStart = selectionEnd = undefined;
+                els('.filter-box').forEach(function(filterBox) { // eslint-disable-line no-shadow
+                    filterBox.nextElementSibling.nextElementSibling.style.display = 'none';
+                    if (doneEditing) {
+                        disableEditor.call(filterBox);
+                    }
+                });
+                menuVisible = false;
+            }
+        }
+    });
 
     elid('opMenus').onclick = function(e) {
         if (e.target.type === 'radio') {
@@ -398,15 +448,51 @@ window.onload = function() {
 
     function initialize() { // eslint-disable-line no-unused-vars
         try {
-            var newTree = makeNewTree();
+            var newTree = new FilterTree({
+                fields: getLiteral('fields'),
+                typeOpMenus: getLiteral('typeOpMenus'),
+                treeOpMenus: getLiteral('treeOpMenus'),
+                state: elid('state').value,
+                eventHandler: function() {
+                    auto();
+                    updateCellsFromTree();
+                }
+            });
         } catch (e) {
             rethrow(e);
         }
 
-        elid('filter').replaceChild(newTree.el, filterTree.el);
+        if (!filterTree) {
+            elid('filter').appendChild(newTree.el);
+        } else {
+            elid('filter').replaceChild(newTree.el, filterTree.el);
+        }
         filterTree = newTree;
+        validate();
 
-        els('.filter-box').forEach(function(cell) { cell.value = ''; });
+        els('.filter-box').forEach(function(el) {
+            el.value = '';
+
+            var field = findField(getLiteral('fields'), el.name),
+                menu = field && field.opMenus || FilterTree.conditionals.defaultOpMenus,
+                dropdown = el.nextElementSibling.nextElementSibling;
+
+            FilterTree.buildElement(dropdown, menu, { prompt: null });
+
+            var optgroup = document.createElement('optgroup');
+            optgroup.label = 'Conjunctions';
+            ['and', 'or', 'nor'].forEach(function(op) {
+                optgroup.appendChild(new Option(op, ' ' + op + ' '));
+            });
+            dropdown.add(optgroup);
+
+            optgroup = document.createElement('optgroup');
+            optgroup.label = 'Distinct values';
+            var option = new Option('Click to load', 'load');
+            option.innerHTML += '&hellip;';
+            optgroup.appendChild(option);
+            dropdown.add(optgroup);
+        });
     }
 
     function getLiteral(id, options) {
@@ -427,6 +513,20 @@ window.onload = function() {
         }
 
         return object;
+    }
+
+    function findField(fields, name) {
+        var complex, simple;
+
+        simple = fields.find(function(field) {
+            if ((field.submenu || field) instanceof Array) {
+                return (complex = findField(field.submenu || field, name));
+            } else {
+                return (field.name || field) === name;
+            }
+        });
+
+        return complex || simple;
     }
 
     function validate(options) { // eslint-disable-line no-unused-vars

@@ -9,7 +9,7 @@
 </head>
 <body>
 <table style="width:100%"><tr><td>
-    <pre style="margin:0 0 .4em 0">
+    <pre style="margin:0 0 .4em 0; line-height:1.25em">
 var options = {
     fields: fields, <i>required <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array for columns</i>
     typeOpMenus: typeOpMenus, <i>optional hash (by type) of operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> arrays</i>
@@ -59,10 +59,10 @@ var options = {
                 Each terminal node in the filter tree (<i>i.e.,</i> each conditional expression) requires a list of operators to display in it's operator drop-down. This list can come from several sources. In priority order, these sources are:
             </p>
             <ol>
-                <li>The node's <code>fields</code> array. This would be the <code>opMenu</code> property, if defined on the column.*</li>
+                <li>The <code>opMenu</code> property, if defined on the column* in the node's <code>fields</code> array.</li>
                 <li>The node's <code>typeOpMenus</code> hash, if defined. This would be the property in <code>typeOpMenus</code> named for the <code>type</code> property if defined on the column.*
                 <li>The node's <code>treeOpMenus</code> array, if defined.</li>
-                <li>The default operator menu, as defined in <code><a href="http://joneit.github.io/filter-tree/module-conditionals.html#/.menu" target="jsdocs">conditionals.menu</a></code>.</li>
+                <li>The default operator menu, as defined in <code><a href="http://joneit.github.io/filter-tree/module-conditionals.html#/.defaultOpMenus" target="jsdocs">conditionals.defaultOpMenus</a></code>.</li>
             </ol>
             <small>
                 * The phrase <i>the column</i> as used above refers to the element in the node's <code>fields</code> array named for the currently selected column.
@@ -153,7 +153,9 @@ Regenerate the filter tree UI element based on the filter expression described b
 
     <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(filters.png); background-size:100%; background-repeat: no-repeat">
         <input name="LastName" class="filter-box" readonly autocomplete="off" /><div class="filter-box-dropdown-icon"></div>
+        <select class="filter-box-dropdown" size="8"></select>
         <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" /><div class="filter-box-dropdown-icon" style="left:195px"></div>
+        <select class="filter-box-dropdown" size="8" style="left:111px"></select>
     </div>
 
     <div style="display: inline-block; font-size: small; margin-left: 1em">

@@ -273,7 +273,13 @@ var groups = {
     },
     inequalities: {
         label: 'Inequality',
-        submenu: ['<', '\u2264', '\u2260', '\u2265', '>']
+        submenu: [
+            '<',
+            '\u2264', // UNICODE 'LESS-THAN OR EQUAL TO'; on a Mac, type option-comma (≤)
+            '\u2260', // UNICODE 'NOT EQUALS'; on a Mac, type option-equals (≠)
+            '\u2265', // UNICODE 'GREATER-THAN OR EQUAL TO'; on a Mac, type option-period (≥)
+            '>'
+        ]
     },
     sets: {
         label: 'Set scan',
@@ -328,7 +334,7 @@ module.exports = {
      * \* The phrase _of the column_ as used here means in the element of the node's `fields` array named for the currently selected column.
      * @type {menuItem[]}
      */
-    menu: [ // hierarchical menu of relational operators
+    defaultOpMenus: [ // hierarchical menu of relational operators
         groups.equality,
         groups.inequalities,
         groups.sets,

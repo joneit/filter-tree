@@ -31,22 +31,30 @@ var REGEXP_INDIRECTION = /^(\w+)\((\w+)\)$/;  // finds complete pattern a(b) whe
 
 /**
  * @summary Creates a new `input type=text` element or populated `select` element.
- * @param {string} tagName - Must be one of:
- * * `'input'` for a text box
- * * `'select'` for a drop-down
- * * `'optgroup'` (for internal use only)
+ * @param {Element|string} tagName - Must be one of:
+ * * `HTMLInputElement` or `'input'` for a text box
+ * * `HTMLSelectElement` or `'select'` for a drop-down
+ * * `HTMLOptGroupElement` or `'optgroup'` (for internal use only)
  * @param {menuItem[]} [menu] - Hierarchical list of strings to add as `<option>...</option>` or `<optgroup>....</optgroup>` elements. Omit to create a text box.
  * @param {null|string} [options.prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value in parentheses as its `text`; and empty string as its `value`. Default is empty string, which creates a blank prompt; `null` suppresses prompt altogether.
- * @param {boolean} - Whether to alpha sort or not. If truthy, sorts each optgroup on its `label`; and each select option on its `alias` if given, or its `name` if not.
- * @param {number[]} breadcrumbs - List of option group section numbers (root is section 0).
+ * @param {boolean} [options.sort] - Whether to alpha sort or not. If truthy, sorts each optgroup on its `label`; and each select option on its text (its `alias` if given; or its `name` if not).
+ * @param {number[]} breadcrumbs - List of option group section numbers (root is section 0). (For internal use.)
  * @returns {Element} Either a `<select>` or `<optgroup>` element.
  */
-function buildElement(tagName, menu, options) {
+function buildElement(el, menu, options) {
     var prompt = options && options.prompt,
         sort = options && options.sort,
         breadcrumbs = options && options.breadcrumbs || [],
         path = breadcrumbs ? breadcrumbs.join('.') + '.' : '',
+        tagName;
+
+    if (el instanceof Element) {
+        tagName = el.tagName;
+        el.innerHTML = ''; // remove all <option> and <optgroup> elements
+    } else {
+        tagName = el;
         el = document.createElement(tagName);
+    }
 
     if (menu) {
         var add, newOption;
