@@ -67,19 +67,19 @@ fieldset > p {
 .false, .true {
     font-weight: bold
 }
-.false:before {
+.false::before {
     color: #c00;
     content: 'exclude';
 }
-.true:before {
+.true::before {
     color: #0a0;
     content: 'include';
 }
-.invalid-filter:before {
+.invalid-filter::before {
     font-style: italic;
     content: '(invalid filter expression, right)';
 }
-.invalid-data:before {
+.invalid-data::before {
     font-style: italic;
     content: '(syntax error in dataRow, below)';
 }
@@ -122,7 +122,7 @@ fieldset > p {
     font-size: 15px;
     line-height: 11px;
 }
-.filter-box-dropdown-icon:after {
+.filter-box-dropdown-icon::after {
     content: '\25BE';
 }
 .filter-box.filter-box-enable + .filter-box-dropdown-icon {
@@ -177,7 +177,7 @@ input + em {
     background-color: transparent;
     border-color: red;
 }
-.msg-box-close:before {
+.msg-box-close::before {
     content: '\d7'; /* multiplication sign */
 }
 .msg-box-content {
@@ -186,10 +186,28 @@ input + em {
     margin-top: 2px;
     line-height: 1.5em;
 }
-pre  i {
+
+
+pre i {
     color: green;
     font-family: sans-serif;
 }
-pre  i:before {
+pre i::before {
     content: '// ';
 }
+a { color: #0095dd; text-decoration: none; }
+a:hover { text-decoration: underline; }
+a.more-info { font-size: smaller; }
+a.more-info::before { content: '(more info)'; }
+
+.tabz { z-index: 0 }
+.tabz>header+section { width: 97% }
+.tabz > p:first-child, .tabz > section > p:first-child, .tabz > section > div > p:first-child { margin-top: 0 }
+.tabz li > code { background: #e0e0e0; margin: 0 .1em; padding: 0 5px; border-radius: 4px; }
+ul {
+    padding-left: 1.5em;
+}
+.tabz ul { list-style-type: circle; font-weight: bold }
+div.more-info { border: 1px grey dashed; border-radius: 8px; padding: 0 8px; display: none; background-color: ivory }
+.tabz ul > li > ul { list-style-type: disc; font-weight: normal; }
+li { margin:.3em 0; line-height: 1.35em }

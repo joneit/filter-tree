@@ -18,7 +18,6 @@ var buildElement = require('./js/build-element'); ///// TEMP
 
 
 var ordinal = 0;
-var reFilterTreeErrorString = /^filter-tree: /;
 
 /** @constructor
  *
@@ -79,7 +78,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     createView: function() {
         this.el = template(
-            !this.parent ? 'root' : this.isColumnFilter ? 'columnFilter' : 'subtree',
+            this.template || 'subtree',
             ++ordinal,
             this.fields[0].name || this.fields[0]
         );
@@ -96,14 +95,14 @@ var FilterTree = FilterNode.extend('FilterTree', {
             this.add();
         } else {
             // Validate `state.children` (required)
-            if (!(state.children instanceof Array && state.children.length)) {
-                throw FilterNode.Error('Expected `children` property to be a non-empty array.');
+            if (!(state.children instanceof Array)) {
+                throw new FilterNode.FilterTreeError('Expected `children` property to be an array.');
             }
 
             // Validate `state.operator` (if given)
             if (state.operator) {
                 if (!operators[state.operator]) {
-                    throw FilterNode.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
+                    throw new FilterNode.FilterTreeError('Expected `operator` property to be one of: ' + Object.keys(operators));
                 }
 
                 this.operator = state.operator;
@@ -262,31 +261,30 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     /**
-     * @param {boolean} [object.rethrow=false] - Catch (do not throw) the error.
+     * @param {boolean} [object.rethrow=false] - Throw (do not catch) `FilterTreeError`s.
      * @param {boolean} [object.alert=true] - Announce error via window.alert() before returning.
      * @param {boolean} [object.focus=true] - Place the focus on the offending control and give it error color.
-     * @returns {undefined|string} `undefined` means valid or string containing error message.
+     * @returns {undefined|FilterTreeError} `undefined` if valid; or the caught `FilterTreeError` if error.
      */
     validate: function(options) {
         options = options || {};
 
         var alert = options.alert === undefined || options.alert,
-            rethrow = options.rethrow === true,
+            rethrow = options.rethrow,
             result;
 
         try {
             validate.call(this, options);
         } catch (err) {
-            result = err.message;
+            result = err;
 
-            // Throw when not a filter tree error
-            if (rethrow || !reFilterTreeErrorString.test(result)) {
+            // Throw when requested OR when unexpected (not a filter tree error)
+            if (rethrow || !(err instanceof FilterNode.FilterTreeError)) {
                 throw err;
             }
 
             if (alert) {
-                result = result.replace(reFilterTreeErrorString, '');
-                window.alert(result); // eslint-disable-line no-alert
+                window.alert(err.message); // eslint-disable-line no-alert
             }
         }
 
@@ -318,7 +316,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     /**
      * Get a representation of the filer (sub)tree state.
      * @param {string} [options.syntax='object'] - A case-sensitive string indicating the expected type and format of the return value:
-     * * `'object'` (default) walks the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterTree#setState|setState}.
+     * * `'object'` (default) walks the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterNode#setState|setState}.
      * * `'JSON'` walks the tree using `{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}`, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
      * * `'SQL'` walks the tree, returning a SQL where clause string. Suitable for creating SQL `SELECT` statements.
      * * `'filter-cell'` walks the tree, returning a string suitable for a Hypergrid filter cell. This syntax should only be called for from a subtree containing homogeneous column names and no subexpressions.
@@ -372,13 +370,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
                             }
                             syntax += child.getState(options);
                         } else if (child.children.length) {
-                            throw FilterNode.Error('FilterTree.Expected conditional but found subexpression (not supported in filter cell syntax).');
+                            throw new FilterNode.FilterTreeError('Expected conditional but found subexpression (not supported in filter cell syntax).');
                         }
                     }
                 });
                 break;
             default:
-                throw FilterNode.Error('getState: Unknown syntax option "' + syntax[0] + '"');
+                throw new FilterNode.FilterTreeError('getState: Unknown syntax option "' + syntax[0] + '"');
         }
 
         return result;
@@ -394,27 +392,27 @@ var FilterTree = FilterNode.extend('FilterTree', {
             if (child) {
                 if (child instanceof TerminalNode) {
                     state.children.push(child);
-                } else if (child.children.length) {
+                } else {
                     var ready = toJSON.call(child);
-                    if (ready) {
-                        if (child.isColumnFilter) {
-                            ready.isColumnFilter = true;
+
+                    for (var key in FilterNode.optionsSchema) {
+                        if (
+                            FilterNode.optionsSchema.hasOwnProperty(key) &&
+                            child[key] && (
+                                FilterNode.optionsSchema[key].own ||
+                                child[key] !== child.parent[key]
+                            )
+                        ) {
+                            ready[key] = child[key];
                         }
-                        if (child.fields !== child.parent.fields) {
-                            ready.fields = child.fields;
-                        }
-                        state.children.push(ready);
                     }
+
+                    state.children.push(ready);
                 }
             }
         });
 
-        var metadata = FilterNode.prototype.toJSON.call(this);
-        Object.keys(metadata).forEach(function(key) {
-            state[key] = metadata[key];
-        });
-
-        return state.children.length ? state : undefined;
+        return state;
     }
 
 });
@@ -445,7 +443,7 @@ function catchClick(evt) { // must be called with context
  */
 function validate(options) { // must be called with context
     if (this instanceof FilterTree && !this.children.length) {
-        throw new FilterNode.Error('Empty subexpression (no filters).');
+        throw new FilterNode.FilterTreeError('Empty subexpression (no filters).');
     }
 
     this.children.forEach(function(child) {
@@ -486,8 +484,8 @@ function attachChooser(evt) { // must be called with context
     };
 
     // Position it
-    chooser.style.left = window.scrollX + rect.left + 48 + 'px';
-    chooser.style.top = window.scrollY + rect.bottom - 2 + 'px';
+    chooser.style.left = window.scrollX + rect.left + 'px';
+    chooser.style.top = window.scrollY + rect.bottom - 1 + 'px';
 
     this.detachChooser = detachChooser.bind(this);
     window.addEventListener('click', this.detachChooser); // detach chooser if click outside
@@ -504,7 +502,7 @@ function attachChooser(evt) { // must be called with context
     };
 
     // Add it to the DOM
-    this.el.appendChild(chooser);
+    document.querySelector('body').appendChild(chooser);
 
     // Color the link similarly
     this.chooserTarget = evt.target;
@@ -514,7 +512,7 @@ function attachChooser(evt) { // must be called with context
 function detachChooser() { // must be called with context
     var chooser = this.chooser;
     if (chooser) {
-        this.el.removeChild(chooser);
+        document.querySelector('body').removeChild(chooser);
         this.chooserTarget.classList.remove('as-menu-header');
 
         chooser.onclick = chooser.onmouseout = null;
@@ -525,7 +523,10 @@ function detachChooser() { // must be called with context
     }
 }
 
-FilterTree.conditionals = conditionals; // expose for purposes of extending
+// expose some objects for plug-in access
+FilterTree.conditionals = conditionals;
+FilterTree.FilterTreeError = FilterNode.FilterTreeError;
+
 
 module.exports = FilterTree;
 

@@ -1,9 +1,9 @@
 /* eslint-env browser */
-/* globals FilterTree */
+/* globals FilterTree, Tabz */
 
 'use strict';
 
-var filterTree;  // top-level so debugger can look at easily
+var filterTree, tableFilter, columnFilters;  // declared at top-level so debugger can look at easily
 
 window.onload = function() {
     window.harness = {
@@ -12,8 +12,16 @@ window.onload = function() {
         setState: setState,
         getSqlWhereClause: getSqlWhereClause,
         test: test,
-        validate: validate
+        validate: validate,
+        moreinfo: function(el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
     };
+
+    var tabz = new Tabz(); // eslint-disable-line no-unused-vars
+
+    // copy SQL instructions from the SQL tab of the table filter tab to the SQL tab of the column filters tab
+    var sqlInstructions = document.querySelector('#table-filter-SQL>div:first-child');
+    var otherSqlSection = document.getElementById('column-filters-SQL');
+    otherSqlSection.insertBefore(sqlInstructions.cloneNode(true), otherSqlSection.firstElementChild);
 
     var PROPERTY = {
         AUTO_COLUMN_LOOKUP_BY_NAME: undefined,
@@ -53,12 +61,11 @@ window.onload = function() {
     }
 
     function updateCellsFromTree() {
-        filterTree.children.forEach(function(subexp) {
-            if (subexp.isColumnFilter) {
-                var cell = document.querySelector('input[name=' + subexp.children[0].column + ']');
-                if (cell && !subexp.validate(quietValidation)) {
-                    cell.value = subexp.getState({ syntax: 'filter-cell' });
-                }
+        columnFilters.children.forEach(function(columnFilter) {
+            columnFilter.validate(quietValidation);
+            var cell = document.querySelector('input[name=' + columnFilter.children[0].column + ']');
+            if (cell) {
+                cell.value = columnFilter.getState({ syntax: 'filter-cell' });
             }
         });
     }
@@ -77,6 +84,7 @@ window.onload = function() {
         this.classList.add('filter-box-enable');
         this.readOnly = false;
         this.focus();
+        tabz.tabTo('#column-filters-query-builder');
         updateFilter.call(this); // re-run the parser just to redisplay any errors from last edit
     }
 
@@ -151,28 +159,28 @@ window.onload = function() {
         // newSubtree may be an object OR undefined (no input or no complete expression)
 
         var tree = filterTree.getState(),
-            rootExpressions = tree.children;
+            columnFilterSubexpressions = tree.children[1].children;
 
         // Find column filter subexpression for this column
-        var subexpression = rootExpressions.find(function(subexp) {
-            return subexp.isColumnFilter && (subexp.fields[0].name || subexp.fields[0]) === columnName;
+        var subexpression = columnFilterSubexpressions.find(function(subexp) {
+            return (subexp.fields[0].name || subexp.fields[0]) === columnName;
         });
 
         if (subexpression) {
-            var reuseIndex = rootExpressions.indexOf(subexpression);
+            var reuseIndex = columnFilterSubexpressions.indexOf(subexpression);
             if (newSubtree) {
                 // replace existing subexpression locked to this column, with new one
-                rootExpressions[reuseIndex] = newSubtree;
+                columnFilterSubexpressions[reuseIndex] = newSubtree;
             } else {
                 // no new subexpression so delete the old one
-                delete rootExpressions[reuseIndex];
+                delete columnFilterSubexpressions[reuseIndex];
             }
         } else if (newSubtree) {
             // add new subexpression for this column
-            rootExpressions.unshift(newSubtree);
+            columnFilterSubexpressions.push(newSubtree);
         }
 
-        filterTree.setState(tree);
+        setState(tree);
 
         auto();
     }
@@ -241,7 +249,7 @@ window.onload = function() {
      * Ignores _incomplete_ expressions (empty string OR an operator - a value).
      * @param {string} columnName
      * @param {string[]} expressions
-     * @returns {{operator: string, children: string[], fields: string[]}}
+     * @returns {expression[]} where `expression` is either `{column: string, operator: string, literal: string}` or `{column: string, operator: string, column2: string, editor: 'Columns'}`
      */
     function makeChildren(columnName, expressions) {
         var children = [],
@@ -334,7 +342,7 @@ window.onload = function() {
                 operator: 'op-' + operator,
                 children: children,
                 fields: [columnName],
-                isColumnFilter: true
+                template: 'columnFilter'
             };
         }
     }
@@ -379,7 +387,6 @@ window.onload = function() {
 
         window.addEventListener('mousedown', function() {
             hideMe(true);
-
         });
 
         filterBoxDropDown.onmousedown = function(event) {
@@ -432,16 +439,32 @@ window.onload = function() {
     };
 
     function rethrow(error) {
-        if (/filter-?tree/i.test(error)) {
+        if (error instanceof FilterTree.FilterTreeError) {
             alert(error);
+            reveal(error);
         } else {
             throw error;
         }
     }
 
+    /**
+     * If a FilterTreeError with a node property, search up the DOM to the nearest folder and reveal it.
+     * > _Folder_ is defined as a `<section>` tag inside an element of `tabz` class.
+     * @param {FilterTreeError} error
+     */
+    function reveal(error) {
+        if (error instanceof FilterTree.FilterTreeError && error.node) {
+            var el = error.node.el;
+            while (!(el.tagName === 'SECTION' && el.parentElement.classList.contains('tabz'))) {
+                el = el.parentElement;
+            }
+            tabz.tabTo(el);
+        }
+    }
+
     function initialize() { // eslint-disable-line no-unused-vars
         try {
-            var newTree = new FilterTree({
+            var newFilterTree = new FilterTree({
                 fields: getLiteral('fields'),
                 typeOpMenus: getLiteral('typeOpMenus'),
                 treeOpMenus: getLiteral('treeOpMenus'),
@@ -453,15 +476,10 @@ window.onload = function() {
             });
         } catch (e) {
             rethrow(e);
+            return;
         }
 
-        if (!filterTree) {
-            elid('filter').appendChild(newTree.el);
-        } else {
-            elid('filter').replaceChild(newTree.el, filterTree.el);
-        }
-        filterTree = newTree;
-        validate();
+        updateDOM(newFilterTree);
 
         els('.filter-box').forEach(function(el) {
             el.value = '';
@@ -536,7 +554,7 @@ window.onload = function() {
     }
 
     function validate(options) { // eslint-disable-line no-unused-vars
-        return filterTree.validate(options);
+        return reveal(filterTree.validate(options));
     }
 
     function toJSON(validateOptions) {
@@ -551,14 +569,38 @@ window.onload = function() {
         return valid;
     }
 
-    function setState(id) { // eslint-disable-line no-unused-vars
-        var value = elid(id).value;
+    function setState(state) { // eslint-disable-line no-unused-vars
         try {
-            filterTree.setState(value);
+            filterTree.setState(state);
         } catch (e) {
             rethrow(e);
+            return;
         }
+
+        updateDOM(filterTree);
+
         test();
+    }
+
+    /**
+     * Normally FilterNode.setState() updates the DOM on its own by updating the root element in `filterTree.el`. However, in this particular UI, the root element is not in the DOM. Instead we are showing two subtrees in two different places in the DOM. These are updated here.
+     * @param {FilterTree} newFilterTree - May be an entirely new tree; or may be `filterTree` itself when `filterTree.setState` was called which triggered an internal replaceChild on `filterTree.el`.
+     */
+    function updateDOM(newFilterTree) {
+        var newTableFilter = newFilterTree.children[0],
+            newColumnFilters = newFilterTree.children[1];
+
+        if (!filterTree) {
+            elid('table-filter-query-builder').appendChild(newTableFilter.el);
+            elid('column-filters-query-builder').appendChild(newColumnFilters.el);
+        } else {
+            elid('table-filter-query-builder').replaceChild(newTableFilter.el, tableFilter.el);
+            elid('column-filters-query-builder').replaceChild(newColumnFilters.el, columnFilters.el);
+        }
+
+        filterTree = newFilterTree;
+        tableFilter = newTableFilter;
+        columnFilters = newColumnFilters;
     }
 
     function getSqlWhereClause(force) {

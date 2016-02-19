@@ -73,9 +73,10 @@ var CHILDREN_TAG = 'OL',
  * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
  * The constructor auto-detects the type:
- *  * plain object
  *  * JSON string to be parsed by `JSON.parse()` into a plain object
  *  * SQL WHERE clause string to be parsed into a plain object
+ *  * CSS selector of an Element whose `value` contains one of the above
+ *  * plain object
  *
  * @param {function} [options.editor='Default'] - Type of simple expression.
  *
@@ -139,28 +140,6 @@ var FilterNode = Base.extend({
         if (oldEl && !this.parent) {
             oldEl.parentNode.replaceChild(this.el, oldEl);
         }
-    },
-
-    toJSON: function toJSON() {
-        var state = {};
-
-        if (this.toJsonOptions) {
-            var tree = this, metadata = [];
-            if (this.toJsonOptions.fields) {
-                metadata.push('fields');
-                metadata.push('nodeFields');
-            }
-            if (this.toJsonOptions.editor) {
-                metadata.push('editor');
-            }
-            metadata.forEach(function(prop) {
-                if (!tree.parent || tree[prop] && tree[prop] !== tree.parent[prop]) {
-                    state[prop] = tree[prop];
-                }
-            });
-        }
-
-        return state;
     }
 });
 
@@ -193,13 +172,13 @@ FilterNode.optionsSchema = {
      */
     eventHandler: {},
 
-    /** @summary This is the _column filters_ subtree if truthy.
-     * @desc Should only ever be at most 1 node with this set, always positioned as first child of root tree.
+    /** @summary Template to use to generate the mark-up for the root node only of this subtree.
      * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
-     * @type {boolean}
+     * @type {string}
+     * @default `parent.template` if defined, or `'subtree'` if not
      * @memberOf FilterNode.prototype
      */
-    isColumnFilter: { own: true },
+    template: { own: true },
 
     /** @summary Override operator list at any node.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
@@ -219,9 +198,13 @@ FilterNode.setWarningClass = function(el, value) {
     return value;
 };
 
-FilterNode.Error = function(msg) {
-    return new Error('filter-tree: ' + msg);
-};
+function FilterTreeError(message, node) {
+    this.message = message;
+    this.node = node;
+}
+FilterTreeError.prototype = Object.create(Error.prototype);
+FilterTreeError.prototype.name = 'FilterTreeError';
+FilterNode.FilterTreeError = FilterTreeError;
 
 FilterNode.clickIn = function(el) {
     if (el) {
@@ -233,6 +216,7 @@ FilterNode.clickIn = function(el) {
     }
 };
 
+var reSelector = /^[#\.]?\w+(\s*[ \.\-|*+#:~^$>]+\s*\w+.*)?$/;
 var reJSON = /^\s*[\[\{]/;
 
 function detectState(state, options) {
@@ -240,17 +224,20 @@ function detectState(state, options) {
         case 'object':
             return state;
         case 'string':
+            if (reSelector.test(state)) {
+                state = document.querySelector(state).value;
+            }
             if (reJSON.test(state)) {
                 try {
                     return JSON.parse(state);
                 } catch (error) {
-                    throw FilterNode.Error('JSON parser: ' + error);
+                    throw new FilterTreeError('JSON parser: ' + error);
                 }
             } else {
                 try {
                     return sqlWhereParse(state, options);
                 } catch (error) {
-                    throw FilterNode.Error('SQL WHERE clause parser: ' + error);
+                    throw new FilterTreeError('SQL WHERE clause parser: ' + error);
                 }
             }
     }

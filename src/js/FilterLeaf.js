@@ -62,7 +62,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         var fields = this.nodeFields || this.parent.nodeFields || this.fields;
 
         if (!fields) {
-            throw FilterNode.Error('Terminal node requires a fields list.');
+            throw new FilterNode.FilterTreeError('Terminal node requires a fields list.');
         }
 
         var root = this.el = document.createElement('span');
@@ -104,7 +104,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             break;
                         default:
                             el.value = value;
-                            if (!FilterNode.setWarningClass(el) && el.value !== value) {
+                            if (FilterNode.setWarningClass(el) !== value) {
                                 notes.push({ key: key, value: value });
                             } else if (key === 'column') {
                                 rebuildOperatorList.call(this, value);
@@ -160,7 +160,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             if (value === '') {
                 var focus = options && options.focus;
                 if (focus || focus === undefined) { clickIn(el); }
-                throw new FilterNode.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.');
+                throw new FilterNode.FilterTreeError('Blank ' + elementName + ' control.\nComplete the filter or delete it.', this);
             } else {
                 // Copy each controls's value as a new similarly named property of this object.
                 this[elementName] = value;
@@ -262,7 +262,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 }
                 break;
             default:
-                throw FilterNode.Error('FilterLeaf.getState: Unknown syntax option "' + syntax[0] + '"');
+                throw new FilterNode.FilterTreeError('Unknown syntax option "' + syntax[0] + '"');
         }
 
         return result;
@@ -292,7 +292,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         // determine if there would be only a single item in the dropdown
         while (option instanceof Array) {
-            if (option.lengh === 1) {
+            if (option.length === 1) {
                 option = option[0];
             } else {
                 option = undefined;
@@ -360,7 +360,10 @@ function cleanUpAndMoveOn(evt) {
     // set or remove 'warning' CSS class, as per el.value
     FilterNode.setWarningClass(el);
 
-    rebuildOperatorList.call(this, this.view.column.value);
+    if (el === this.view.column) {
+        // rebuild operator list according to selected column name or type, restoring selected item
+        rebuildOperatorList.call(this, el.value);
+    }
 
     if (el.value) {
         // find next sibling control, if any
@@ -398,6 +401,8 @@ function rebuildOperatorList(columnName) {
         newOpDrop.value = this.view.operator.value;
         this.el.replaceChild(newOpDrop, this.view.operator);
         this.view.operator = newOpDrop;
+
+        FilterNode.setWarningClass(newOpDrop);
 
         this.opMenus = opMenus;
     }
