@@ -27,9 +27,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     name: 'Compare a column to a value',
 
-    postInitialize: function() {
+    postInitialize: function(options) {
         var el = this.view.column;
-        if (!el.value) {
+        if (!el.value && options && options.state && options.state.autodrop) {
             // For empty (i.e., new) controls, simulate a click a beat after rendering
             setTimeout(function() { FilterNode.clickIn(el); }, 700);
         }
@@ -146,7 +146,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * Copies all `this.view`' values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.op` and `this.converter` for use in `test`'s tree walk.
      *
-     * @param {boolean} [options.focus=false] - Move focus to offending control.
+     * @param {boolean} [options.focus=true] - Move focus to offending control.
      * @returns {undefined} if valid
      * @memberOf FilterLeaf.prototype
      */
@@ -159,7 +159,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
             if (value === '') {
                 var focus = options && options.focus;
-                if (focus || focus === undefined) { clickIn(el); }
+                if (focus === undefined || focus) { clickIn(el); }
                 throw new FilterNode.FilterTreeError('Blank ' + elementName + ' control.\nComplete the filter or delete it.', this);
             } else {
                 // Copy each controls's value as a new similarly named property of this object.

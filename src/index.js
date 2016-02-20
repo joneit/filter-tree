@@ -113,7 +113,6 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     render: function() {
-        // simulate click on the operator to display strike-through and operator between filters
         var radioButton = this.el.querySelector(':scope > label > input[value=' + this.operator + ']'),
             addFilterLink = this.el.querySelector('.filter-tree-add-filter');
 
@@ -147,10 +146,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         if (state && state.children) {
             Constructor = FilterTree;
-        } else if (state && state.editor) {
-            Constructor = this.editors[state.editor];
         } else {
-            Constructor = this.editors.Default;
+            Constructor = this.editors[state && state.editor || 'Default'];
         }
 
         this.children.push(new Constructor({
@@ -231,7 +228,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     'filter-tree-add-filter': function(evt) {
         if (Object.keys(this.editors).length === 1) {
-            this.add();
+            this.add({ autodrop: true });
         } else {
             attachChooser.call(this, evt);
         }
@@ -326,15 +323,17 @@ var FilterTree = FilterNode.extend('FilterTree', {
      */
     getState: function getState(options, suboptions) {
         var result = '',
-            syntax = options && options.syntax && options.syntax.split(':') || ['object'];
+            syntax = options && options.syntax || 'object';
 
-        switch (syntax[0]) {
+        switch (syntax) {
             case 'object':
                 result = unstrungify.call(this);
                 break;
+
             case 'JSON':
                 result = JSON.stringify(this, null, suboptions && suboptions.space) || '';
                 break;
+
             case 'SQL':
                 var lexeme = operators[this.operator].SQL,
                     qts = !this.parent && suboptions && suboptions.sqlIdQts;
@@ -360,23 +359,25 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
                 result = lexeme.beg + (result || 'NULL IS NULL') + lexeme.end;
                 break;
+
             case 'filter-cell':
                 var operator = operators[this.operator].filterCell.op;
                 this.children.forEach(function(child, idx) {
                     if (child) {
                         if (child instanceof TerminalNode) {
                             if (idx) {
-                                syntax += ' ' + operator + ' ';
+                                result += ' ' + operator + ' ';
                             }
-                            syntax += child.getState(options);
+                            result += child.getState(options);
                         } else if (child.children.length) {
                             throw new FilterNode.FilterTreeError('Expected conditional but found subexpression (not supported in filter cell syntax).');
                         }
                     }
                 });
                 break;
+
             default:
-                throw new FilterNode.FilterTreeError('getState: Unknown syntax option "' + syntax[0] + '"');
+                throw new FilterNode.FilterTreeError('Unknown syntax option "' + syntax + '"');
         }
 
         return result;
@@ -437,7 +438,7 @@ function catchClick(evt) { // must be called with context
 /**
  * Throws error if invalid expression tree.
  * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
- * @param {boolean} focus - Move focus to offending control.
+ * @param {boolean} [options.focus=true] - Move focus to offending control.
  * @returns {undefined} if valid
  * @private
  */
@@ -491,9 +492,11 @@ function attachChooser(evt) { // must be called with context
     window.addEventListener('click', this.detachChooser); // detach chooser if click outside
 
     chooser.onclick = function() {
-        tree.children.push(new tree.editors[chooser.value]({
-            parent: tree
-        }));
+        var state = {
+            editor: chooser.value,
+            autodrop: true
+        };
+        tree.add(state);
         // click bubbles up to window where it detaches chooser
     };
 

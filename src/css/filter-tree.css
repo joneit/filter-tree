@@ -36,7 +36,7 @@
     text-decoration: underline;
 }
 .filter-tree-add-filter.as-menu-header {
-    background-color: ivory;
+    background-color: lightyellow;
     border-color: black;
 }
 .filter-tree-add-filter.as-menu-header:hover {
@@ -127,6 +127,7 @@
 }
 .filter-tree-default > *.filter-tree-warning {
     background-color: #ffc;
+    border: 1px solid #edb;
     font-weight: normal;
 }
 .filter-tree-default > *.filter-tree-error {
@@ -179,7 +180,7 @@
     border: 1px solid black;
     border-radius: 5px;
     border-top-left-radius: 0;
-    background-color: ivory;
+    background-color: lightyellow;
     font-style: italic;
     font-size: 90%;
 }

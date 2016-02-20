@@ -10,14 +10,15 @@
 </head>
 <body>
 <table style="width:100%"><tr><td>
-    <pre style="margin:0 0 .4em 0; line-height:1.25em">
+    <div class="more-info" style="display:block; padding:7px 12px; margin-bottom:1em;">
+        <pre style="margin:0 0 .4em 0; line-height:1.25em">
 var options = {
     fields: fields, <i>required <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array for columns</i>
     typeOpMenus: typeOpMenus, <i>optional hash (by type) of operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> arrays</i>
     treeOpMenus: treeOpMenus, <i>optional operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array</i>
     state: state <i>optional</i>
-};
-    </pre>
+};</pre>
+    </div>
     <input type="button" value="var filterTree = new FilterTree(options);" onclick="harness.initialize()"
            title="Creates a new filter tree object (using the options below) bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." />
 
@@ -116,7 +117,7 @@ Generate JSON describing the filter expression in the UI."/>
         <p>
             Format: strict <a href="http://www.json.org/" target="json_org">JSON syntax</a> (with all property names and strings in double-quotes)<br>
         </p>
-        <input type="button" value="filterTree.setState(state);" onclick="harness.setState('state')" style="margin-top:.7em"
+        <input type="button" value="filterTree.setState(state);" onclick="harness.setState('#state')" style="margin-top:.7em"
                title="RESET THE UI STATE TO MATCH THIS
 Regnerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
     </fieldset>
@@ -129,15 +130,15 @@ Regnerate the filter tree UI element based on the filter expression described by
 Automatically regenerate the SQL on any manual change to the UI.">
             <input type="checkbox" id="autoGetWhere" checked onclick="if(this.checked)harness.getSqlWhereClause()"/>Auto
         </label>
-        <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)harness.setState('where-data')"></textarea>
+        <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)harness.setState('#where-data')"></textarea>
         <input type="button" value="filterTree.setState(WHERE);"
-               onclick="harness.setState('where-data')"
+               onclick="harness.setState('#where-data')"
                title="SERIALIZE THE UI STATE INTO THIS
 Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
         <sup style="font-style:italict; font-size:8pt; margin-left:5px">(beta)</sup>
         <label style="float:right; font-size:10pt"
                title="Automatically regenerate the SQL on any manual change to the UI.">
-            <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)harness.setState('where-data')"/>Auto
+            <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)harness.setState('#where-data')"/>Auto
         </label>
     </fieldset>
 
@@ -159,7 +160,7 @@ Regenerate the filter tree UI element based on the filter expression described b
 
 </td><td style="padding:1em;">
 
-    <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(filters.png); background-size:100%; background-repeat: no-repeat">
+    <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(filters.png); background-size:100%; background-repeat: no-repeat; z-index:5">
         <input name="LastName" class="filter-box" readonly autocomplete="off" /><div class="filter-box-dropdown-icon"></div>
         <select class="filter-box-dropdown" size="8"></select>
         <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" /><div class="filter-box-dropdown-icon" style="left:195px"></div>
@@ -185,11 +186,11 @@ Regenerate the filter tree UI element based on the filter expression described b
     </div>
 
     <p id="properties">
-        <strong>Properties:</strong>
-        Recognize column names typed in above by
+        <strong>Filter cell parsing properties:</strong>
+        Recognize column names by
         <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_NAME" checked>name</label>
         <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_ALIAS" checked>alias</label>
-        (<label><input type="checkbox" class="property" id="CASE_SENSITIVE_COLUMN_NAMES">case-sensitive</label>)
+        <span style="white-space: nowrap">(<label><input type="checkbox" class="property" id="CASE_SENSITIVE_COLUMN_NAMES">case-sensitive</label>)</span>
     </p>
 
     <div class="tabz">
@@ -222,17 +223,14 @@ Regenerate the filter tree UI element based on the filter expression described b
                     Query Builder
                 </header>
 
-                <section id="table-filter-query-builder" style="min-height:987px">
-                    <div style="white-space:nowrap;">
-
-                    </div>
+                <section id="table-filter-query-builder" style="min-height:887px">
                 </section>
 
                 <header class="tabz-bg0">
                     SQL syntax
                 </header>
 
-                <section id="table-filter-SQL" class="tabz-bg0" style="min-height:987px">
+                <section id="table-filter-SQL" class="tabz-bg0" style="min-height:887px">
                     <div>
                         <p>
                             SQL WHERE clause syntax with certain restrictions.
@@ -286,21 +284,21 @@ Regenerate the filter tree UI element based on the filter expression described b
                     Query Builder
                 </header>
 
-                <section id="column-filters-query-builder" class="tabz-bg4" style="min-height:987px; white-space:nowrap;">
+                <section id="column-filters-query-builder" class="tabz-bg4" style="min-height:887px">
                 </section>
 
                 <header class="tabz-bg1">
                     SQL syntax
                 </header>
 
-                <section id="column-filters-SQL" class="tabz-bg1" style="min-height:987px">
+                <section id="column-filters-SQL" class="tabz-bg1" style="min-height:887px">
                 </section>
 
                 <header class="tabz-bg6">
                     Column Filter syntax
                 </header>
 
-                <section id="column-filters-syntax" class="tabz-bg6" style="min-height:987px">
+                <section id="column-filters-syntax" class="tabz-bg6" style="min-height:887px">
                     <p>
                         Column filters use a simplified, compact syntax, intended to keep things short and simple and self-evident. The downside of course it is not as flexible or concise as using the Query Builder or SQL syntax.
                         <a class="more-info" href="javascript:void(0)" onclick="harness.moreinfo(this.parentElement.nextElementSibling)"></a>

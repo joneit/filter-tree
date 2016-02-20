@@ -130,6 +130,7 @@ fieldset > p {
 }
 .filter-box-dropdown {
     position: absolute;
+    background-color: lightyellow;
     display: none;
     font-size: 8pt;
     left: 11px;

@@ -13,7 +13,7 @@ window.onload = function() {
         getSqlWhereClause: getSqlWhereClause,
         test: test,
         validate: validate,
-        moreinfo: function(el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+        moreinfo: moreinfo
     };
 
     var tabz = new Tabz(); // eslint-disable-line no-unused-vars
@@ -393,6 +393,7 @@ window.onload = function() {
             event.stopPropagation(); // so window's mousedown listener won't hide me before click received
         };
 
+        // add the descrete data to the dropdown, replacing the last option ("Load...")
         filterBoxDropDown.onchange = function() {
             if (filterBoxDropDown.value === 'load') {
                 // make sure we show progress cursor for at least 1/3 second, possibly more but no less
@@ -448,18 +449,20 @@ window.onload = function() {
     }
 
     /**
-     * If a FilterTreeError with a node property, search up the DOM to the nearest folder and reveal it.
+     * If a FilterTreeError with a node property and we're focused, search up the DOM to the nearest folder and reveal it.
      * > _Folder_ is defined as a `<section>` tag inside an element of `tabz` class.
      * @param {FilterTreeError} error
+     * @param {boolean} [focus=true]
      */
-    function reveal(error) {
-        if (error instanceof FilterTree.FilterTreeError && error.node) {
+    function reveal(error, focus) {
+        if (error instanceof FilterTree.FilterTreeError && error.node && (focus === undefined || focus)) {
             var el = error.node.el;
             while (!(el.tagName === 'SECTION' && el.parentElement.classList.contains('tabz'))) {
                 el = el.parentElement;
             }
             tabz.tabTo(el);
         }
+        return error;
     }
 
     function initialize() { // eslint-disable-line no-unused-vars
@@ -481,6 +484,7 @@ window.onload = function() {
 
         updateDOM(newFilterTree);
 
+        // populate the filter box operator drop-downs
         els('.filter-box').forEach(function(el) {
             el.value = '';
 
@@ -554,7 +558,7 @@ window.onload = function() {
     }
 
     function validate(options) { // eslint-disable-line no-unused-vars
-        return reveal(filterTree.validate(options));
+        reveal(filterTree.validate(options), options && options.focus);
     }
 
     function toJSON(validateOptions) {
@@ -702,3 +706,7 @@ window.onload = function() {
     }
 
 };
+
+function moreinfo(el) {
+    el.style.display = window.getComputedStyle(el).display === 'none' ? 'block' : 'none';
+}

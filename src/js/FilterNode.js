@@ -72,13 +72,13 @@ var CHILDREN_TAG = 'OL',
  *
  * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
- * The constructor auto-detects the type:
+ * The constructor auto-detects `state`'s type:
  *  * JSON string to be parsed by `JSON.parse()` into a plain object
  *  * SQL WHERE clause string to be parsed into a plain object
  *  * CSS selector of an Element whose `value` contains one of the above
  *  * plain object
  *
- * @param {function} [options.editor='Default'] - Type of simple expression.
+ * @param {function} [options.editor='Default'] - Type of simple expression; a key in the FilterTree.prototype.editors hash which maps to a simple expression constructor, which will be `FilterLeaf` or a constructor extended from `FilterLeaf`.
  *
  * @param {FilterTree} [options.parent] - Used internally to insert element when creating nested subtrees. For the top level tree, you don't give a value for `parent`; you are responsible for inserting the top-level `.el` into the DOM.
  */
@@ -91,9 +91,9 @@ var FilterNode = Base.extend({
 
         this.parent = parent;
 
-        // create each option standard option from options, state, or parent
+        // create each standard option from options, state, or parent
         _(FilterNode.optionsSchema).each(function(schema, key) {
-            if (!(key in self)) {
+            if (!key.ignore && !(key in self)) {
                 var option = options && options[key] ||
                     state && state[key] ||
                     !schema.own && (
@@ -187,7 +187,9 @@ FilterNode.optionsSchema = {
      */
     treeOpMenus: { default: conditionals.defaultOpMenus },
 
-    typeOpMenus: {}
+    typeOpMenus: {},
+
+    autodrop: { ignore: true } // `ignore` means this is not a property so do not copy it to the object. it will remain where it was found in options (or options.state) for use by extended object initializers
 };
 
 FilterNode.setWarningClass = function(el, value) {
