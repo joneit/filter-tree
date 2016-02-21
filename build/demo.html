@@ -186,7 +186,7 @@ Regenerate the filter tree UI element based on the filter expression described b
     </div>
 
     <p id="properties">
-        <strong>Filter cell parsing properties:</strong>
+        <strong>Filter cell parsing options:</strong>
         Recognize column names by
         <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_NAME" checked>name</label>
         <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_ALIAS" checked>alias</label>
@@ -196,12 +196,16 @@ Regenerate the filter tree UI element based on the filter expression described b
     <div class="tabz">
 
         <input type="button" value="validate()" onclick="harness.validate()" style="float:right" />
+
         <p>
-            <strong>Hypergrid filter trees</strong> have two subtrees, one for the table filters and one for the column filters. These filter subexpressions are boith required (<code>AND</code>&rsquo;d together), resulting in a subset of <em>qualified rows</em> which have passed through both filters.
+            The Hypergrid filter tree has two main branches (or <i>subtrees</i>),<br>
+            one for the table filters and one for the column filters.
+
             <a class="more-info" href="javascript:void(0)" onclick="harness.moreinfo(this.parentElement.nextElementSibling)"></a>
 
             <div class="more-info">
                 <p style="margin:.5em 0">
+                    These filter subexpressions are both required (<code>AND</code>&rsquo;d together), resulting in a subset of <em>qualified rows</em> which have passed through both filters.
                     It's called a <dfn>tree</dfn> because it contains both <dfn>branches</dfn> and <dfn>leaves</dfn>.
                     The leaves represent <dfn>conditional expressions</dfn> (or simply <dfn>conditionals</dfn>).
                     The branches, also known as <dfn>subtrees</dfn>, contain leaves and/or other branches and represent subexpressions that group conditionals together.
