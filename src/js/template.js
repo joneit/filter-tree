@@ -6,20 +6,18 @@ var templex = require('templex');
 
 var templates = {
 
-    subtree: function() {
+    filterNode: function() {
 /*
 <span class="filter-tree">
     Match
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-or">any</label>
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-and">all</label>
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
-    of the following conditionals:<br/>
-    <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
-       <div></div>conditional
-    </span>
-    <span class="filter-tree-add" title="Add a new sub-match under this match.">
-       <div></div>subexpression
-    </span>
+    of the following:
+    <select>
+        <option value="">(add new expression&hellip;)</option>
+        <option value="subexp" style="border-bottom:1px solid black">Subexpression</option>
+    </select>
     <ol></ol>
 </span>
 */
@@ -28,34 +26,63 @@ var templates = {
     columnFilter: function() {
 /*
 <span class="filter-tree">
-    <strong>&ldquo;{2}&rdquo; column filter subexpression:</strong><br>
+    <strong><span>{2} </span>column filter subexpression:</strong><br>
     Match
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-or">any</label>
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-and">all</label>
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
-    of the following conditionals:<br/>
-    <span class="filter-tree-add-filter" title="Add a new conditional to this match.">
-       <div></div>conditional
-    </span>
+    of the following:
+    <select>
+        <option value="">(add new expression&hellip;)</option>
+    </select>
     <ol></ol>
 </span>
 */
     },
 
-    columnFiltersRoot: function() {
+    columnFilters: function() {
 /*
-<span class="filter-tree">
-    Match <strong>all</strong> of the following column filters:<br/>
-    <span class="filter-tree-add" title="Add a new sub-match under this match.">
-       <div></div>column filter
-    </span>
+<span class="filter-tree filter-tree-type-column-filters">
+    Match <strong>all</strong> of the following column filters:
     <ol></ol>
 </span>
 */
     },
+
+    lockedColumn: function() {
+/*
+<span>
+    {1:encode}
+    <input type="hidden" value={2}">
+</span>
+*/
+    },
+
+    'column-filter-cell-syntax': function() {
+/*
+<li>
+    <button type="button" class="copy"></button>
+    <div class="filter-tree-remove-button" title="delete conditional"></div>
+    {1}:
+    <input name="{2}" class="{4}" value="{3:encode}">
+</li>
+*/
+    },
+
+    'column-SQL-syntax': function() {
+/*
+<li>
+    <button type="button" class="copy"></button>
+    <div class="filter-tree-remove-button" title="delete conditional"></div>
+    {1}:
+    <textarea name="{2}" rows="1" class="{4}">{3:encode}</textarea>
+</li>
+*/
+    },
+
     removeButton: function() {
 /*
-<div class="filter-tree-remove" title="delete conditional"></div>
+<div class="filter-tree-remove-button" title="delete conditional"></div>
 */
     },
 
@@ -80,8 +107,8 @@ var templates = {
 
     optionMissing: function() {
 /*
-The previous value of <span class="field-name">{1:encode}</span>
-<span class="field-value">{2:encode}</span> is no longer valid.
+The requested value of <span class="field-name">{1:encode}</span>
+(<span class="field-value">{2:encode}</span>) is not valid.
 */
     }
 

@@ -12,15 +12,66 @@ window.onload = function() {
         setState: setState,
         getSqlWhereClause: getSqlWhereClause,
         test: test,
-        validate: validate,
+        invalid: invalid,
         moreinfo: moreinfo
     };
 
-    var tabz = new Tabz(); // eslint-disable-line no-unused-vars
+    var cc = querystring('cc');
+    if (cc == null || cc) {
+        // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
+
+        var DefaultEditor = FilterTree.prototype.editors.Default;
+
+        FilterTree.prototype.addEditor('Columns', {
+            name: 'column = column',
+            createView: function() {
+                // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
+                DefaultEditor.prototype.createView.call(this);
+
+                // Remove the `literal` element from the `view` hash
+                delete this.view.literal;
+
+                this.view.column2 = this.makeElement(this.el, this.root.fields, 'column', true);
+                //this.view.column2 = this.el.firstElementChild.cloneNode(true);
+
+                // Replace the 3rd element with the new one. There are no event listeners to worry about.
+                this.el.replaceChild(this.view.column2, this.el.children[2]);
+            },
+            treeOpMenu: [
+                FilterTree.conditionals.groups.equality,
+                FilterTree.conditionals.groups.inequalities,
+                FilterTree.conditionals.groups.sets
+            ],
+            q: function(dataRow) {
+                return dataRow[this.column2];
+            },
+            getSyntax: function(ops) {
+                return ops[this.operator].make.call(ops, this.name, this.column2);
+            }
+        });
+    }
+
+    var tabz = new Tabz({ onEnable: renderFolder, onDisable: function(tab){ console.log('-', new Date(), tab.id);} });
+
+    document.addEventListener('click', function(evt) {
+        var el = evt.target;
+        if (el.tagName === 'BUTTON' && el.classList.contains('copy')) {
+            if (el.innerHTML === '') {
+                FilterTree.copy(el.parentElement.querySelector(FilterTree.copy.all.selector));
+            } else {
+                while (el.tagName !== 'SECTION') { el = el.parentElement; }
+                el = el.querySelector(FilterTree.copy.all.selector);
+                FilterTree.copy(el, columnFilters.getState({ syntax: 'SQL' }));
+            }
+        }
+    });
+
+    var newColumnEl = document.getElementById('add-column-filter-subexpression');
+    newColumnEl.onmousedown = addColumnFilter;
 
     // copy SQL instructions from the SQL tab of the table filter tab to the SQL tab of the column filters tab
-    var sqlInstructions = document.querySelector('#table-filter-SQL>div:first-child');
-    var otherSqlSection = document.getElementById('column-filters-SQL');
+    var sqlInstructions = tabz.folder('#tabTableFilterSql').querySelector(':scope>div:first-child');
+    var otherSqlSection = tabz.folder('#tabColumnFiltersSql');
     otherSqlSection.insertBefore(sqlInstructions.cloneNode(true), otherSqlSection.firstElementChild);
 
     var PROPERTY = {
@@ -29,21 +80,26 @@ window.onload = function() {
         CASE_SENSITIVE_COLUMN_NAMES: undefined
     };
 
-    els('input.property').forEach(function(propertyCheckbox) {
+    forEachEl('input.property', function(propertyCheckbox) {
         PROPERTY[propertyCheckbox.id] = propertyCheckbox.checked;
     });
 
-    var quietValidation = {alert: false, focus: false};
+    var QUIET_VALIDATION = {
+        alert: false,
+        focus: false
+    };
 
     initialize();
 
     function elid(id) { return document.getElementById(id); }
+
     //function el(selector) { return document.querySelector(selector); }
-    function els(selector, context) { return toArray((context || document).querySelectorAll(selector)); }
-    function toArray(arrayLikeObject) { return Array.prototype.slice.call(arrayLikeObject); }
 
+    function forEachEl(selector, iteratee, context) {
+        return Array.prototype.forEach.call((context || document).querySelectorAll(selector), iteratee);
+    }
 
-    if (!validate({ alert: false })) {
+    if (!invalid({ alert: false })) {
         elid('where-data').value = filterTree.getState({ syntax: 'SQL' });
         test();
     }
@@ -52,7 +108,7 @@ window.onload = function() {
 
     function auto() {
         if (elid('autoget').checked) {
-            toJSON(quietValidation);
+            toJSON(QUIET_VALIDATION);
         }
 
         getSqlWhereClause();
@@ -60,18 +116,8 @@ window.onload = function() {
         test();
     }
 
-    function updateCellsFromTree() {
-        columnFilters.children.forEach(function(columnFilter) {
-            columnFilter.validate(quietValidation);
-            var cell = document.querySelector('input[name=' + columnFilter.children[0].column + ']');
-            if (cell) {
-                cell.value = columnFilter.getState({ syntax: 'filter-cell' });
-            }
-        });
-    }
-
     elid('properties').addEventListener('click', function(evt) {
-        els('.filter-box').forEach(function(cell) {
+        forEachEl('.filter-box', function(cell) {
             PROPERTY[this.id] = this.checked;
             updateFilter.call(cell);
         }.bind(evt.target));
@@ -84,7 +130,7 @@ window.onload = function() {
         this.classList.add('filter-box-enable');
         this.readOnly = false;
         this.focus();
-        tabz.tabTo('#column-filters-query-builder');
+        tabz.tabTo('#tabColumnFilterQuery');
         updateFilter.call(this); // re-run the parser just to redisplay any errors from last edit
     }
 
@@ -163,7 +209,7 @@ window.onload = function() {
 
         // Find column filter subexpression for this column
         var subexpression = columnFilterSubexpressions.find(function(subexp) {
-            return (subexp.fields[0].name || subexp.fields[0]) === columnName;
+            return subexp.children[0].column === columnName;
         });
 
         if (subexpression) {
@@ -341,8 +387,7 @@ window.onload = function() {
             return {
                 operator: 'op-' + operator,
                 children: children,
-                fields: [columnName],
-                template: 'columnFilter'
+                type: 'columnFilter'
             };
         }
     }
@@ -360,7 +405,7 @@ window.onload = function() {
         }
     }
 
-    els('.filter-box').forEach(function(filterBox) {
+    forEachEl('.filter-box', function(filterBox) {
         filterBox.onclick = enableEditor;
         filterBox.onblur = disableEditor;
         filterBox.onkeyup = editorKeyUp;
@@ -420,7 +465,7 @@ window.onload = function() {
             if (menuVisible) {
                 // hide all the drop-downs
                 selectionStart = selectionEnd = undefined;
-                els('.filter-box').forEach(function(filterBox) { // eslint-disable-line no-shadow
+                forEachEl('.filter-box', function(filterBox) {
                     filterBox.nextElementSibling.nextElementSibling.style.display = 'none';
                     if (doneEditing) {
                         disableEditor.call(filterBox);
@@ -431,21 +476,30 @@ window.onload = function() {
         }
     });
 
-    elid('opMenus').onclick = function(e) {
+    elid('opMenu').onclick = function(e) {
         if (e.target.type === 'radio') {
-            els('input', e.currentTarget).forEach(function(radioButton) {
-                elid(radioButton.value).style.display = radioButton.checked ? 'inline' : 'none';
-            });
+            forEachEl('input[type=radio]', function(radioButton) {
+                elid('section-' + radioButton.value).style.display = radioButton.checked ? 'inline' : 'none';
+            }, e.currentTarget);
         }
     };
 
+    /**
+     * Can be used in two ways:
+     * 1. Call from a catch block
+     * 2. Call with result of a filter tree invalid call (with quiet validation)
+     * @param {Error|FilterTreeError} error
+     * @returns {FilterTreeError} Will return on `FilterTreeError`; otherwise throws `Error`.
+     */
     function rethrow(error) {
         if (error instanceof FilterTree.FilterTreeError) {
             alert(error);
             reveal(error);
-        } else {
+        } else if (error) {
             throw error;
         }
+
+        return error;
     }
 
     /**
@@ -457,24 +511,45 @@ window.onload = function() {
     function reveal(error, focus) {
         if (error instanceof FilterTree.FilterTreeError && error.node && (focus === undefined || focus)) {
             var el = error.node.el;
-            while (!(el.tagName === 'SECTION' && el.parentElement.classList.contains('tabz'))) {
+            while (el && !(el.tagName === 'SECTION' && el.parentElement.classList.contains('tabz'))) {
                 el = el.parentElement;
             }
-            tabz.tabTo(el);
+            if (el) {
+                tabz.tabTo(el);
+            }
         }
         return error;
+    }
+
+    function updateCellsFromTree() {
+        var activeColumnFilters = columnFilters.children.reduce(function(hash, columnFilter) {
+            hash[columnFilter.children[0].column] = columnFilter;
+            return hash;
+        }, {});
+
+        FilterTree.popMenu.walk(getLiteral('fields'), function(column) {
+            var cell = document.querySelector('input[name=' + column.name + ']');
+            if (cell) {
+                var columnFilter = activeColumnFilters[column.name];
+                cell.value = columnFilter && !columnFilter.invalid(QUIET_VALIDATION)
+                    ? columnFilter.getState({ syntax: 'filter-cell' })
+                    : '';
+            }
+        });
     }
 
     function initialize() { // eslint-disable-line no-unused-vars
         try {
             var newFilterTree = new FilterTree({
                 fields: getLiteral('fields'),
-                typeOpMenus: getLiteral('typeOpMenus'),
-                treeOpMenus: getLiteral('treeOpMenus'),
+                typeOpMenu: getLiteral('typeOpMenu'),
+                treeOpMenu: getLiteral('treeOpMenu'),
                 state: elid('state').value,
-                eventHandler: function() {
-                    auto();
-                    updateCellsFromTree();
+                eventHandler: function(evt) {
+                    if (evt.type === 'change' || evt.type === 'keyup' || evt.type === 'delete') {
+                        auto();
+                        updateCellsFromTree(evt);
+                    }
                 }
             });
         } catch (e) {
@@ -485,12 +560,12 @@ window.onload = function() {
         updateDOM(newFilterTree);
 
         // populate the filter box operator drop-downs
-        els('.filter-box').forEach(function(el) {
+        forEachEl('.filter-box', function(el) {
             el.value = '';
 
             var dropdown = el.nextElementSibling.nextElementSibling;
 
-            FilterTree.buildElement(dropdown, opMenus(el.name), {
+            FilterTree.popMenu.build(dropdown, opMenu(el.name), {
                 prompt: null,
                 group: function(groupName) { return FilterTree.conditionals.groups[groupName]; }
             });
@@ -509,17 +584,43 @@ window.onload = function() {
             optgroup.appendChild(option);
             dropdown.add(optgroup);
         });
+
+        tabz.folder('#tabColumnFiltersSql').addEventListener('click', removeColumnFilterTextBoxAndSubtree);
+        tabz.folder('#tabColumnFiltersSyntax').addEventListener('click', removeColumnFilterTextBoxAndSubtree);
+
+        addColumnFilter();
     }
 
-    function opMenus(fieldName) {
-        var typeOps = getLiteral('typeOpMenus'),
+    function removeColumnFilterTextBoxAndSubtree(evt) {
+        var el = evt.target, columnName, subtree;
+        if (el.classList.contains('filter-tree-remove-button')) {
+            el = el.parentElement;
+            columnName = el.querySelector('input,textarea').name;
+            subtree = columnFilters.children.find(function(child) {
+                var conditionals = child.children,
+                    firstConditional = conditionals.length && conditionals[0];
+                return firstConditional && firstConditional.column === columnName;
+            });
+
+            // remove subtree from filterTree object
+            if (subtree) {
+                columnFilters.remove(subtree);
+            }
+
+            // remove text box from DOM
+            el.remove();
+        }
+    }
+
+    function opMenu(fieldName) {
+        var typeOps = getLiteral('typeOpMenu'),
             fields = getLiteral('fields'),
-            field = findField(fields, fieldName);
+            field = FilterTree.popMenu.findItem(fields, fieldName);
 
         return (
-            field && field.opMenus ||
+            field && field.opMenu ||
             field && field.type && typeOps && typeOps[field.type] ||
-            FilterTree.conditionals.defaultOpMenus
+            FilterTree.conditionals.defaultOpMenu
         );
     }
 
@@ -543,26 +644,12 @@ window.onload = function() {
         return object;
     }
 
-    function findField(fields, name) {
-        var complex, simple;
-
-        simple = fields.find(function(field) {
-            if ((field.submenu || field) instanceof Array) {
-                return (complex = findField(field.submenu || field, name));
-            } else {
-                return (field.name || field) === name;
-            }
-        });
-
-        return complex || simple;
-    }
-
-    function validate(options) { // eslint-disable-line no-unused-vars
-        reveal(filterTree.validate(options), options && options.focus);
+    function invalid(options) { // eslint-disable-line no-unused-vars
+        return reveal(filterTree.invalid(options), options && options.focus);
     }
 
     function toJSON(validateOptions) {
-        var valid = !validate(validateOptions),
+        var valid = !invalid(validateOptions),
             ctrl = elid('state');
 
         if (valid) {
@@ -595,11 +682,11 @@ window.onload = function() {
             newColumnFilters = newFilterTree.children[1];
 
         if (!filterTree) {
-            elid('table-filter-query-builder').appendChild(newTableFilter.el);
-            elid('column-filters-query-builder').appendChild(newColumnFilters.el);
+            tabz.folder('#tabTableFilterQuery').appendChild(newTableFilter.el);
+            tabz.folder('#tabColumnFilterQuery').appendChild(newColumnFilters.el);
         } else {
-            elid('table-filter-query-builder').replaceChild(newTableFilter.el, tableFilter.el);
-            elid('column-filters-query-builder').replaceChild(newColumnFilters.el, columnFilters.el);
+            tabz.folder('#tabTableFilterQuery').replaceChild(newTableFilter.el, tableFilter.el);
+            tabz.folder('#tabColumnFilterQuery').replaceChild(newColumnFilters.el, columnFilters.el);
         }
 
         filterTree = newFilterTree;
@@ -610,7 +697,7 @@ window.onload = function() {
     function getSqlWhereClause(force) {
         if (
             (force || elid('autoGetWhere').checked) &&
-            !validate(!force && quietValidation)
+            !invalid(!force && QUIET_VALIDATION)
         ) {
             elid('where-data').value = filterTree.getState({ syntax: 'SQL' });
         }
@@ -619,8 +706,8 @@ window.onload = function() {
     function test(force) {
         if (force || elid('autotest').checked) {
             var result, data,
-                options = !force && quietValidation;
-            if (validate(options)) {
+                options = !force && QUIET_VALIDATION;
+            if (invalid(options)) {
                 result = 'invalid-filter';
             } else if (!(data = getLiteral('dataRow', options))) {
                 result = 'invalid-data';
@@ -655,58 +742,121 @@ window.onload = function() {
         return result;
     }
 
-    var cc = querystring('cc');
-
-    if (cc == null || cc) {
-        // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
-
-        var DefaultEditor = FilterTree.prototype.editors.Default;
-
-        FilterTree.prototype.addEditor('Columns', {
-            name: 'Compare one column to another',
-            createView: function() {
-                // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
-                DefaultEditor.prototype.createView.call(this);
-
-                // Remove the `literal` element from the `view` hash
-                delete this.view.literal;
-
-                // Add the `column2` element to the view hash using the secondary fields list
-                var fields2 = this.fields2;
-                if (!fields2) {
-                    // fall back to the root fields list (or most senior list available)
-                    var root = this;
-                    do {
-                        root = root.parent;
-                        if (root && root.fields) {
-                            fields2 = root.fields;
-                        }
-                    } while (root);
-                }
-
-                this.view.column2 = fields2
-                    ? this.makeElement(this.el, fields2, 'column', true)
-                    : this.el.firstElementChild.cloneNode(true);
-
-                // Replace the 3rd element with the new one. There are no event listeners to worry about.
-                this.el.replaceChild(this.view.column2, this.el.children[2]);
-            },
-            treeOpMenus: [
-                FilterTree.conditionals.groups.equality,
-                FilterTree.conditionals.groups.inequalities,
-                FilterTree.conditionals.groups.sets
-            ],
-            q: function(dataRow) {
-                return dataRow[this.column2];
-            },
-            getSyntax: function(ops) {
-                return ops[this.operator].make.call(ops, this.column, this.column2);
-            }
-        });
+    function moreinfo(el) {
+        el.style.display = window.getComputedStyle(el).display === 'none' ? 'block' : 'none';
     }
 
-};
+    function renderFolder(tab, folder) {
+        console.log('+', new Date(), tab.id);
+        var syntax = (
+            tab.id === 'tabColumnFiltersSql' && 'SQL' ||
+            tab.id === 'tabColumnFiltersSyntax' && 'filter-cell'
+        );
 
-function moreinfo(el) {
-    el.style.display = window.getComputedStyle(el).display === 'none' ? 'block' : 'none';
-}
+        if (syntax) {
+            var filters = columnFilters.children,
+                el = folder.lastElementChild,
+                msgEl = el.querySelector('span'),
+                listEl = el.querySelector('ol'),
+                copyAllButtonEl = el.querySelector('button:first-of-type');
+
+            msgEl.innerHTML = activeFiltersMessage(filters.length);
+            listEl.innerHTML = '';
+
+            filters.forEach(function(filter) {
+                var templateName = 'column-' + syntax + '-syntax',
+                    conditional = filter.children[0],
+                    formattedColumnName = FilterTree.popMenu.formatItem(conditional.fields[0]),
+                    columnName = conditional.column,
+                    expression = filter.getState({ syntax: syntax }),
+                    isNull = expression === '(NULL IS NULL)' || expression === '',
+                    content = isNull ? '' : expression,
+                    className = isNull ? 'filter-tree-error' : '',
+                    li = FilterTree.template(
+                        templateName,
+                        formattedColumnName,
+                        columnName,
+                        content,
+                        className
+                    );
+
+                listEl.appendChild(li);
+            });
+
+            if (copyAllButtonEl) {
+                copyAllButtonEl.style.display = filters.length > 1 ? 'block' : 'none';
+            }
+        } else if (tab.id === 'tabTableFilterSql') {
+            folder.querySelector('textarea').value = tableFilter.getState({ syntax: 'SQL' });
+        }
+    }
+
+    function activeFiltersMessage(n) {
+        var result;
+
+        switch (n) {
+            case 0:
+                result = 'There are no active column filters.';
+                break;
+            case 1:
+                result = 'There is 1 active column filter:';
+                break;
+            default:
+                result = 'There are ' + n + ' active column filters:';
+        }
+
+        return result;
+    }
+
+    function addColumnFilter(evt) {
+        var tabPanel = tabz.folder(newColumnEl).querySelector('.tabz'),
+            tab = tabz.enabledTab(tabPanel),
+            folder = tabz.folder(tab),
+            visQueryBuilder = tab.id === 'tabColumnFilterQuery',
+            error = columnFilters.invalid({ focus: visQueryBuilder });
+
+        if (error) {
+            if (!visQueryBuilder) {
+                // We're in either the SQL tab or the Syntax tab.
+                // Figure out which textbox control to focus on.
+                var errantQueryBuilderControlEl = error.node.el,
+                    errantColumnName = errantQueryBuilderControlEl.parentElement.querySelector('input').value,
+                    errantColumnInputControl = folder.querySelector('[name="' + errantColumnName + '"]');
+
+                errantColumnInputControl.classList.add('filter-tree-error');
+                errantColumnInputControl.focus();
+            }
+            evt.preventDefault(); // do not drop down
+            return;
+        }
+
+        var menu = columnFilters.root.fields,
+            blacklist = columnFilters.children.map(function(columnFilter) {
+                return columnFilter.children.length && columnFilter.children[0].column;
+            }),
+            options = {
+                prompt: 'add column filter',
+                blacklist: blacklist
+            };
+
+        FilterTree.popMenu.build(newColumnEl, menu, options);
+
+        newColumnEl.onchange = function() {
+            columnFilters.add({
+                state: {
+                    type: 'columnFilter',
+                    children: [{column: this.value}]
+                },
+                focus: visQueryBuilder
+            });
+
+            if (tab.id === 'tabColumnFiltersSql' || tab.id === 'tabColumnFiltersSyntax') {
+                renderFolder(tab, folder);
+            }
+
+            newColumnEl.selectedIndex = 0;
+        };
+    }
+
+
+};

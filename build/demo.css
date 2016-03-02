@@ -13,9 +13,14 @@ code {
 textarea {
     display: block;
     margin: 9px 0;
-    width: 100%;
+    width: 98%;
+    padding: 3px 6px;
 }
-input[type='button'] {
+label.auto {
+    float: right;
+    font-size: 8pt;
+}
+input.demoButton {
     border: 0;
     background-color: #999;
     color: white;
@@ -26,9 +31,11 @@ input[type='button'] {
     font-family: monospace;
     border: 1px transparent solid;
     box-sizing: border-box;
-    box-shadow: 2px 2px 5px #444;
+    box-shadow: 3px 3px 4px #444;
+    display: block;
+    margin: 6px 0;
 }
-input[type='button']:active {
+input.demoButton:active {
     background-color: #bbb;
     color: black;
     border: 1px #555 solid;
@@ -41,16 +48,12 @@ fieldset {
     box-shadow: 4px 4px 10px #aaa;
 }
 legend {
-    font-size: 11pt;
-    font-style: italic;
+    font-size: 10pt;
     background-color: ivory;
     border: 1px #555 solid;
     padding: 3px 8px;
     border-radius: 5px;
     box-shadow: 2px 2px 5px grey;
-}
-legend > code {
-    font-size: 11pt;
 }
 label {
     white-space: nowrap;
@@ -60,18 +63,25 @@ td {
     padding: .5em;
     width: 50%;
 }
-fieldset > p {
+p.smallprint {
     font-size: 7pt;
     margin: -6px 0 0 0;
 }
 .false, .true {
-    font-weight: bold
+    font-weight: bold;
+    margin-left: .5em;
+    text-transform: uppercase;
+    font-size: large;
 }
-.false::before {
+.false::before, .true::before {
+    content: '\2192 \A0 ';
+    font-size: larger;
+}
+.false::after {
     color: #c00;
     content: 'exclude';
 }
-.true::before {
+.true::after {
     color: #0a0;
     content: 'include';
 }
@@ -209,6 +219,52 @@ ul {
     padding-left: 1.5em;
 }
 .tabz ul { list-style-type: circle; font-weight: bold }
-div.more-info { border: 1px grey dashed; border-radius: 8px; padding: 0 8px; display: none; background-color: ivory }
+div.more-info {
+    border: 1px #bec7ce solid;
+    border-radius: 8px;
+    padding: 0 8px .2em;
+    display: none;
+    background-color: #F0F7FF;
+    box-shadow: 2px 2px 3px #bbb;
+}
+div.more-info > p {
+    margin: .5em 0;
+}
 .tabz ul > li > ul { list-style-type: disc; font-weight: normal; }
 li { margin:.3em 0; line-height: 1.35em }
+
+/* Augmented tab styles */
+
+.tabz > header + section {
+    box-shadow: 2px 2px 3px #bbb;
+    margin-bottom: 1.5em;
+}
+
+/* column filters query builder */
+
+.tabz > section.filter-expression-syntax > div:last-child ol {
+    padding-left: 1.6em;
+}
+.tabz > section.filter-expression-syntax > textarea,
+.tabz > section.filter-expression-syntax > div:last-child textarea,
+.tabz > section.filter-expression-syntax > div:last-child input {
+    display: block;
+    width: 96%;
+    border: 1px solid black;
+    padding: .4em .7em;
+    margin: .3em 0 1em 0;
+    font-family: monospace;
+    font-size: 9pt;
+}
+.tabz > section.filter-expression-syntax > textarea {
+    height: 96%;
+}
+button.copy {
+    font-size: smaller;
+    display: block;
+    float: right;
+    margin-right: 1em;
+}
+button.copy:before {
+    content: 'COPY';
+}

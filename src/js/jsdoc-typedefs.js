@@ -3,8 +3,8 @@
 
 /** @typedef relationalTest
  * @type {function}
- * @param {string|number|Date} a - Left side of diadic conditional expression.
- * @param {string|number|Date} b - Right side of diadic conditional expression.
+ * @param {string|number|Date} a - Left side of dyadic conditional expression.
+ * @param {string|number|Date} b - Right side of dyadic conditional expression.
  * @returns {boolean} The result of comparing `a` and `b`.
  */
 
@@ -12,8 +12,8 @@
  * @summary Generates human-readable string syntax from conditionals.
  * @desc The type of the parameters will always be homogeneous and is determined by FilterLeaf's typing algorithm, which attempts to convert the data in it's natural string form to the type sepcified by the field's type, if defined. If both sides cannot be converted, it falls back to strings.
  * @type {function}
- * @param {string|number|Date} a - Left side of diadic conditional expression.
- * @param {string|number|Date} b - Right side of diadic conditional expression.
+ * @param {string|number|Date} a - Left side of dyadic conditional expression.
+ * @param {string|number|Date} b - Right side of dyadic conditional expression.
  * @returns {string} Syntax for that expressions a specific relationship between `a` and `b`.
  */
 

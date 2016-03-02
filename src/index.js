@@ -14,41 +14,33 @@ var TerminalNode = require('./js/FilterLeaf');
 var template = require('./js/template');
 var operators = require('./js/tree-operators');
 var conditionals = require('./js/conditionals');
-var buildElement = require('./js/build-element'); ///// TEMP
+var popMenu = require('./js/pop-menu');
 
 
 var ordinal = 0;
 
 /** @constructor
+ * @summary An object that represents a non-terminal node in a filter tree.
+ * @desc A node representing a subexpression in the filter expression. May be thought of as a parenthesized subexpression in algebraic expression syntax. It's children may be either {@link FilterLeaf}* (terminal) nodes or other (nested) `FilterTree`* subexpressions. The same `operator` to be applied to all its `children`.
  *
- * @summary A node in a filter tree (including the root node), representing a complex filter expression.
+ * \* Or other "class" objects extended therefrom.
  *
- * @desc A `FilterTree` is an n-ary tree with a single `operator` to be applied to all its `children`.
+ * Has all the properties of {@link FilterNode} (see), plus the following additional properties:
  *
- * Also known as a "subtree" or a "subexpression".
+ * @property {string} [operator='op-and'] - One of:
+ * * `'op-and'`
+ * * `'op-or'`
+ * * `'op-nor'`
  *
- * Each of the `children` can be either:
+ * @property {filterNode[]} children - A list of descendants of this node. May be any number including 0 (none; empty).
  *
- * * a terminal node `FilterLeaf` (or an object inheriting from `FilterLeaf`) representing a simple conditional expression; or
- * * a nested `FilterTree` representing a complex subexpression.
- *
- * The `operator` must be one of the {@link operators|tree operators} or may be left undefined iff there is only one child node.
+ * @property {fieldItem[]} [nodeFields] - Column menu to be used only by leaf nodes that are children (direct descendants) of this node.
  *
  * Notes:
  * 1. A `FilterTree` may consist of a single leaf, in which case the `operator` is not used and may be left undefined. However, if a second child is added and the operator is still undefined, it will be set to the default (`'op-and'`).
  * 2. The order of the children is undefined as all operators are commutative. For the '`op-or`' operator, evaluation ceases on the first positive result and for efficiency, all simple conditional expressions will be evaluated before any complex subexpressions.
  * 3. A nested `FilterTree` is distinguished from a `Filter` by the presence of a `children` member.
  * 4. Nesting a `FilterTree` containing a single child is valid (albeit pointless).
- *
- * See {@link FilterNode} for additional `options` properties.
- *
- * @param {object} [options.editors] - Editor hash to override prototype's. These are constructors for objects that extend from `FilterTree.prototype.editors.Default`. Typically, you would include the default editor itself: `{ Default: FilterTree.prototype.editors.Default, ... }`. Alternatively, before instantiating, you might add your additional editors to `FilterTree.prototype.editors` for use by all filter tree objects.
- *
- * @property {FilterTree} parent
- * @property {number} ordinal
- * @property {string} operator
- * @property {FilterNode[]} children - Each one is either a `Filter` (or an object inheriting from `Filter`) or another `FilterTree`..
- * @property {Element} el - The root element of this (sub)tree.
  */
 var FilterTree = FilterNode.extend('FilterTree', {
 
@@ -60,10 +52,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
         }
     },
 
-    destroy: function() {
-        detachChooser.call(this);
-    },
-
+    /**
+     * Hash of constructors for objects that extend from {@link FilterLeaf}, which is the `Default` member here.
+     *
+     * Add additional editors to this object (in the prototype) prior to instantiating a leaf node that refers to it.
+     *
+     * Alternatively, you could also override the entire object in your instance but if you do so, be sure to include the default editor, for example: `{ Default: FilterTree.prototype.editors.Default, ... }`. (One way of overriding would be to include such an object in an `editors` member of the options object passed to the constructor on instantiation. This works because all miscellaneous members are simply copied to the new instance. Not to be confused with the standard option `editor` which is a string containing a key from this hash and tells the leaf node what type to use.)
+     */
     editors: {
         Default: TerminalNode
     },
@@ -77,11 +72,31 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     createView: function() {
+        // get column name from this.state instead of this.children (because loadState has not yet been called)
+        if (this.type === 'columnFilter') {
+            var item = popMenu.findItem(this.root.fields, this.state.children[0].column);
+            var columnFilterName = popMenu.formatItem(item);
+        }
+
         this.el = template(
-            this.template || 'subtree',
+            this.type,
             ++ordinal,
-            this.fields[0].name || this.fields[0]
+            columnFilterName
         );
+
+        var newExpr = this.el.querySelector(':scope>select');
+        if (newExpr) {
+            var editors = this.editors,
+                optgroup = document.createElement('optgroup');
+            optgroup.label = 'Conditionals';
+            Object.keys(editors).forEach(function(key) {
+                var name = editors[key].prototype.name || key;
+                optgroup.appendChild(new Option(name, key));
+            });
+            newExpr.add(optgroup);
+            this.el.addEventListener('change', onchange.bind(this));
+        }
+
         this.el.addEventListener('click', catchClick.bind(this));
     },
 
@@ -114,7 +129,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     render: function() {
         var radioButton = this.el.querySelector(':scope > label > input[value=' + this.operator + ']'),
-            addFilterLink = this.el.querySelector('.filter-tree-add-filter');
+            addFilterLink = this.el.querySelector('.filter-tree-add-conditional');
 
         if (radioButton) {
             radioButton.checked = true;
@@ -125,7 +140,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         // when multiple filter editors available, simulate click on the new "add conditional" link
         if (addFilterLink && !this.children.length && Object.keys(this.editors).length > 1) {
-            this['filter-tree-add-filter']({
+            this['filter-tree-add-conditional']({
                 target: addFilterLink
             });
         }
@@ -135,32 +150,50 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     /**
-     * Creates a new node as per `state`.
-     * @param {object} [state]
-     * * If `state` has a `children` property, will attempt to add a new subtree.
-     * * If `state` has an `editor` property, will create one (`this.editors[state.editor]`).
-     * * If `state` has neither (or was omitted), will create a new default editor (`this.editors.Default`).
+     * @summary Create a new node as per `state`.
+     *
+     * @param {object} [options] - May be one of:
+     *
+     * * an `options` object containing a `state` property
+     * * a `state` object (in which case there is no `options` object)
+     *
+     * In any case, if resulting `state` object has...
+     * * a `children` property, attempt to add a new subtree.
+     * * an `editor` property, create one (`this.editors[state.editor]`).
+     * * neither (or was omitted), create a new default editor (`this.editors.Default`).
+     *
+     * @param {boolean} [stateOrOptions.focus=false] Call invalid() after inserting to focus on first blank control (if any).
      */
-    add: function(state) {
-        var Constructor;
+    add: function(options) {
+        var Constructor, newNode;
 
-        if (state && state.children) {
-            Constructor = FilterTree;
-        } else {
-            Constructor = this.editors[state && state.editor || 'Default'];
+        options = options || {};
+
+        if (!options.state) {
+            options = { state: options };
         }
 
-        this.children.push(new Constructor({
-            state: state,
-            parent: this
-        }));
+        if (options.state.children) {
+            Constructor = FilterTree;
+        } else {
+            Constructor = this.editors[options.state.editor || 'Default'];
+        }
+
+        options.parent = this;
+        newNode = new Constructor(options);
+        this.children.push(newNode);
+
+        if (options.focus) {
+            // focus on blank control a beat after adding it
+            setTimeout(function() { newNode.invalid({ alert: false }); }, 750);
+        }
     },
 
     /**
      * Search the expression tree for a node with certain characteristics as described by the type of search (`type`) and the search args.
      * @param {string} [type='find'] - Name of method to use on terminal nodes; characterizes the type of search. Must exist in your terminal node object.
      * @param {boolean} [deep=false] - Must be explicit `true` or `false` (not merely truthy or falsy); or omitted.
-     * @param {*} firstSearchArg - May not be boolean type (accommodation to overload logic).
+     * @param {*} firstSearchArg - May not be boolean type in case `deep` omitted (accommodation to overload logic).
      * @param {...*} [additionalSearchArgs]
      * @returns {boolean|FilterLeaf|FilterTree}
      * * `false` - Not found. (`true` is never returned.)
@@ -186,25 +219,21 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         leafArgs = Array.prototype.slice.call(arguments, n);
 
-        // TODO: Following could be broken out into separate method (like FilterLeaf)
+        // TODO: Following could be broken out into separate method (as in FilterLeaf)
         if (type === 'findByEl' && this.el === leafArgs[0]) {
             return this;
         }
 
         // walk tree recursively, ending on defined `result` (first node found)
         return this.children.find(function(child) {
-            if (child) { // only recurse on undead children
-                if (child instanceof TerminalNode) {
-                    // always recurse on terminal nodes
-                    result = child[type].apply(child, leafArgs);
-                } else if (deep && child.children.length) {
-                    // only recurse on subtrees if going `deep` and not childless
-                    result = find.apply(child, treeArgs);
-                }
-                return result; // truthiness aborts find loop if set above
+            if (child instanceof TerminalNode) {
+                // always recurse on terminal nodes
+                result = child[type].apply(child, leafArgs);
+            } else if (deep && child.children.length) {
+                // only recurse on subtrees if going `deep` and not childless
+                result = find.apply(child, treeArgs);
             }
-
-            return false; // keep going // TODO: Couldn't this just be "return result" making the return above unnecessary?
+            return result;
         });
     },
 
@@ -215,7 +244,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         // display strike-through
         var radioButtons = this.el.querySelectorAll('label>input.filter-tree-op-choice[name=' + radioButton.name + ']');
-        Array.prototype.slice.call(radioButtons).forEach(function(radioButton) { // eslint-disable-line no-shadow
+        Array.prototype.forEach.call(radioButtons, function(radioButton) {
             radioButton.parentElement.style.textDecoration = radioButton.checked ? 'none' : 'line-through';
         });
 
@@ -226,35 +255,24 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.classList.add(this.operator);
     },
 
-    'filter-tree-add-filter': function(evt) {
-        if (Object.keys(this.editors).length === 1) {
-            this.add({ autodrop: true });
-        } else {
-            attachChooser.call(this, evt);
-        }
-    },
-
-    'filter-tree-add': function() {
-        this.children.push(new FilterTree({
-            parent: this
-        }));
-    },
-
-    'filter-tree-remove': function(evt) {
+    'filter-tree-remove-button': function(evt) {
         this.remove(evt.target.nextElementSibling, true);
     },
 
     /** Removes a child node and it's .el; or vice-versa
-     * @param {Element|FilterNode} node
+     * @param {HTMLElement|FilterNode} node
+     * @param {boolean} [deep=false]
      */
     remove: function(node, deep) {
-        if (node instanceof Element) {
+        if (node instanceof HTMLElement) {
             node = this.find('findByEl', !!deep, node);
         }
 
-        delete this.children[this.children.indexOf(node)];
+        remove.call(this, node);
 
-        node.el.parentElement.remove(node.el);
+        if (this.eventHandler) {
+            this.eventHandler({ type: 'delete' });
+        }
     },
 
     /**
@@ -263,7 +281,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @param {boolean} [object.focus=true] - Place the focus on the offending control and give it error color.
      * @returns {undefined|FilterTreeError} `undefined` if valid; or the caught `FilterTreeError` if error.
      */
-    validate: function(options) {
+    invalid: function(options) {
         options = options || {};
 
         var alert = options.alert === undefined || options.alert,
@@ -271,7 +289,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
             result;
 
         try {
-            validate.call(this, options);
+            invalid.call(this, options);
         } catch (err) {
             result = err;
 
@@ -418,14 +436,41 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
 });
 
-function catchClick(evt) { // must be called with context
+function remove(node) { // call in context
+    // remove the subtree from the object tree
+    this.children.splice(this.children.indexOf(node), 1);
+
+    if (this.children.length || this.type === 'columnFilters') {
+        // remove the <li> from the DOM tree
+        node.el.parentElement.remove();
+    } else if (this.type !== 'columnFilters' && this.parent) {
+        // empty non-root node so remove self, recursing up the tree until not empty
+        this.parent.remove(this);
+    }
+}
+
+function onchange(evt) { // bound context
+    var ctrl = evt.target;
+    if (ctrl.parentElement === this.el) {
+        if (ctrl.value === 'subexp') {
+            this.children.push(new FilterTree({
+                parent: this
+            }));
+        } else {
+            this.add({
+                state: { editor: ctrl.value },
+                focus: true
+            });
+        }
+        ctrl.selectedIndex = 0;
+    }
+}
+
+function catchClick(evt) { // bound context
     var elt = evt.target;
 
     var handler = this[elt.className] || this[elt.parentNode.className];
     if (handler) {
-        if (this.detachChooser) {
-            this.detachChooser();
-        }
         handler.call(this, evt);
         evt.stopPropagation();
     }
@@ -437,93 +482,23 @@ function catchClick(evt) { // must be called with context
 
 /**
  * Throws error if invalid expression tree.
- * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
+ * Caught by {@link FilterTree#invalid|FilterTree.prototype.invalid()}.
  * @param {boolean} [options.focus=true] - Move focus to offending control.
  * @returns {undefined} if valid
  * @private
  */
-function validate(options) { // must be called with context
-    if (this instanceof FilterTree && !this.children.length) {
-        throw new FilterNode.FilterTreeError('Empty subexpression (no filters).');
-    }
+function invalid(options) { // must be called with context
+    //if (this instanceof FilterTree && !this.children.length) {
+    //    throw new FilterNode.FilterTreeError('Empty subexpression (no filters).');
+    //}
 
     this.children.forEach(function(child) {
         if (child instanceof TerminalNode) {
-            child.validate(options);
+            child.invalid(options);
         } else if (child.children.length) {
-            validate.call(child, options);
+            invalid.call(child, options);
         }
     });
-}
-
-function attachChooser(evt) { // must be called with context
-    var tree = this,
-        rect = evt.target.getBoundingClientRect();
-
-    if (!rect.width) {
-        // not in DOM yet so try again later
-        setTimeout(function() {
-            attachChooser.call(tree, evt);
-        }, 50);
-        return;
-    }
-
-    // Create it
-    var editors = Object.keys(FilterTree.prototype.editors),
-        chooser = this.chooser = document.createElement('select');
-
-    chooser.className = 'filter-tree-chooser';
-    chooser.size = editors.length;
-
-    editors.forEach(function(key) {
-        var name = tree.editors[key].prototype.name || key;
-        chooser.add(new Option(name, key));
-    });
-
-    chooser.onmouseover = function(evt) { // eslint-disable-line no-shadow
-        evt.target.selected = true;
-    };
-
-    // Position it
-    chooser.style.left = window.scrollX + rect.left + 'px';
-    chooser.style.top = window.scrollY + rect.bottom - 1 + 'px';
-
-    this.detachChooser = detachChooser.bind(this);
-    window.addEventListener('click', this.detachChooser); // detach chooser if click outside
-
-    chooser.onclick = function() {
-        var state = {
-            editor: chooser.value,
-            autodrop: true
-        };
-        tree.add(state);
-        // click bubbles up to window where it detaches chooser
-    };
-
-    chooser.onmouseout = function() {
-        chooser.selectedIndex = -1;
-    };
-
-    // Add it to the DOM
-    document.querySelector('body').appendChild(chooser);
-
-    // Color the link similarly
-    this.chooserTarget = evt.target;
-    this.chooserTarget.classList.add('as-menu-header');
-}
-
-function detachChooser() { // must be called with context
-    var chooser = this.chooser;
-    if (chooser) {
-        document.querySelector('body').removeChild(chooser);
-        this.chooserTarget.classList.remove('as-menu-header');
-
-        chooser.onclick = chooser.onmouseout = null;
-        window.removeEventListener('click', this.detachChooser);
-
-        delete this.detachChooser;
-        delete this.chooser;
-    }
 }
 
 // expose some objects for plug-in access
@@ -533,5 +508,10 @@ FilterTree.FilterTreeError = FilterNode.FilterTreeError;
 
 module.exports = FilterTree;
 
+// FOLLOWING PROPERTIES ARE *** TEMPORARY ***,
+// FOR THE DEMO TO ACCESS THESE NODE MODULES.\
 
-FilterTree.buildElement = buildElement; ///// TEMP
+FilterTree.popMenu = popMenu;
+FilterTree._ = require('object-iterators');
+FilterTree.copy = require('./js/copy-input');
+FilterTree.template = template;

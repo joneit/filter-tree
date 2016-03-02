@@ -15,25 +15,50 @@ extend.debug = true;
 var CHILDREN_TAG = 'OL',
     CHILD_TAG = 'LI';
 
+/** @typedef {filterTreeNode|filterLeafNode} filterNode
+ *
+ * @property {filterNode} [parent] - Missing or falsy means this is the root node.
+ *
+ * @property {filterNode} root - Convenience reference to the root node.
+ *
+ * @property {fieldItem[]} fields - Column menu to be used by descendant leaf nodes (including this node if it is a leaf node).
+ *
+ * @property {string} [editor] - Name of filter editor used by descendant leaf nodes (including this node if it is a leaf node).
+ *
+ * @property {function} [eventHandler] - Event handler for UI events.
+ *
+ * @property {string} [type] - Identifies the type of node:
+ * * `'filterNode'` - A generic filter tree node, either a {@link filterTreeNode} or a {@link filterLeafNode}
+ * * `'columnFilters'` - A special {@link filterTreeNode} contaiing _column filter_ subexpressions ({@link filterTreeNode}s of type `'columnFilter'`
+ * * `'columnFilter'` -  A special {@link filterTreeNode} containing homogeneous _column filter_ conditionals, all referencing the same column on the left side of their dyadic expressions.
+ *
+ * Used among other things to select a rendering template. (Note that {@link filterLeafNode} currently do not use rendering templates.)
+ *
+ * @property {menuItem[]} [treeOpMenu=conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
+ *
+ * @property {object} [typeOpMenu] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
+ * 1. do not have an operator menu (`opMenu` property) of their own; and
+ * 2. whose columns resolve to that type.
+ *
+ * The type is determined either by (in priority order):
+ * 1. the `type` property of the {@link filterLeafNode}; or
+ * 2. the `type` property of the element in the nearest node (including the leaf node itself) that has a defined `nodeFields` or `fields` array property with an element having a matching column name.
+ *
+ * @property {HTMLElement} el - The DOM element created by the `render` method to represent this node. Contains the `el`s for all child nodes.
+ */
 /**
  * @constructor
  *
- * @description A filter tree represents a _complex conditional expression_ and consists of a single `FilterNode` object serving as the _root_ of an _n_-ary tree.
+ * @summary A node in a filter tree.
  *
- * Each `FilterNode` represents a node in tree. Each node is one of two types of objects extended from `FilterNode`:
+ * @description A filter tree represents a _complex conditional expression_ and consists of a single instance of a {@link FilterTree} as the _root_ of an _n_-ary tree.
  *
- * * The non-terminal (@link FilterTree} nodes represent _complex subexpressions_, each consisting of two or more _conditional_ (boolean expressions), all concatenated together with one of the _tree operators_.
- * * The terminal {@link FilterLeaf} nodes represent _simple expressions_.
+ * In general, each instance of a `FilterNode` may be:
+ * * a {@link FilterTree}, an object that represents a non-terminal node in a filter tree;
+ * * a {@link FilterLeaf}, an object that represents a terminal node in a filter tree; or
+ * * any other object extended from either of the above.
  *
- * Tree operators currently include **_AND_** (labeled "all" in the UI; and "op-and" internally), **_OR_** ("any"; "op-or"), and **_NOR_** ("none"; "op-nor").
- *
- * Each conditional in a _subexpression_ (non-terminal node) is represented by a child node which may be either a _simple expression_ (terminal node) or another ("nested") subexpression non-terminal node.
- *
- * The `FilterLeaf` object is the default type of simple expression, which is in the form _field-property operator-property argument-property_ where:
- *
- * * _field-property_ - the name of a column, selected from a drop-down;
- * * _operator-property_ - an equality (=), inequality (<, ≤, ≠, ≥, >), or pattern operator (LIKE, NOT LIKE), also selected from a drop-down; and
- * * _argument-property_ is a constant typed into a text box.
+ * The `FilterLeaf` object is the default type of simple expression, which is
  *
  * The `FilterTree` object has polymorphic methods that operate on the entire tree using recursion. When the recursion reaches a terminal node, it calls the methods on the `FilterLeaf` object instead. Calling `test()` on the root tree therefore returns a boolean that determines if the row passes through the entire filter expression (`true`) or is blocked by it (`false`).
  *
@@ -63,7 +88,7 @@ var CHILDREN_TAG = 'OL',
  *
  * * May describe a terminal node with properties:
  *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
- *   * `editor` - A string identifying the type of conditional. Must be in the tree's (see {@link FilterTree#editors|editors}) hash. If omitted, defaults to `'Default'`.
+ *   * `editor` - A string identifying the type of conditional. Must be in the parent node's {@link FilterTree#editors|editors} hash. If omitted, defaults to `'Default'`.
  *   * misc. - Other properties peculiar to this filter type (but typically including at least a `field` property).
  * * May describe a non-terminal node with properties:
  *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
@@ -80,20 +105,22 @@ var CHILDREN_TAG = 'OL',
  *
  * @param {function} [options.editor='Default'] - Type of simple expression; a key in the FilterTree.prototype.editors hash which maps to a simple expression constructor, which will be `FilterLeaf` or a constructor extended from `FilterLeaf`.
  *
- * @param {FilterTree} [options.parent] - Used internally to insert element when creating nested subtrees. For the top level tree, you don't give a value for `parent`; you are responsible for inserting the top-level `.el` into the DOM.
+ * @param {FilterTree} [options.parent] - Used internally to insert element when creating nested subtrees. Optional for the top level tree only. (Note that you are responsible for inserting the top-level `.el` into the DOM.)
  */
 var FilterNode = Base.extend({
 
     initialize: function(options) {
         var self = this,
-            parent = options && options.parent,
-            state = options && options.state && detectState(options.state);
+            state = options && options.state && detectState(options.state),
+            parent = options && options.parent;
 
+        this.state = state;
         this.parent = parent;
+        this.root = parent && parent.root || this;
 
-        // create each standard option from options, state, or parent
+        // create each standard option from `options` or `state` or `parent` (wherever it's defined first, if anywhere)
         _(FilterNode.optionsSchema).each(function(schema, key) {
-            if (!key.ignore && !(key in self)) {
+            if (!self.hasOwnProperty(key)) {
                 var option = options && options[key] ||
                     state && state[key] ||
                     !schema.own && (
@@ -104,6 +131,13 @@ var FilterNode = Base.extend({
                 if (option) {
                     self[key] = option;
                 }
+            }
+        });
+
+        // copy all remaining options directly to the new instance, overriding members of the same name in the prototype
+        _(options).each(function(value, key) {
+            if (!FilterNode.optionsSchema[key]) {
+                self[key] = value;
             }
         });
 
@@ -172,24 +206,32 @@ FilterNode.optionsSchema = {
      */
     eventHandler: {},
 
-    /** @summary Template to use to generate the mark-up for the root node only of this subtree.
+    /** @summary Template to use to generate the mark-up for this subtree.
+     * @desc This identifies the type of the subtree and is used among other things to select a rendering template.
+     *
+     * Although not used for selecting a template in leaf nodes, it is still useful to see what kind of node a leaf belongs to.
+     *
+     * Possible values are:
+     *
+     * * `'filterNode'` - a normal filter tree node, containing conditionals (leaf nodes) or subexpressions (other subtree nodes)
+     * * `'columnFilters'` - a filter tree node containing only column filter subexpressions (no conditionals)
+     * * `'columnFilter'` - a filter tree node containing only conditionals for a specific column (no subexpressions)
+     *
      * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string}
-     * @default `parent.template` if defined, or `'subtree'` if not
+     * @default `parent.type` if defined, or `'filterNode'` if not.
      * @memberOf FilterNode.prototype
      */
-    template: { own: true },
+    type: { default: 'filterNode' },
 
     /** @summary Override operator list at any node.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
-    treeOpMenus: { default: conditionals.defaultOpMenus },
+    treeOpMenu: { default: conditionals.defaultOpMenu },
 
-    typeOpMenus: {},
-
-    autodrop: { ignore: true } // `ignore` means this is not a property so do not copy it to the object. it will remain where it was found in options (or options.state) for use by extended object initializers
+    typeOpMenu: {}
 };
 
 FilterNode.setWarningClass = function(el, value) {

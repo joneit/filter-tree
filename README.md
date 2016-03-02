@@ -28,7 +28,7 @@ filter.setJSON(myFilterStateJSONstring);
 to get state to save:
 
 ```javascript
-if (!filter.validate()) { // `undefined` means valid (otherwise returns error message string)
+if (!filter.invalid()) { // `undefined` means valid (otherwise returns error message string)
     // an object to hold in memory for subsequent reloading
     myFilterStateObject = filter.getState();
     

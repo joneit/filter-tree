@@ -30,6 +30,11 @@ function popSqlIdQts() {
  * @constructor
  */
 var Operators = Base.extend({
+    undefined: {
+        test: function() { return true; },
+        make: function() { return ''; }
+    },
+
     /** @type {relationalOperator}
      * @memberof module:conditionals~Operators.prototype
      */
@@ -328,13 +333,13 @@ module.exports = {
 
     /** Default operator menu when consisting of all of the groups in {@link module:conditionals.groups|groups}. This menu is used when none of the following is otherwise defined:
      * * The `opMenu` property of the column.*
-     * * The entry in the node's `typeOpMenus` hash corresponding to the `type` property of the column.*
-     * * The node's `treeOpMenus` object.
+     * * The entry in the node's `typeOpMenu` hash corresponding to the `type` property of the column.*
+     * * The node's `treeOpMenu` object.
      *
      * \* The phrase _of the column_ as used here means in the element of the node's `fields` array named for the currently selected column.
      * @type {menuItem[]}
      */
-    defaultOpMenus: [ // hierarchical menu of relational operators
+    defaultOpMenu: [ // hierarchical menu of relational operators
         groups.equality,
         groups.inequalities,
         groups.sets,

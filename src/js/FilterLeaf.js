@@ -6,7 +6,7 @@
 var FilterNode = require('./FilterNode');
 var template = require('./template');
 var conditionals = require('./conditionals');
-var buildElement = require('./build-element');
+var popMenu = require('./pop-menu');
 
 
 /** @typedef {object} converter
@@ -20,19 +20,25 @@ var numberConverter = { to: Number, not: isNaN };
 var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
 
 /** @constructor
- * @summary A terminal node in a filter tree, representing a conditional expression.
- * @desc Also known as a "filter."
+ * @summary An object that represents a terminal node in a filter tree.
+ * @desc Specifically, the terminal node in a filter tree represents a simple dyadic conditional expression.
+ * in the form _field-property operator-property argument-property_ where:
+ *
+ * * _field-property_ is the name of a column, selected from a drop-down;
+ * * _operator-property_ is an operator from an extensible list of operators, also selected from a drop-down; and
+ * * _argument-property_ is a constant typed into a text box.
+ *
+ * The default operator list is defined in conditionals.js and includes equality (=), inequality (<, ≤, ≠, ≥, >), and various pattern operators (such as LIKE, NOT LIKE, etc.)
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
-    name: 'Compare a column to a value',
+    name: 'column = value',
 
-    postInitialize: function(options) {
-        var el = this.view.column;
-        if (!el.value && options && options.state && options.state.autodrop) {
-            // For empty (i.e., new) controls, simulate a click a beat after rendering
-            setTimeout(function() { FilterNode.clickIn(el); }, 700);
+    postInitialize: function() {
+        if (this.isColumnFilter()) {
+            this.fields = [ popMenu.findItem(this.root.fields, this.column) ];
         }
+
     },
 
     destroy: function() {
@@ -41,6 +47,26 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 this.view[key].removeEventListener('change', this.onChange);
             }
         }
+    },
+
+    setState: function(state, options) {
+        if (this.isColumnFilter()) {
+            // column filter will only ever be the one column
+            if (this.state.column) {
+                this.fields = [ popMenu.findItem(this.root.fields, this.state.column) ];
+            } else {
+                this.fields = this.parent.children[0].fields;
+            }
+        } else if (options) {
+            this.fields =
+                options && options.fields ||
+                this.state && this.state.fields ||
+                this.parent && (
+                    this.parent.nodeFields || // work this in
+                    this.parent.fields
+                );
+        }
+        FilterNode.prototype.setState.call(this, state, options);
     },
 
     /** @summary Create a new view in `this.view`.
@@ -52,29 +78,23 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * The view for this base `FilterLeaf` object consists of the following controls:
      *
      * * `this.view.column` - A drop-down with options from `this.fields`. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
-     * * `this.view.operator` - A drop-down with options from {@link columnOpMenus}, {@link typeOpMenus}, or {@link treeOpMenus}. Value is the string representation of the operator.
+     * * `this.view.operator` - A drop-down with options from {@link columnOpMenu}, {@link typeOpMenu}, or {@link treeOpMenu}. Value is the string representation of the operator.
      * * `this.view.literal` - A text box.
      *
      *  > Prototypes extended from `FilterLeaf` may have different controls as needed. The only required control is `column`, which all such "editors" must support.
      * @memberOf FilterLeaf.prototype
      */
     createView: function() {
-        var fields = this.nodeFields || this.parent.nodeFields || this.fields;
-
-        if (!fields) {
-            throw new FilterNode.FilterTreeError('Terminal node requires a fields list.');
-        }
-
-        var root = this.el = document.createElement('span');
-        root.className = 'filter-tree-editor filter-tree-default';
+        var el = this.el = document.createElement('span');
+        el.className = 'filter-tree-editor filter-tree-default';
 
         this.view = {
-            column: this.makeElement(root, fields, 'column', true),
-            operator: this.makeElement(root, [], 'operator'),
-            literal: this.makeElement(root)
+            column: this.makeElement(el, this.fields, 'column', true),
+            operator: this.makeElement(el, [], 'operator'),
+            literal: this.makeElement(el)
         };
 
-        root.appendChild(document.createElement('br'));
+        el.appendChild(document.createElement('br'));
     },
 
     loadState: function() {
@@ -84,7 +104,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             var value, el, i, b, selected, notes = [];
             for (var key in state) {
                 if (!FilterNode.optionsSchema[key]) {
-                    value = state[key];
+                    value = this[key] = state[key];
                     el = this.view[key];
                     switch (el.type) {
                         case 'checkbox':
@@ -140,7 +160,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     /**
      * Throws error if invalid expression.
-     * Caught by {@link FilterTree#validate|FilterTree.prototype.validate()}.
+     * Caught by {@link FilterTree#invalid|FilterTree.prototype.invalid()}.
      *
      * Also performs the following compilation actions:
      * * Copies all `this.view`' values from the DOM to similarly named properties of `this`.
@@ -150,8 +170,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @returns {undefined} if valid
      * @memberOf FilterLeaf.prototype
      */
-    validate: function(options) {
-        var elementName, fields, field;
+    invalid: function(options) {
+        var elementName, field;
 
         for (elementName in this.view) {
             var el = this.view[elementName],
@@ -175,14 +195,17 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         } else {
             for (elementName in this.view) {
                 if (elementName === 'column' || elementName === 'column2') {
-                    fields = this.parent.nodeFields || this.fields;
-                    field = findField(fields, this[elementName]);
+                    field = this.findItemInMenu(this[elementName]);
                     if (field && field.type) {
                         this.converter = this.converters[field.type];
                     }
                 }
             }
         }
+    },
+
+    findItemInMenu: function(columnName) {
+        return popMenu.findItem(this.fields, columnName);
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
@@ -206,12 +229,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     /** Tests this leaf node for given column name.
      * > This is the default "find" function.
-     * @param {string} fieldName
+     * @param {string} columnName
      * @returns {boolean}
      * @memberOf FilterLeaf.prototype
      */
-    find: function(fieldName) {
-        return this.column === fieldName;
+    find: function(columnName) {
+        return this.column === columnName;
     },
 
     /** Tests this leaf node for given column `Element` ownership.
@@ -231,11 +254,20 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         for (var key in this.view) {
             state[key] = this[key];
         }
-        if (!this.parent.nodeFields && this.fields !== this.parent.fields) {
+        if (!(
+            this.isColumnFilter() ||
+            this.parent.nodeFields ||
+            this.fields === this.parent.fields
+        )) {
             state.fields = this.fields;
         }
         return state;
     },
+
+    isColumnFilter: function() {
+        return this.type === 'columnFilter';
+    },
+
     /**
      * @param {string} options.syntax - See {@link FilterTree#getState|subtree version} for more info.
      * > For `'object'` and `'JSON'` note that the subtree's version of `getState` will not call this leaf verison of `getState` because the former uses `unstrungify()` and `JSON.stringify()`, respectively, both of which recurse on their own.
@@ -288,11 +320,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     makeElement: function(container, menu, prompt, sort) {
         var el, result, options,
             option = menu,
-            tagName = menu ? 'select' : 'input';
+            tagName = menu ? 'SELECT' : 'INPUT';
 
         // determine if there would be only a single item in the dropdown
         while (option instanceof Array) {
-            if (option.length === 1) {
+            if (option.length === 1 && !popMenu.isGroupProxy(option[0])) {
                 option = option[0];
             } else {
                 option = undefined;
@@ -301,20 +333,19 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         if (option) {
             // hard text when single item
-            result = document.createElement('input');
-            result.type = 'hidden';
-            result.value = option.name || option.alias || option;
-
-            el = document.createElement('span');
-            el.innerHTML = option.alias || option.name || option;
-            el.appendChild(result);
+            el = template(
+                'lockedColumn',
+                option.alias || option.name || option,
+                option.name || option.alias || option
+            );
+            result = el.querySelector('input');
         } else {
             options = {
                 prompt: prompt,
                 sort: sort,
                 group: function(groupName) { return conditionals.groups[groupName]; }
             };
-            result = el = buildElement(tagName, menu, options);
+            result = el = popMenu.build(tagName, menu, options);
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
@@ -329,20 +360,6 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     }
 });
 
-function findField(fields, name) {
-    var complex, simple;
-
-    simple = fields.find(function(field) {
-        if ((field.submenu || field) instanceof Array) {
-            return (complex = findField(field.submenu || field, name));
-        } else {
-            return (field.name || field) === name;
-        }
-    });
-
-    return complex || simple;
-}
-
 /** `change` event handler for all form controls.
  * Rebuilds the operator drop-down as needed.
  * Removes error CSS class from control.
@@ -354,7 +371,7 @@ function findField(fields, name) {
 function cleanUpAndMoveOn(evt) {
     var el = evt.target;
 
-    // remove `error` CSS class, which may have been added by `FilterLeaf.prototype.validate`
+    // remove `error` CSS class, which may have been added by `FilterLeaf.prototype.invalid`
     el.classList.remove('filter-tree-error');
 
     // set or remove 'warning' CSS class, as per el.value
@@ -383,20 +400,19 @@ function cleanUpAndMoveOn(evt) {
     }
 }
 
-function getOpMenus(columnName) {
-    var fields = this.parent.nodeFields || this.fields,
-        field = findField(fields, columnName);
+function getOpMenu(columnName) {
+    var field = this.findItemInMenu(columnName);
 
-    return field && field.opMenus ||
-        this.typeOpMenus && this.typeOpMenus[field.type] ||
-        this.treeOpMenus;
+    return field && field.opMenu ||
+        this.typeOpMenu && this.typeOpMenu[field.type] ||
+        this.treeOpMenu;
 }
 
 function rebuildOperatorList(columnName) {
-    var opMenus = getOpMenus.call(this, columnName);
+    var opMenu = getOpMenu.call(this, columnName);
 
-    if (opMenus !== this.oldOpMenus) {
-        var newOpDrop = this.makeElement(this.el, opMenus, 'operator');
+    if (opMenu !== this.oldOpMenu) {
+        var newOpDrop = this.makeElement(this.el, opMenu, 'operator');
 
         newOpDrop.value = this.view.operator.value;
         this.el.replaceChild(newOpDrop, this.view.operator);
@@ -404,7 +420,7 @@ function rebuildOperatorList(columnName) {
 
         FilterNode.setWarningClass(newOpDrop);
 
-        this.opMenus = opMenus;
+        this.opMenu = opMenu;
     }
 }
 

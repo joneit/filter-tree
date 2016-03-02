@@ -13,63 +13,36 @@
 }
 .filter-tree ol { margin-top: 0 }
 
-.filter-tree-remove,
-.filter-tree-add-filter,
-.filter-tree-add {
-    cursor: pointer;
+.filter-tree > select {
+    float: right;
+    border: 1px grey dotted;
+    background-color: transparent;
+    box-shadow: none;
 }
-.filter-tree-add-filter,
-.filter-tree-add {
-    font-style: italic;
-    color: #444;
-    font-size: 90%;
-}
-.filter-tree-add-filter {
-    padding: 3px 8px 3px 5px;
-    display: inline-block;
-    border: 1px solid transparent;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-}
-.filter-tree-add-filter:hover,
-.filter-tree-add:hover {
-    text-decoration: underline;
-}
-.filter-tree-add-filter.as-menu-header {
-    background-color: lightyellow;
-    border-color: black;
-}
-.filter-tree-add-filter.as-menu-header:hover {
-    text-decoration: inherit;
-}
-.filter-tree-add > div,
-.filter-tree-add-filter > div,
-.filter-tree-remove {
+
+.filter-tree-remove-button {
     display: inline-block;
     width: 15px;
     height: 15px;
     border-radius: 8px;
-    background-color: #8c8;
+    background-color: #e88;
     font-size: 11.5px;
-    font-weight: bold;
     color: white;
     text-align: center;
     line-height: normal;
     font-style: normal;
     font-family: sans-serif;
-    text-shadow: 0 0 1.5px grey;
     margin-right: 4px;
+    cursor: pointer;
 }
-.filter-tree-add > div::before,
-.filter-tree-add-filter > div::before {
-    content: '\ff0b'; /* plus sign */
+.filter-tree-remove-button:hover {
+    background-color: transparent;
+    color: #e88;
+    font-weight: bold;
+    box-shadow: red 0 0 2px inset;
 }
-.filter-tree-remove {
-    background-color: #e88;
-    border: 0;
-}
-.filter-tree-remove::before {
-    content: '\2212'; /* minus sign */
+.filter-tree-remove-button::before {
+    content: '\d7'; /* minus sign */
 }
 .filter-tree li::after {
     font-size: 70%;
@@ -80,8 +53,6 @@
 
 .filter-tree > ol > li:last-child::after { display: none }
 
-.filter-tree-add-filter,
-.filter-tree-add,
 .op-or > ol,
 .op-and > ol,
 .op-nor > ol {
@@ -115,23 +86,33 @@
     padding: 1px 5px 2px 5px;
 }
 
+/* warning and error styles */
+
+.filter-tree-warning {
+    background-color: #ffc !important;
+    border-color: #edb !important;
+    font-weight: normal !important;
+}
+.filter-tree-error {
+    background-color: #fcc !important;
+    border-color: #c99 !important;
+    font-weight: normal !important;
+}
+
 /* Default filter editor */
 
-.filter-tree-default > *:enabled {
+.filter-tree-default > *:enabled { /* :enabled ignores <span>, used for hard text */
     margin: 0 .4em;
     background-color: #ddd;
-    border: 0;
+    border: 1px solid transparent;
 }
-.filter-tree-default > select {
-    border: 0;
-}
-.filter-tree-default > *.filter-tree-warning {
-    background-color: #ffc;
-    border: 1px solid #edb;
-    font-weight: normal;
-}
-.filter-tree-default > *.filter-tree-error {
-    background-color: #Fcc;
+
+/* ??? */
+
+.filter-tree.filter-tree-type-column-filters > ol > li:not(:first-child) {
+    padding-top: 0.75em;
+    border-top: 1px dashed black;
+    margin-top: 0.75em;
 }
 
 /* Footnotes */
@@ -142,7 +123,7 @@
     font-weight: normal;
     line-height: normal;
     white-space: normal;
-    font-style: italic;
+    /*font-style: italic;*/
     color: #c00;
 }
 .filter-tree .footnotes > p {
@@ -171,6 +152,7 @@
 }
 
 /* Filter editor chooser */
+
 .filter-tree-chooser {
     position: absolute;
     font-size: 9pt;
