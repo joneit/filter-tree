@@ -44,16 +44,6 @@ var ordinal = 0;
  */
 var FilterTree = FilterNode.extend('FilterTree', {
 
-    preInitialize: function(options) {
-        if (options && (options.type || options.state && options.state.type) === 'columnFilter') { // TODO: Move to CustomFilter class
-            this.schema = [ popMenu.findItem(options.parent.root.schema, options.state.children[0].column) ];
-        }
-
-        if (options && options.editors) {
-            this.editors = options.editors;
-        }
-    },
-
     /**
      * Hash of constructors for objects that extend from {@link FilterLeaf}, which is the `Default` member here.
      *
@@ -182,7 +172,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         }
 
         if (options.state.children) {
-            Constructor = FilterTree;
+            Constructor = this.constructor;
         } else {
             Constructor = this.editors[options.state.editor || 'Default'];
         }

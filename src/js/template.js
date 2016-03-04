@@ -53,7 +53,7 @@ var templates = {
 /*
 <span>
     {1:encode}
-    <input type="hidden" value={2}">
+    <input type="hidden" value="{2}">
 </span>
 */
     },

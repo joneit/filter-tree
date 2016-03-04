@@ -16,6 +16,14 @@ window.onload = function() {
         moreinfo: moreinfo
     };
 
+    var Hyperfilter = FilterTree.extend('Hyperfilter', {
+        preInitialize: function(options) {
+            if (options && (options.type || options.state && options.state.type) === 'columnFilter') {
+                this.schema = [ FilterTree.popMenu.findItem(options.parent.root.schema, options.state.children[0].column) ];
+            }
+        }
+    });
+
     var cc = querystring('cc');
     if (cc == null || cc) {
         // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
@@ -543,7 +551,7 @@ window.onload = function() {
 
     function initialize() { // eslint-disable-line no-unused-vars
         try {
-            var newFilterTree = new FilterTree({
+            var newFilterTree = new Hyperfilter({
                 schema: getLiteral('schema'),
                 typeOpMenu: getLiteral('typeOpMenu'),
                 treeOpMenu: getLiteral('treeOpMenu'),
