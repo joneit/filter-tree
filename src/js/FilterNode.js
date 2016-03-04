@@ -88,12 +88,12 @@ var CHILDREN_TAG = 'OL',
  *
  * @property {function} [eventHandler] - Event handler for UI events.
  *
- * @property {string} [type] - Identifies the type of node:
- * * `'filterNode'` - A generic filter tree node, either a {@link filterTreeNodeObject} or a {@link filterLeafNodeObject}
- * * `'columnFilters'` - A special {@link filterTreeNode} contaiing _column filter_ subexpressions ({@link filterTreeNode}s of type `'columnFilter'`
- * * `'columnFilter'` -  A special {@link filterTreeNode} containing homogeneous _column filter_ conditionals, all referencing the same column on the left side of their dyadic expressions.
- *
- * Used among other things to select a rendering template. (Note that {@link filterLeafNode} currently do not use rendering templates.)
+ * @property {string} [template] - Identifies either:
+ * 1. The type of a {@link FilterTree} node, used among other things to select a rendering template:
+ *    * `undefined` (or omitted) - A generic filter tree node,
+ *    * `'columnFilters'` - A special {@link FilterTree} containing _column filter_ subexpressions
+ *    * `'columnFilter'` -  A special {@link FilterTree} containing homogeneous _column filter_ expressions (all referencing the same column on the left side of their dyadic expressions).
+ * 2. The data type of a {@link FilterLeaf} (terminal) node.
  *
  * @property {menuItem[]} [treeOpMenu=conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
  *
@@ -213,23 +213,7 @@ FilterNode.optionsSchema = {
      */
     eventHandler: {},
 
-    /** @summary Template to use to generate the mark-up for this subtree.
-     * @desc This identifies the type of the subtree and is used among other things to select a rendering template.
-     *
-     * Although not used for selecting a template in leaf nodes, it is still useful to see what kind of node a leaf belongs to.
-     *
-     * Possible values are:
-     *
-     * * `'filterNode'` - a normal filter tree node, containing conditionals (leaf nodes) or subexpressions (other subtree nodes)
-     * * `'columnFilters'` - a filter tree node containing only column filter subexpressions (no conditionals)
-     * * `'columnFilter'` - a filter tree node containing only conditionals for a specific column (no subexpressions)
-     *
-     * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
-     * @type {string}
-     * @default `parent.type` if defined, or `'filterNode'` if not.
-     * @memberOf FilterNode.prototype
-     */
-    type: { default: 'filterNode' },
+    type: { own: true },
 
     persist: { own: true },
 

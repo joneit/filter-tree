@@ -6,7 +6,7 @@ var templex = require('templex');
 
 var templates = {
 
-    filterNode: function() {
+    subtree: function() {
 /*
 <span class="filter-tree">
     Match

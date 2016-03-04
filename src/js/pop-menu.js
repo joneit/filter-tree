@@ -165,18 +165,20 @@ function itemComparator(a, b) {
  * @returns {undefined|menuItem} The found item or `undefined` if not found.
  */
 function findItem(menu, name) {
-    var complex, simple;
+    var shallow, deep, item;
 
-    simple = menu.find(function(item) {
+    shallow = menu.find(function(item) {
         var submenu = item.submenu || item;
         if (submenu instanceof Array) {
-            return (complex = findItem(item.submenu || item, name));
+            return (deep = findItem(submenu, name));
         } else {
             return (item.name || item) === name;
         }
     });
 
-    return complex || simple;
+    item = deep || shallow;
+
+    return item && (item.name ? item : { name: item });
 }
 
 /**

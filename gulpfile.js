@@ -103,13 +103,12 @@ function browserSyncLaunchServer() {
 
 function injectCSS() {
     // inject the css from css/filter-tree.css via css/filter-tree.js into new file js/css.js
-    return gulp.src(srcDir + 'css/' + name + '.js')
+    return gulp.src(srcDir + 'css/css.js')
         .pipe($$.inject(gulp.src(srcDir + 'css/' + name + '.css'), {
             transform: cssToJsFn,
             starttag: '/* {{name}}:{{ext}} */',
             endtag: '/* endinject */'
         }))
-        .pipe($$.rename('css.js'))
         .pipe(gulp.dest(srcDir + 'js/'));
 }
 

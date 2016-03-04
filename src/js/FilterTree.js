@@ -32,7 +32,7 @@ var ordinal = 0;
  * * `'op-or'`
  * * `'op-nor'`
  *
- * @property {filterNode[]} children - A list of descendants of this node. May be any number including 0 (none; empty).
+ * @property {FilterNode[]} children - A list of descendants of this node. May be any number including 0 (none; empty).
  *
  * @property {fieldItem[]} [ownSchema] - Column menu to be used only by leaf nodes that are children (direct descendants) of this node.
  *
@@ -45,6 +45,10 @@ var ordinal = 0;
 var FilterTree = FilterNode.extend('FilterTree', {
 
     preInitialize: function(options) {
+        if (options && (options.type || options.state && options.state.type) === 'columnFilter') { // TODO: Move to CustomFilter class
+            this.schema = [ popMenu.findItem(options.parent.root.schema, options.state.children[0].column) ];
+        }
+
         if (options && options.editors) {
             this.editors = options.editors;
         }
@@ -70,16 +74,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     createView: function() {
-        // get column name from this.state instead of this.children (because loadState has not yet been called)
-        if (this.type === 'columnFilter') {
-            var item = popMenu.findItem(this.root.schema, this.state.children[0].column);
-            var columnFilterName = popMenu.formatItem(item);
-        }
-
         this.el = template(
-            this.type,
+            this.type || 'subtree',
             ++ordinal,
-            columnFilterName
+            popMenu.formatItem(this.schema[0])
         );
 
         // Add the expression editors to the "add new" drop-down
@@ -93,7 +91,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 // so make it th eonly item i the drop-down
                 submenu = addNewCtrl;
             } else {
-                // there are already options and/or mult
+                // there are already options and/or multiple editors
                 submenu = optgroup = document.createElement('optgroup');
                 optgroup.label = 'Conditional Expressions';
             }
@@ -462,16 +460,10 @@ function remove(node) { // call in context
 function onchange(evt) { // bound context
     var ctrl = evt.target;
     if (ctrl.parentElement === this.el) {
-        if (ctrl.value === 'subexp') {
-            this.children.push(new FilterTree({
-                parent: this
-            }));
-        } else {
-            this.add({
-                state: { editor: ctrl.value },
-                focus: true
-            });
-        }
+        this.add(ctrl.value !== 'subexp' && {
+            state: { editor: ctrl.value },
+            focus: true
+        });
         ctrl.selectedIndex = 0;
     }
 }

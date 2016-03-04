@@ -34,39 +34,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     name: 'column = value',
 
-    postInitialize: function() {
-        if (this.isColumnFilter()) {
-            this.schema = [ popMenu.findItem(this.root.schema, this.column) ];
-        }
-
-    },
-
     destroy: function() {
         if (this.view) {
             for (var key in this.view) {
                 this.view[key].removeEventListener('change', this.onChange);
             }
         }
-    },
-
-    setState: function(state, options) {
-        if (this.isColumnFilter()) {
-            // column filter will only ever be the one column
-            if (this.state.column) {
-                this.schema = [ popMenu.findItem(this.root.schema, this.state.column) ];
-            } else {
-                this.schema = this.parent.children[0].schema;
-            }
-        } else if (options) {
-            this.schema =
-                options && options.schema ||
-                this.state && this.state.schema ||
-                this.parent && (
-                    this.parent.ownSchema || // work this in
-                    this.parent.schema
-                );
-        }
-        FilterNode.prototype.setState.call(this, state, options);
     },
 
     /** @summary Create a new view in `this.view`.
@@ -86,12 +59,25 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      */
     createView: function() {
         var el = this.el = document.createElement('span');
+
         el.className = 'filter-tree-editor filter-tree-default';
 
+        if (this.state.column) {
+            // State includes column:
+            // Operator menu is built later in loadState; we don't need to build it now. The call to
+            // getOpMenu below with undefined columnName returns [] resulting in an empty drop-down.
+        } else {
+            // When state does NOT include column, it's because either:
+            // a. column is unknown and no op menu will be empty until user chooses a column; or
+            // b. column is hard-coded when there's only one possible column as inferable from schema:
+            var schema = this.schema && this.schema.length === 1 && this.schema[0],
+                columnName = schema && (schema.name || schema);
+        }
+
         this.view = {
-            column: this.makeElement(el, this.schema, 'column', true),
-            operator: this.makeElement(el, [], 'operator'),
-            literal: this.makeElement(el)
+            column: this.makeElement(this.schema, 'column', true),
+            operator: this.makeElement(getOpMenu.call(this, columnName), 'operator'),
+            literal: this.makeElement()
         };
 
         el.appendChild(document.createElement('br'));
@@ -127,7 +113,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             if (FilterNode.setWarningClass(el) !== value) {
                                 notes.push({ key: key, value: value });
                             } else if (key === 'column') {
-                                rebuildOperatorList.call(this, value);
+                                makeOpMenu.call(this, value);
                             }
                     }
                 }
@@ -189,23 +175,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         this.op = conditionals.operators[this.operator];
 
-        this.converter = undefined; // remains undefined when neither operator nor column is typed
-        if (this.op.type) {
-            this.converter = this.converters[this.op.type];
-        } else {
-            for (elementName in this.view) {
-                if (elementName === 'column' || elementName === 'column2') {
-                    field = this.findItemInMenu(this[elementName]);
-                    if (field && field.type) {
-                        this.converter = this.converters[field.type];
-                    }
-                }
-            }
-        }
-    },
-
-    findItemInMenu: function(columnName) {
-        return popMenu.findItem(this.schema, columnName);
+        this.converter = this.converters[ // undefined if none of the following
+            this.type || // the expression's type, if any
+            this.op.type || // the expression's operator type, if any
+            (field = popMenu.findItem(this.schema, this[this.view.column])) && field.type // the expression's column type, if any
+        ];
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
@@ -259,18 +233,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         for (var key in this.view) {
             state[key] = this[key];
         }
-        if (!(
-            this.isColumnFilter() ||
-            this.parent.ownSchema ||
-            this.schema === this.parent.schema
-        )) {
+        if (this.schema !== this.parent.schema) {
             state.schema = this.schema;
         }
         return state;
-    },
-
-    isColumnFilter: function() {
-        return this.type === 'columnFilter';
     },
 
     /**
@@ -314,15 +280,14 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @desc Creates and appends a text box or a drop-down.
      * > Defined on the FilterTree prototype for access by derived types (alternate filter editors).
      * @returns The new element.
-     * @param {Element} container - An element to which to append the new element.
      * @param {menuItem[]} [menu] - Overloads:
      * * If omitted, will create an `<input/>` (text box) element.
      * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
-     * * Otherwise, creates a `<select>...</select>` element with these menu.
+     * * Otherwise, creates a `<select>...</select>` element with these menu items.
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      * @memberOf FilterLeaf.prototype
      */
-    makeElement: function(container, menu, prompt, sort) {
+    makeElement: function(menu, prompt, sort) {
         var el, result, options,
             option = menu,
             tagName = menu ? 'SELECT' : 'INPUT';
@@ -350,16 +315,17 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 sort: sort,
                 group: function(groupName) { return conditionals.groups[groupName]; }
             };
-            result = el = popMenu.build(tagName, menu, options);
+            el = popMenu.build(tagName, menu, options);
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
             this.onChange = this.onChange || cleanUpAndMoveOn.bind(this);
             this.el.addEventListener('change', this.onChange);
             FilterNode.setWarningClass(el);
+            result = el;
         }
 
-        container.appendChild(el);
+        this.el.appendChild(el);
 
         return result;
     }
@@ -389,7 +355,7 @@ function cleanUpAndMoveOn(evt) {
 
     if (el === this.view.column) {
         // rebuild operator list according to selected column name or type, restoring selected item
-        rebuildOperatorList.call(this, el.value);
+        makeOpMenu.call(this, el.value);
     }
 
     if (el.value) {
@@ -411,18 +377,23 @@ function cleanUpAndMoveOn(evt) {
 }
 
 function getOpMenu(columnName) {
-    var field = this.findItemInMenu(columnName);
-
-    return field && field.opMenu ||
-        this.typeOpMenu && this.typeOpMenu[field.type] ||
-        this.treeOpMenu;
+    var column = popMenu.findItem(this.schema, columnName);
+    return (
+        !column && []
+            ||
+        column.opMenu
+            ||
+        this.typeOpMenu && this.typeOpMenu[column.type]
+            ||
+        this.treeOpMenu
+    );
 }
 
-function rebuildOperatorList(columnName) {
+function makeOpMenu(columnName) {
     var opMenu = getOpMenu.call(this, columnName);
 
     if (opMenu !== this.oldOpMenu) {
-        var newOpDrop = this.makeElement(this.el, opMenu, 'operator');
+        var newOpDrop = this.makeElement(opMenu, 'operator');
 
         newOpDrop.value = this.view.operator.value;
         this.el.replaceChild(newOpDrop, this.view.operator);

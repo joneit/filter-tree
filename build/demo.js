@@ -31,7 +31,7 @@ window.onload = function() {
                 // Remove the `literal` element from the `view` hash
                 delete this.view.literal;
 
-                this.view.column2 = this.makeElement(this.el, this.root.schema, 'column', true);
+                this.view.column2 = this.makeElement(this.root.schema, 'column', true);
                 //this.view.column2 = this.el.firstElementChild.cloneNode(true);
 
                 // Replace the 3rd element with the new one. There are no event listeners to worry about.
@@ -621,8 +621,10 @@ window.onload = function() {
             field = FilterTree.popMenu.findItem(schema, fieldName);
 
         return (
-            field && field.opMenu ||
-            field && field.type && typeOps && typeOps[field.type] ||
+            field && field.opMenu
+                ||
+            field && field.type && typeOps && typeOps[field.type]
+                ||
             FilterTree.conditionals.defaultOpMenu
         );
     }
@@ -752,7 +754,8 @@ window.onload = function() {
     function renderFolder(tab, folder) {
         //console.log('+', new Date(), tab.id);
         var syntax = (
-            tab.id === 'tabColumnFiltersSql' && 'SQL' ||
+            tab.id === 'tabColumnFiltersSql' && 'SQL'
+                ||
             tab.id === 'tabColumnFiltersSyntax' && 'filter-cell'
         );
 
@@ -821,7 +824,7 @@ window.onload = function() {
         if (error) {
             if (!visQueryBuilder) {
                 // We're in either the SQL tab or the Syntax tab.
-                // Figure out which textbox control to focus on.
+                // Figure out which text box control to focus on.
                 var errantQueryBuilderControlEl = error.node.el,
                     errantColumnName = errantQueryBuilderControlEl.parentElement.querySelector('input').value,
                     errantColumnInputControl = folder.querySelector('[name="' + errantColumnName + '"]');
@@ -848,7 +851,7 @@ window.onload = function() {
             columnFilters.add({
                 state: {
                     type: 'columnFilter',
-                    children: [{column: this.value}]
+                    children: [ { column: this.value } ]
                 },
                 focus: visQueryBuilder
             });
