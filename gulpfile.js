@@ -11,7 +11,7 @@ var gulp        = require('gulp'),
     pipe        = require('multipipe');
 
 var name     = 'filter-tree',
-    global   = 'FilterTree',
+    main     = 'FilterTree',
     srcDir   = './src/',
     testDir  = './test/',
     buildDir = './build/';
@@ -42,6 +42,7 @@ gulp.task('reload', function() {
 });
 
 gulp.task('watch', function () {
+
     gulp.watch([
         srcDir + '**',
         '!' + srcDir + 'js/css.js',
@@ -50,11 +51,13 @@ gulp.task('watch', function () {
     ], [
         'build'
     ]);
+
     gulp.watch([
         buildDir + 'lib/' + name + '.js'
     ], [
         'reload'
     ]);
+
 });
 
 gulp.task('default', ['build', 'watch'], browserSyncLaunchServer);
@@ -115,7 +118,7 @@ function browserify() {
     return gulp.src(srcDir + 'index.js')
         .pipe($$.replace(
             'module.exports =',
-            'window.' + global + ' ='
+            'window.' + main + ' ='
         ))
         .pipe($$.mirror(
             pipe(

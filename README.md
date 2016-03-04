@@ -6,10 +6,10 @@ Complex table filter expressions with GUI editor
 To initialize and optionally load persisted state:
 
 ```javascript
-var fields = ['FirstName', 'LastName', 'Date of Birth'];
+var schema = ['FirstName', 'LastName', 'Date of Birth'];
 var myPreviouslySavedFilterObject = JSON.parse(myStoredJSON);
 var filter = new FilterTree({
-    fields: fields,
+    schema: schema,
     state: myPersistedFilterObject // optional
 });
 document.getElementById('filter').appendChild(filter.el);

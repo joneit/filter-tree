@@ -170,7 +170,7 @@ function stripLiterals(t) {
         } while (t[++k] === SQT);
         literals.push(t.slice(++j, --k).replace(/''/g, SQT));
         t = t.substr(0, j) + i + t.substr(k);
-        j = j + 1 + i.toString().length + 1;
+        j = j + 1 + (i + '').length + 1;
         i++;
     }
 

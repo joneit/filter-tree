@@ -140,7 +140,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     BEGINS: {
-        test: function(a, b) { b = b.toString().toLowerCase(); return beginsOp(a, b.length) === b; },
+        test: function(a, b) { b = (b + '').toLowerCase(); return beginsOp(a, b.length) === b; },
         make: function(a, b) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, a, b); },
         type: 'string'
     },
@@ -149,7 +149,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     'NOT BEGINS': {
-        test: function(a, b) { b = b.toString().toLowerCase(); return beginsOp(a, b.length) !== b; },
+        test: function(a, b) { b = (b + '').toLowerCase(); return beginsOp(a, b.length) !== b; },
         make: function(a, b) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, a, b); },
         type: 'string'
     },
@@ -158,7 +158,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     ENDS: {
-        test: function(a, b) { b = b.toString().toLowerCase(); return endsOp(a, b.length) === b; },
+        test: function(a, b) { b = (b + '').toLowerCase(); return endsOp(a, b.length) === b; },
         make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, a, b); },
         type: 'string'
     },
@@ -167,7 +167,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     'NOT ENDS': {
-        test: function(a, b) { b = b.toString().toLowerCase(); return endsOp(a, b.length) !== b; },
+        test: function(a, b) { b = (b + '').toLowerCase(); return endsOp(a, b.length) !== b; },
         make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, a, b); },
         type: 'string'
     },
@@ -201,19 +201,19 @@ function inOp(a, b) {
         .trim() // remove leading and trailing space chars
         .replace(/\s*,\s*/g, ',') // remove any white-space chars from around commas
         .split(',') // put in an array
-        .indexOf(a.toString()); // search array whole matches
+        .indexOf((a + '')); // search array whole matches
 }
 
 function containsOp(a, b) {
-    return a.toString().toLowerCase().indexOf(b.toString().toLowerCase());
+    return (a + '').toLowerCase().indexOf((b + '').toLowerCase());
 }
 
 function beginsOp(a, length) {
-    return a.toString().toLowerCase().substr(0, length);
+    return (a + '').toLowerCase().substr(0, length);
 }
 
 function endsOp(a, length) {
-    return a.toString().toLowerCase().substr(-length, length);
+    return (a + '').toLowerCase().substr(-length, length);
 }
 
 function sqEsc(string) {
@@ -336,7 +336,7 @@ module.exports = {
      * * The entry in the node's `typeOpMenu` hash corresponding to the `type` property of the column.*
      * * The node's `treeOpMenu` object.
      *
-     * \* The phrase _of the column_ as used here means in the element of the node's `fields` array named for the currently selected column.
+     * \* The phrase _of the column_ as used here means in the element of the node's `schema` array named for the currently selected column.
      * @type {menuItem[]}
      */
     defaultOpMenu: [ // hierarchical menu of relational operators

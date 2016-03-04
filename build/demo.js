@@ -31,7 +31,7 @@ window.onload = function() {
                 // Remove the `literal` element from the `view` hash
                 delete this.view.literal;
 
-                this.view.column2 = this.makeElement(this.el, this.root.fields, 'column', true);
+                this.view.column2 = this.makeElement(this.el, this.root.schema, 'column', true);
                 //this.view.column2 = this.el.firstElementChild.cloneNode(true);
 
                 // Replace the 3rd element with the new one. There are no event listeners to worry about.
@@ -51,7 +51,10 @@ window.onload = function() {
         });
     }
 
-    var tabz = new Tabz({ onEnable: renderFolder, onDisable: function(tab){ console.log('-', new Date(), tab.id);} });
+    var tabz = new Tabz({
+        //onDisable: function(tab){ console.log('-', new Date(), tab.id);},
+        onEnable: renderFolder
+    });
 
     document.addEventListener('click', function(evt) {
         var el = evt.target;
@@ -311,7 +314,7 @@ window.onload = function() {
                     orphanedOps.push(op);
                 } else {
                     var compareLiteral = comparable(literal);
-                    var fieldName = filterTree.fields.find(function(field) {
+                    var fieldName = filterTree.schema.find(function(field) {
                         return (
                             compareLiteral === (PROPERTY.AUTO_COLUMN_LOOKUP_BY_NAME && comparable(field.name || field)) ||
                             compareLiteral === (PROPERTY.AUTO_COLUMN_LOOKUP_BY_ALIAS && comparable(field.alias))
@@ -372,7 +375,7 @@ window.onload = function() {
      * When there is only a single expression in the chain, the `operator` field defaults to `'op-and'`.
      * @param {string} columnName
      * @param {string} expressionChain
-     * @returns {undefined|{operator: string, children: string[], fields: string[]}}
+     * @returns {undefined|{operator: string, children: string[], schema: string[]}}
      * `undefined` when there are no complete expressions
      */
     function makeSubtree(columnName, expressionChain) {
@@ -527,7 +530,7 @@ window.onload = function() {
             return hash;
         }, {});
 
-        FilterTree.popMenu.walk(getLiteral('fields'), function(column) {
+        FilterTree.popMenu.walk(getLiteral('schema'), function(column) {
             var cell = document.querySelector('input[name=' + column.name + ']');
             if (cell) {
                 var columnFilter = activeColumnFilters[column.name];
@@ -541,7 +544,7 @@ window.onload = function() {
     function initialize() { // eslint-disable-line no-unused-vars
         try {
             var newFilterTree = new FilterTree({
-                fields: getLiteral('fields'),
+                schema: getLiteral('schema'),
                 typeOpMenu: getLiteral('typeOpMenu'),
                 treeOpMenu: getLiteral('treeOpMenu'),
                 state: elid('state').value,
@@ -614,8 +617,8 @@ window.onload = function() {
 
     function opMenu(fieldName) {
         var typeOps = getLiteral('typeOpMenu'),
-            fields = getLiteral('fields'),
-            field = FilterTree.popMenu.findItem(fields, fieldName);
+            schema = getLiteral('schema'),
+            field = FilterTree.popMenu.findItem(schema, fieldName);
 
         return (
             field && field.opMenu ||
@@ -747,7 +750,7 @@ window.onload = function() {
     }
 
     function renderFolder(tab, folder) {
-        console.log('+', new Date(), tab.id);
+        //console.log('+', new Date(), tab.id);
         var syntax = (
             tab.id === 'tabColumnFiltersSql' && 'SQL' ||
             tab.id === 'tabColumnFiltersSyntax' && 'filter-cell'
@@ -766,7 +769,7 @@ window.onload = function() {
             filters.forEach(function(filter) {
                 var templateName = 'column-' + syntax + '-syntax',
                     conditional = filter.children[0],
-                    formattedColumnName = FilterTree.popMenu.formatItem(conditional.fields[0]),
+                    formattedColumnName = FilterTree.popMenu.formatItem(conditional.schema[0]),
                     columnName = conditional.column,
                     expression = filter.getState({ syntax: syntax }),
                     isNull = expression === '(NULL IS NULL)' || expression === '',
@@ -830,7 +833,7 @@ window.onload = function() {
             return;
         }
 
-        var menu = columnFilters.root.fields,
+        var menu = columnFilters.root.schema,
             blacklist = columnFilters.children.map(function(columnFilter) {
                 return columnFilter.children.length && columnFilter.children[0].column;
             }),

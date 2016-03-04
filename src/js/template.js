@@ -15,7 +15,7 @@ var templates = {
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
     of the following:
     <select>
-        <option value="">(add new expression&hellip;)</option>
+        <option value="">(add a new expression&hellip;)</option>
         <option value="subexp" style="border-bottom:1px solid black">Subexpression</option>
     </select>
     <ol></ol>
@@ -33,7 +33,7 @@ var templates = {
     <label><input type="radio" class="filter-tree-op-choice" name="treeOp{1}" value="op-nor">none</label>
     of the following:
     <select>
-        <option value="">(add new expression&hellip;)</option>
+        <option value="">(add a new expression&hellip;)</option>
     </select>
     <ol></ol>
 </span>

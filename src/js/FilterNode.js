@@ -2,50 +2,58 @@
 
 'use strict';
 
-var extend = require('extend-me');
 var _ = require('object-iterators');
-var Base = extend.Base;
+var extend = require('extend-me'), Base = extend.Base; extend.debug = true;
 
+var cssInjector = require('./css');
 var template = require('./template');
 var conditionals = require('./conditionals');
 var sqlWhereParse = require('./sql-where-parse');
 
-extend.debug = true;
 
 var CHILDREN_TAG = 'OL',
     CHILD_TAG = 'LI';
 
-/** @typedef {filterTreeNode|filterLeafNode} filterNode
+/** @typedef {object} FilterTreeOptionsObject
  *
- * @property {filterNode} [parent] - Missing or falsy means this is the root node.
+ * @property {string[]} [schema] - A default list of column names for field drop-downs of all descendant terminal nodes. Overrides `options.state.schema` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no `ownSchema`), will use the nearest ancestor `schema` definition. However, descendants with their own definition of `types` will override any ancestor definition.
  *
- * @property {filterNode} root - Convenience reference to the root node.
+ * > Typically only used by the caller for the top-level (root) tree.
  *
- * @property {fieldItem[]} fields - Column menu to be used by descendant leaf nodes (including this node if it is a leaf node).
+ * @property {string[]} [ownSchema] - A default list of column names for field drop-downs of immediate descendant terminal nodes _only_. Overrides `options.state.ownSchema` (see).
  *
- * @property {string} [editor] - Name of filter editor used by descendant leaf nodes (including this node if it is a leaf node).
+ * Although both `options.schema` and `options.ownSchema` are notated as optional herein, by the time a terminal node tries to render a schema drop-down, a `schema` list _must_ be defined through (in order of priority):
  *
- * @property {function} [eventHandler] - Event handler for UI events.
+ * * Terminal node's own `options.schema` (or `options.state.schema`) definition.
+ * * Terminal node's parent node's `option.ownSchema` (or `option.state.nodesFields`) definition.
+ * * Any of terminal node's ancestor's `options.schema` (or `options.state.schema`) definition.
  *
- * @property {string} [type] - Identifies the type of node:
- * * `'filterNode'` - A generic filter tree node, either a {@link filterTreeNode} or a {@link filterLeafNode}
- * * `'columnFilters'` - A special {@link filterTreeNode} contaiing _column filter_ subexpressions ({@link filterTreeNode}s of type `'columnFilter'`
- * * `'columnFilter'` -  A special {@link filterTreeNode} containing homogeneous _column filter_ conditionals, all referencing the same column on the left side of their dyadic expressions.
+ * @property {object|string} [state] - A data structure that describes a tree, subtree, or leaf (terminal node):
  *
- * Used among other things to select a rendering template. (Note that {@link filterLeafNode} currently do not use rendering templates.)
+ * * May describe a terminal node with properties:
+ *   * `schema` - Overridden on instantiation by `options.schema`. If both unspecified, uses parent's definition.
+ *   * `editor` - A string identifying the type of conditional. Must be in the parent node's {@link FilterTree#editors|editors} hash. If omitted, defaults to `'Default'`.
+ *   * misc. - Other properties peculiar to this filter type (but typically including at least a `field` property).
+ * * May describe a non-terminal node with properties:
+ *   * `schema` - Overridden on instantiation by `options.schema`. If both unspecified, uses parent's definition.
+ *   * `operator` - One of {@link treeOperators}.
+ *   * `children` -  Array containing additional terminal and non-terminal nodes.
  *
- * @property {menuItem[]} [treeOpMenu=conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
+ * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
- * @property {object} [typeOpMenu] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
- * 1. do not have an operator menu (`opMenu` property) of their own; and
- * 2. whose columns resolve to that type.
+ * The constructor auto-detects `state`'s type:
+ *  * JSON string to be parsed by `JSON.parse()` into a plain object
+ *  * SQL WHERE clause string to be parsed into a plain object
+ *  * CSS selector of an Element whose `value` contains one of the above
+ *  * plain object
  *
- * The type is determined either by (in priority order):
- * 1. the `type` property of the {@link filterLeafNode}; or
- * 2. the `type` property of the element in the nearest node (including the leaf node itself) that has a defined `nodeFields` or `fields` array property with an element having a matching column name.
+ * @property {function} [editor='Default'] - Type of simple expression; a key in the FilterTree.prototype.editors hash which maps to a simple expression constructor, which will be `FilterLeaf` or a constructor extended from `FilterLeaf`.
  *
- * @property {HTMLElement} el - The DOM element created by the `render` method to represent this node. Contains the `el`s for all child nodes.
+ * @property {FilterTree} [parent] - Used internally to insert element when creating nested subtrees. Optional for the top level tree only. (Note that you are responsible for inserting the top-level `.el` into the DOM.)
+ *
+ * @property {string|HTMLElement} [cssStylesheetReferenceElement] - passed to cssInsert
  */
+
 /**
  * @constructor
  *
@@ -58,55 +66,48 @@ var CHILDREN_TAG = 'OL',
  * * a {@link FilterLeaf}, an object that represents a terminal node in a filter tree; or
  * * any other object extended from either of the above.
  *
- * The `FilterLeaf` object is the default type of simple expression, which is
- *
  * The `FilterTree` object has polymorphic methods that operate on the entire tree using recursion. When the recursion reaches a terminal node, it calls the methods on the `FilterLeaf` object instead. Calling `test()` on the root tree therefore returns a boolean that determines if the row passes through the entire filter expression (`true`) or is blocked by it (`false`).
+ *
+ * The `FilterLeaf` object is the default type of simple expression, which is
  *
  * The programmer may define a new type of simple expression by extending from `FilterLeaf`. An example is the `FilterField` object. Such an implementation must include methods:
  *
- * * Save and subsequently reload the state of the conditional as entered by the user (`toJSON()` and `setState()`, respectively).
+ * * Save and subsequently reload the state of the conditional as entered by the user (`getState()` and `setState()`, respectively).
  * * Create the DOM objects that represent the UI filter editor and render them to the UI (`createView()` and `render()`, respectively).
  * * Filter a table by implementing one or more of the following:
  *   * Apply the conditional logic to available table row data (`test()`).
  *   * Apply the conditional logic to a remote data-store by generating a **SQL** or **Q** _WHERE_ clause (`toSQL()` and `toQ()`, respectively).
  *
- * Some of the above-named methods as already implemented in `FilterLeaf` and/or `FilterNode` may be sufficient to handle your needs as is (without further code).
+ * @property {FilterNode} [parent] - Undefined means this is the root node.
  *
- * @param {string[]} [options.fields] - A default list of column names for field drop-downs of all descendant terminal nodes. Overrides `options.state.fields` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no `nodeFields`), will use the nearest ancestor `fields` definition. However, descendants with their own definition of `types` will override any ancestor definition.
+ * @property {FilterNode} root - Convenience reference to the root node.
  *
- * > Typically only used by the caller for the top-level (root) tree.
+ * @property {menuItem[]} schema - Column schema used by descendant leaf nodes (including this node if it is a leaf node) to render a column choice drop-down.
  *
- * @param {string[]} [options.nodeFields] - A default list of column names for field drop-downs of immediate descendant terminal nodes _only_. Overrides `options.state.nodeFields` (see).
+ * @property {string} [editor] - Name of filter editor used by descendant leaf nodes (including this node if it is a leaf node).
  *
- * Although both `options.fields` and `options.nodeFields` are notated as optional herein, by the time a terminal node tries to render a fields drop-down, a `fields` list _must_ be defined through (in order of priority):
+ * @property {function} [eventHandler] - Event handler for UI events.
  *
- * * Terminal node's own `options.fields` (or `options.state.fields`) definition.
- * * Terminal node's parent node's `option.nodeFields` (or `option.state.nodesFields`) definition.
- * * Any of terminal node's ancestor's `options.fields` (or `options.state.fields`) definition.
+ * @property {string} [type] - Identifies the type of node:
+ * * `'filterNode'` - A generic filter tree node, either a {@link filterTreeNodeObject} or a {@link filterLeafNodeObject}
+ * * `'columnFilters'` - A special {@link filterTreeNode} contaiing _column filter_ subexpressions ({@link filterTreeNode}s of type `'columnFilter'`
+ * * `'columnFilter'` -  A special {@link filterTreeNode} containing homogeneous _column filter_ conditionals, all referencing the same column on the left side of their dyadic expressions.
  *
- * @param {object|string} [options.state] - A data structure that describes a tree, subtree, or leaf (terminal node):
+ * Used among other things to select a rendering template. (Note that {@link filterLeafNode} currently do not use rendering templates.)
  *
- * * May describe a terminal node with properties:
- *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
- *   * `editor` - A string identifying the type of conditional. Must be in the parent node's {@link FilterTree#editors|editors} hash. If omitted, defaults to `'Default'`.
- *   * misc. - Other properties peculiar to this filter type (but typically including at least a `field` property).
- * * May describe a non-terminal node with properties:
- *   * `fields` - Overridden on instantiation by `options.fields`. If both unspecified, uses parent's definition.
- *   * `operator` - One of {@link treeOperators}.
- *   * `children` -  Array containing additional terminal and non-terminal nodes.
+ * @property {menuItem[]} [treeOpMenu=conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
  *
- * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
+ * @property {object} [typeOpMenu] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
+ * 1. do not have their own operator menu (`opMenu` property) of their own; and
+ * 2. whose columns resolve to that type.
  *
- * The constructor auto-detects `state`'s type:
- *  * JSON string to be parsed by `JSON.parse()` into a plain object
- *  * SQL WHERE clause string to be parsed into a plain object
- *  * CSS selector of an Element whose `value` contains one of the above
- *  * plain object
+ * The type is determined by (in priority order):
+ * 1. the `type` property of the {@link FilterLeaf}; or
+ * 2. the `type` property of the element in the nearest node (including the leaf node itself) that has a defined `ownSchema` or `schema` array property with an element having a matching column name.
  *
- * @param {function} [options.editor='Default'] - Type of simple expression; a key in the FilterTree.prototype.editors hash which maps to a simple expression constructor, which will be `FilterLeaf` or a constructor extended from `FilterLeaf`.
- *
- * @param {FilterTree} [options.parent] - Used internally to insert element when creating nested subtrees. Optional for the top level tree only. (Note that you are responsible for inserting the top-level `.el` into the DOM.)
+ * @property {HTMLElement} el - The DOM element created by the `render` method to represent this node. Contains the `el`s for all child nodes (which are themselves pointed to by those nodes). This is always generated but is only in the page DOM if you put it there.
  */
+
 var FilterNode = Base.extend({
 
     initialize: function(options) {
@@ -118,14 +119,17 @@ var FilterNode = Base.extend({
         this.parent = parent;
         this.root = parent && parent.root || this;
 
+        this.root.stylesheet = this.root.stylesheet ||
+            cssInjector(options && options.cssStylesheetReferenceElement);
+
         // create each standard option from `options` or `state` or `parent` (wherever it's defined first, if anywhere)
-        _(FilterNode.optionsSchema).each(function(schema, key) {
-            if (!self.hasOwnProperty(key)) {
+        _(FilterNode.optionsSchema).each(function(optionSchema, key) {
+            if (!self.hasOwnProperty(key) && !optionSchema.ignore) {
                 var option = options && options[key] ||
                     state && state[key] ||
-                    !schema.own && (
+                    !optionSchema.own && (
                         parent && parent[key] || // reference parent value now so we don't have to search up the tree later
-                        schema.default
+                        optionSchema.default
                     );
 
                 if (option) {
@@ -178,19 +182,22 @@ var FilterNode = Base.extend({
 });
 
 FilterNode.optionsSchema = {
-    /** @summary Default list of fields only for direct child terminal-node drop-downs.
+
+    cssStylesheetReferenceElement: { ignore: true },
+
+    /** @summary Default column schema for column drop-downs of direct descendant leaf nodes only.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
-    nodeFields: { own: true },
+    ownSchema: { own: true },
 
-    /** @summary Default list of fields for all descendant terminal-node drop-downs.
+    /** @summary Default column schema for column drop-downs of all descendant leaf nodes.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {menuItem[]}
      * @memberOf FilterNode.prototype
      */
-    fields: {},
+    schema: {},
 
     /** @summary Type of filter editor.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
@@ -223,6 +230,8 @@ FilterNode.optionsSchema = {
      * @memberOf FilterNode.prototype
      */
     type: { default: 'filterNode' },
+
+    persist: { own: true },
 
     /** @summary Override operator list at any node.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).

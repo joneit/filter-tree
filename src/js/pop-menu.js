@@ -188,7 +188,7 @@ function findItem(menu, name) {
  * @memberOf popMenu
  * @param {menuItem[]} menu
  * @param {function} iteratee
- * @returns {number} Number of fields in the menu tree.
+ * @returns {number} Number of items (terminal nodes) in the menu tree.
  */
 function walk(menu, iteratee) {
     var n = 0;

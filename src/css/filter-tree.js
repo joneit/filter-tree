@@ -6,4 +6,4 @@ var css; // defined by code inserted by gulpfile between following comments
 /* inject:css */
 /* endinject */
 
-module.exports = cssInjector.bind(this, css);
+module.exports = cssInjector.bind(this, css, 'filter-tree-base');

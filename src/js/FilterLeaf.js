@@ -36,7 +36,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     postInitialize: function() {
         if (this.isColumnFilter()) {
-            this.fields = [ popMenu.findItem(this.root.fields, this.column) ];
+            this.schema = [ popMenu.findItem(this.root.schema, this.column) ];
         }
 
     },
@@ -53,17 +53,17 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         if (this.isColumnFilter()) {
             // column filter will only ever be the one column
             if (this.state.column) {
-                this.fields = [ popMenu.findItem(this.root.fields, this.state.column) ];
+                this.schema = [ popMenu.findItem(this.root.schema, this.state.column) ];
             } else {
-                this.fields = this.parent.children[0].fields;
+                this.schema = this.parent.children[0].schema;
             }
         } else if (options) {
-            this.fields =
-                options && options.fields ||
-                this.state && this.state.fields ||
+            this.schema =
+                options && options.schema ||
+                this.state && this.state.schema ||
                 this.parent && (
-                    this.parent.nodeFields || // work this in
-                    this.parent.fields
+                    this.parent.ownSchema || // work this in
+                    this.parent.schema
                 );
         }
         FilterNode.prototype.setState.call(this, state, options);
@@ -77,7 +77,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      *
      * The view for this base `FilterLeaf` object consists of the following controls:
      *
-     * * `this.view.column` - A drop-down with options from `this.fields`. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
+     * * `this.view.column` - A drop-down with options from `this.schema`. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
      * * `this.view.operator` - A drop-down with options from {@link columnOpMenu}, {@link typeOpMenu}, or {@link treeOpMenu}. Value is the string representation of the operator.
      * * `this.view.literal` - A text box.
      *
@@ -89,7 +89,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         el.className = 'filter-tree-editor filter-tree-default';
 
         this.view = {
-            column: this.makeElement(el, this.fields, 'column', true),
+            column: this.makeElement(el, this.schema, 'column', true),
             operator: this.makeElement(el, [], 'operator'),
             literal: this.makeElement(el)
         };
@@ -205,7 +205,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     findItemInMenu: function(columnName) {
-        return popMenu.findItem(this.fields, columnName);
+        return popMenu.findItem(this.schema, columnName);
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
@@ -216,7 +216,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             P, Q, // typed versions of p and q
             convert;
 
-        return (p = this.p(dataRow)) === undefined || (q = this.q(dataRow)) === undefined
+        return (
+            //(p = valOrFunc(this.p(dataRow))) === undefined || // TODO: right now assuming all values are natively strings
+            //(q = valOrFunc(this.q(dataRow))) === undefined
+            (p = this.p(dataRow)) === undefined ||
+            (q = this.q(dataRow)) === undefined
+        )
             ? false
             : (
                 (convert = this.converter) &&
@@ -224,10 +229,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 !convert.not(Q = convert.to(q))
             )
                 ? this.op.test(P, Q)
-                : this.op.test(p, q);
+                : this.op.test(p + '', q + '');
     },
 
-    /** Tests this leaf node for given column name.
+/** Tests this leaf node for given column name.
      * > This is the default "find" function.
      * @param {string} columnName
      * @returns {boolean}
@@ -256,10 +261,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
         if (!(
             this.isColumnFilter() ||
-            this.parent.nodeFields ||
-            this.fields === this.parent.fields
+            this.parent.ownSchema ||
+            this.schema === this.parent.schema
         )) {
-            state.fields = this.fields;
+            state.schema = this.schema;
         }
         return state;
     },
@@ -359,6 +364,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return result;
     }
 });
+
+//function valOrFunc(vf) {
+//var result = (typeof vf)[0] === 'f' ? vf() : vf;
+//    return result || result === 0 ? result : '';
+//}
 
 /** `change` event handler for all form controls.
  * Rebuilds the operator drop-down as needed.
