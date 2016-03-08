@@ -79,8 +79,8 @@ function build(el, menu, options) {
         if (tagName === 'SELECT') {
             add = el.add;
             if (prompt) {
-                newOption = new Option('(' + prompt, '');
-                newOption.innerHTML += '&hellip;)';
+                newOption = new Option(prompt, '');
+                newOption.innerHTML += '&hellip;';
                 el.add(newOption);
             } else if (prompt !== null) {
                 el.add(new Option());

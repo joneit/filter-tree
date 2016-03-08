@@ -206,25 +206,6 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 : this.op.test(p + '', q + '');
     },
 
-/** Tests this leaf node for given column name.
-     * > This is the default "find" function.
-     * @param {string} columnName
-     * @returns {boolean}
-     * @memberOf FilterLeaf.prototype
-     */
-    find: function(columnName) {
-        return this.column === columnName;
-    },
-
-    /** Tests this leaf node for given column `Element` ownership.
-     * @param {function} Editor (leaf constructor)
-     * @returns {boolean}
-     * @memberOf FilterLeaf.prototype
-     */
-    findByEl: function(el) {
-        return this.el === el;
-    },
-
     toJSON: function() {
         var state = {};
         if (this.editor) {
@@ -258,7 +239,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             case 'SQL':
                 result = this.getSyntax(conditionals.sqlOperators);
                 break;
-            case 'filter-cell':
+            case 'CQL':
                 result = this.getSyntax(conditionals.filterCellOperators);
                 if (result[0] === '=') {
                     result = result.substr(1);

@@ -229,8 +229,8 @@ window.onload = function() {
                 // replace existing subexpression locked to this column, with new one
                 columnFilterSubexpressions[reuseIndex] = newSubtree;
             } else {
-                // no new subexpression so delete the old one
-                delete columnFilterSubexpressions[reuseIndex];
+                // no new subexpression so remove it the old one
+                columnFilterSubexpressions.splice(reuseIndex, 1);
             }
         } else if (newSubtree) {
             // add new subexpression for this column
@@ -392,8 +392,6 @@ window.onload = function() {
             children = makeChildren(columnName, expressions),
             operator = booleans && booleans[0] || 'and';
 
-        //console.log(booleans, expressions, children, operator);
-
         if (children.length) {
             return {
                 operator: 'op-' + operator,
@@ -543,7 +541,7 @@ window.onload = function() {
             if (cell) {
                 var columnFilter = activeColumnFilters[column.name];
                 cell.value = columnFilter && !columnFilter.invalid(QUIET_VALIDATION)
-                    ? columnFilter.getState({ syntax: 'filter-cell' })
+                    ? columnFilter.getState({ syntax: 'CQL' })
                     : '';
             }
         });
@@ -666,8 +664,7 @@ window.onload = function() {
             ctrl = elid('state');
 
         if (valid) {
-            filterTree.JSONspace = 3; // make it pretty
-            ctrl.value = filterTree.getState({ syntax: 'JSON' }, { space: 3 });
+            ctrl.value = filterTree.getState({ syntax: 'JSON', space: 3 });
         }
 
         return valid;
@@ -764,7 +761,7 @@ window.onload = function() {
         var syntax = (
             tab.id === 'tabColumnFiltersSql' && 'SQL'
                 ||
-            tab.id === 'tabColumnFiltersSyntax' && 'filter-cell'
+            tab.id === 'tabColumnFiltersSyntax' && 'CQL'
         );
 
         if (syntax) {
@@ -849,7 +846,7 @@ window.onload = function() {
                 return columnFilter.children.length && columnFilter.children[0].column;
             }),
             options = {
-                prompt: 'add column filter',
+                prompt: 'New column filter',
                 blacklist: blacklist
             };
 

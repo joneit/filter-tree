@@ -112,7 +112,7 @@ var FilterNode = Base.extend({
 
     initialize: function(options) {
         var self = this,
-            state = options && options.state && detectState(options.state),
+            state = options && options.state && parseStateString(options.state),
             parent = options && options.parent;
 
         this.state = state;
@@ -160,7 +160,9 @@ var FilterNode = Base.extend({
             }
 
             if (!(this.state && this.state.locked)) {
-                newListItem.appendChild(template('removeButton'));
+                var el = template('removeButton');
+                el.addEventListener('click', this.remove.bind(this));
+                newListItem.appendChild(el);
             }
 
             newListItem.appendChild(this.el);
@@ -171,12 +173,36 @@ var FilterNode = Base.extend({
 
     setState: function(state, options) {
         var oldEl = this.el;
-        this.state = detectState(state, options);
+        this.state = parseStateString(state, options);
         this.createView();
         this.loadState();
         this.render();
-        if (oldEl && !this.parent) {
-            oldEl.parentNode.replaceChild(this.el, oldEl);
+        if (oldEl) {
+            var newEl = this.el;
+            if (this.parent) {
+                oldEl = oldEl.parentNode;
+                newEl = newEl.parentNode;
+            }
+            oldEl.parentNode.replaceChild(newEl, oldEl);
+        }
+    },
+
+    /** Remove both:
+     * * `this` filter node from it's `parent`'s `children` collection; and
+     * * `this` filter node's `el`'s container (always a `<li>` element) from its parent element.
+     */
+    remove: function() {
+        var node = this.parent;
+        if (node) {
+            if (this.eventHandler) {
+                this.eventHandler({ type: 'delete' });
+            }
+            if (node.persist || node.children.length > 1) {
+                this.el.parentNode.remove(); // always the containing <li> tag
+                node.children.splice(node.children.indexOf(this), 1);
+            } else {
+                node.remove();
+            }
         }
     }
 });
@@ -256,28 +282,56 @@ FilterNode.clickIn = function(el) {
 var reSelector = /^[#\.]?\w+(\s*[ \.\-|*+#:~^$>]+\s*\w+.*)?$/;
 var reJSON = /^\s*[\[\{]/;
 
-function detectState(state, options) {
-    switch (typeof state) {
-        case 'object':
-            return state;
-        case 'string':
+/**
+ *
+ * @param {undefined|string|object} state - May be one of:
+ * * Filter-tree state object:
+ *   Return as is.
+ * * String representation of filter-tree state object (JSON or SQL, auto-detected):
+ *   Parse the string and return an actual filter-tree state object.
+ * * String CSS selector (auto-detected) of a HTML form control with a `value` containing the above:
+ *   Parse `value` and return an actual filter-tree state object.
+ * * `undefined` (or any other falsy value):
+ *   Return as is. (Undefined state represents an new empty FilterNode object.)
+ *
+ * @param {object} [options.syntax] - May be `'JSON'` or `'SQL'` to override auto-detection
+ *
+ * @returns {object} filter-tree state object; or throws error if unknown or invalid syntax
+ */
+function parseStateString(state, options) {
+    if (state) {
+        if (typeof state === 'string') {
             if (reSelector.test(state)) {
                 state = document.querySelector(state).value;
             }
-            if (reJSON.test(state)) {
-                try {
-                    return JSON.parse(state);
-                } catch (error) {
-                    throw new FilterTreeError('JSON parser: ' + error);
-                }
-            } else {
-                try {
-                    return sqlWhereParse(state, options);
-                } catch (error) {
-                    throw new FilterTreeError('SQL WHERE clause parser: ' + error);
-                }
+
+            var syntax = options && options.syntax ||
+                reJSON.test(state) && 'JSON';
+
+            switch (syntax) {
+                case 'JSON':
+                    try {
+                        state = JSON.parse(state);
+                    } catch (error) {
+                        throw new FilterTreeError('JSON parser: ' + error);
+                    }
+                    break;
+                case 'SQL':
+                    try {
+                        state = sqlWhereParse(state, options);
+                    } catch (error) {
+                        throw new FilterTreeError('SQL WHERE clause parser: ' + error);
+                    }
+                    break;
             }
+        }
+
+        if (typeof state !== 'object') {
+            throw new FilterTreeError('Unexpected input state.');
+        }
     }
+
+    return state;
 }
 
 module.exports = FilterNode;

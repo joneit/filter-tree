@@ -109,10 +109,10 @@
 
 /* ??? */
 
-.filter-tree.filter-tree-type-column-filters > ol > li:not(:first-child) {
-    padding-top: 0.75em;
-    border-top: 1px dashed black;
-    margin-top: 0.75em;
+.filter-tree.filter-tree-type-column-filters > ol > li:not(:last-child) {
+    padding-bottom: 0.75em;
+    border-bottom: 3px double #080;
+    margin-bottom: 0.75em;
 }
 
 /* Footnotes */

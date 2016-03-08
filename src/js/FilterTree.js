@@ -95,7 +95,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
             this.el.addEventListener('change', onchange.bind(this));
         }
 
-        this.el.addEventListener('click', catchClick.bind(this));
+        this.el.addEventListener('click', onTreeOpClick.bind(this));
     },
 
     loadState: function() {
@@ -131,7 +131,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         if (radioButton) {
             radioButton.checked = true;
-            this['filter-tree-op-choice']({
+            onTreeOpClick.call(this, {
                 target: radioButton
             });
         }
@@ -150,17 +150,23 @@ var FilterTree = FilterNode.extend('FilterTree', {
     /**
      * @summary Create a new node as per `state`.
      *
-     * @param {object} [options] - May be one of:
+     * @param {object} [options={state:{}}] - May be one of:
      *
      * * an `options` object containing a `state` property
      * * a `state` object (in which case there is no `options` object)
      *
-     * In any case, if resulting `state` object has...
-     * * a `children` property, attempt to add a new subtree.
-     * * an `editor` property, add a leaf using `this.editors[state.editor]`.
-     * * neither (or was omitted), add a leaf using `this.editors.Default`.
+     * In any case, resulting `state` object may be either...
+     * * A new subtree (has a `children` property):
+     *   Add a new `FilterTree` node.
+     * * A new leaf (no `children` property): add a new `FilterLeaf` node:
+     *   * If there is an `editor` property:
+     *     Add leaf using `this.editors[state.editor]`.
+     *   * Otherwise (including the case where `state` is undefined):
+     *     Add leaf using `this.editors.Default`.
      *
-     * @param {boolean} [stateOrOptions.focus=false] Call invalid() after inserting to focus on first blank control (if any).
+     * @param {boolean} [options.focus=false] Call invalid() after inserting to focus on first blank control (if any).
+     *
+     * @returns {FilterNode} The new node.
      */
     add: function(options) {
         var Constructor, newNode;
@@ -185,92 +191,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
             // focus on blank control a beat after adding it
             setTimeout(function() { newNode.invalid({ alert: false }); }, 750);
         }
-    },
 
-    /**
-     * Search the expression tree for a node with certain characteristics as described by the type of search (`type`) and the search args.
-     * @param {string} [type='find'] - Name of method to use on terminal nodes; characterizes the type of search. Must exist in your terminal node object.
-     * @param {boolean} [deep=false] - Must be explicit `true` or `false` (not merely truthy or falsy); or omitted.
-     * @param {*} firstSearchArg - May not be boolean type in case `deep` omitted (accommodation to overload logic).
-     * @param {...*} [additionalSearchArgs]
-     * @returns {boolean|FilterLeaf|FilterTree}
-     * * `false` - Not found. (`true` is never returned.)
-     * * `FilterLeaf` (or instance of an object extended from same) - Sought node (typical).
-     * * 'FilterTree` - Sought node (rare).
-     */
-    find: function find(type, deep) {
-        var result, n, treeArgs = arguments, leafArgs;
-
-        if (arguments.length > 1 && typeof type === 'string') {
-            n = 1;
-        } else {
-            n = 0;
-            deep = type;
-            type = 'find';
-        }
-
-        if (typeof deep === 'boolean') {
-            n += 1;
-        } else {
-            deep = false;
-        }
-
-        leafArgs = Array.prototype.slice.call(arguments, n);
-
-        // TODO: Following could be broken out into separate method (as in FilterLeaf)
-        if (type === 'findByEl' && this.el === leafArgs[0]) {
-            return this;
-        }
-
-        // walk tree recursively, ending on defined `result` (first node found)
-        return this.children.find(function(child) {
-            if (child instanceof TerminalNode) {
-                // always recurse on terminal nodes
-                result = child[type].apply(child, leafArgs);
-            } else if (deep && child.children.length) {
-                // only recurse on subtrees if going `deep` and not childless
-                result = find.apply(child, treeArgs);
-            }
-            return result;
-        });
-    },
-
-    'filter-tree-op-choice': function(evt) {
-        var radioButton = evt.target;
-
-        this.operator = radioButton.value;
-
-        // display strike-through
-        var radioButtons = this.el.querySelectorAll('label>input.filter-tree-op-choice[name=' + radioButton.name + ']');
-        Array.prototype.forEach.call(radioButtons, function(radioButton) {
-            radioButton.parentElement.style.textDecoration = radioButton.checked ? 'none' : 'line-through';
-        });
-
-        // display operator between filters by adding operator string as a CSS class of this tree
-        for (var key in operators) {
-            this.el.classList.remove(key);
-        }
-        this.el.classList.add(this.operator);
-    },
-
-    'filter-tree-remove-button': function(evt) {
-        this.remove(evt.target.nextElementSibling, true);
-    },
-
-    /** Removes a child node and it's .el; or vice-versa
-     * @param {HTMLElement|FilterNode} node
-     * @param {boolean} [deep=false]
-     */
-    remove: function(node, deep) {
-        if (node instanceof HTMLElement) {
-            node = this.find('findByEl', !!deep, node);
-        }
-
-        remove.call(this, node);
-
-        if (this.eventHandler) {
-            this.eventHandler({ type: 'delete' });
-        }
+        return newNode;
     },
 
     /**
@@ -332,7 +254,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * * `'object'` (default) walks the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterNode#setState|setState}.
      * * `'JSON'` walks the tree using `{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}`, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
      * * `'SQL'` walks the tree, returning a SQL where clause string. Suitable for creating SQL `SELECT` statements.
-     * * `'filter-cell'` walks the tree, returning a string suitable for a Hypergrid filter cell. This syntax should only be called for from a subtree containing homogeneous column names and no subexpressions.
+     * * `'CQL'` walks the tree, returning a string suitable for a Hypergrid filter cell. This syntax should only be called for from a subtree containing homogeneous column names and no subexpressions.
      * @param {number|string} [options.space] - When `options.syntax === 'JSON'`, forwarded to `JSON.stringify`'s third parameter, `space` (see).
      * @param {object} [options.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
      * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
@@ -376,7 +298,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 result = lexeme.beg + (result || 'NULL IS NULL') + lexeme.end;
                 break;
 
-            case 'filter-cell':
+            case 'CQL':
                 var operator = operators[this.operator].filterCell.op;
                 this.children.forEach(function(child, idx) {
                     if (child) {
@@ -434,41 +356,42 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
 });
 
-function remove(node) { // call in context
-    // remove the subtree from the object tree
-    this.children.splice(this.children.indexOf(node), 1);
+// Some event handlers bound to FilterTree object
 
-    if (this.children.length || this.persist) {
-        // remove the <li> from the DOM tree
-        node.el.parentElement.remove();
-    } else if (!this.persist && this.parent) {
-        // empty non-root node so remove self, recursing up the tree until not empty
-        this.parent.remove(this);
-    }
-}
-
-function onchange(evt) { // bound context
+function onchange(evt) { // called in context
     var ctrl = evt.target;
     if (ctrl.parentElement === this.el) {
-        this.add(ctrl.value !== 'subexp' && {
-            state: { editor: ctrl.value },
-            focus: true
-        });
+        if (ctrl.value === 'subexp') {
+            this.children.push(new FilterTree({
+                parent: this
+            }));
+        } else {
+            this.add({
+                state: { editor: ctrl.value },
+                focus: true
+            });
+        }
         ctrl.selectedIndex = 0;
     }
 }
 
-function catchClick(evt) { // bound context
-    var elt = evt.target;
+function onTreeOpClick(evt) { // called in context
+    var ctrl = evt.target;
 
-    var handler = this[elt.className] || this[elt.parentNode.className];
-    if (handler) {
-        handler.call(this, evt);
-        evt.stopPropagation();
-    }
+    if (ctrl.className === 'filter-tree-op-choice') {
+        this.operator = ctrl.value;
 
-    if (this.eventHandler) {
-        this.eventHandler(evt);
+        // display strike-through
+        var radioButtons = this.el.querySelectorAll('label>input.filter-tree-op-choice[name=' + ctrl.name + ']');
+        Array.prototype.forEach.call(radioButtons, function(ctrl) {
+            ctrl.parentElement.style.textDecoration = ctrl.checked ? 'none' : 'line-through';
+        });
+
+        // display operator between filters by adding operator string as a CSS class of this tree
+        for (var key in operators) {
+            this.el.classList.remove(key);
+        }
+        this.el.classList.add(this.operator);
     }
 }
 
@@ -479,7 +402,7 @@ function catchClick(evt) { // bound context
  * @returns {undefined} if valid
  * @private
  */
-function invalid(options) { // must be called with context
+function invalid(options) { // called in context
     //if (this instanceof FilterTree && !this.children.length) {
     //    throw new FilterNode.FilterTreeError('Empty subexpression (no filters).');
     //}
