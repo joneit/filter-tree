@@ -15,35 +15,38 @@ var filter = new FilterTree({
 document.getElementById('filter').appendChild(filter.el);
 ```
 
-to load or reload from saved state:
+To load or reload from saved state:
 
 ```javascript
-filter.setState(myFilterStateObject);
-
-// or:
-
-filter.setJSON(myFilterStateJSONstring);
+filter.setState(myFilterState);
 ```
+where `myFilterState` can be JSON or SQL.
 
-to get state to save:
+To extract the state for saving:
 
 ```javascript
-if (!filter.invalid()) { // `undefined` means valid (otherwise returns error message string)
+if (!filter.invalid()) {
     // an object to hold in memory for subsequent reloading
     myFilterStateObject = filter.getState();
-    
-    // or:
-    
-    // a string to persist to storage
-    myFilterStateJSONstring = JSON.stringify(filter);
 }
 ```
+
+`.getstate()` can take a `syntax` option which can be `'object`' (the default), ``'JSON'`, or `'SQL'`:
+
+```javascript
+if (!filter.invalid()) {
+    // an object to hold in memory for subsequent reloading
+    myFilterStateObject = filter.getState({ syntax: 'JSON', space: 3 });
+}
+```
+
+(`space` is forwarded to [JSON.stringify](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify).)
 
 to test against data:
 
 ```javascript
-var myDataObject = { LastName: 'Spade', FirstName: 'Sam', 'Date of Birth': 1910 };
-filer.test(myDataObject); // `true` if data consistent with filter logic
+var myTestData = { LastName: 'Spade', FirstName: 'Sam', 'Date of Birth': 1910 };
+filer.test(myTestData); // `true` if data consistent with filter logic
 ```
 
 ### API documentation
@@ -52,7 +55,7 @@ Thre are useful options such as column aliases. Detailed API docs can be found [
 
 ### Demo
 
-A demo can be found [here](http://joneit.github.io/filter-tree/demo.html).
+An enhanced demo can be found [here](http://joneit.github.io/filter-tree/demo.html).
 
 ### CDN versions
 
