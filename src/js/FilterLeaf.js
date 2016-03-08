@@ -3,10 +3,11 @@
 
 'use strict';
 
+var popMenu = require('pop-menu');
+
 var FilterNode = require('./FilterNode');
 var template = require('./template');
 var conditionals = require('./conditionals');
-var popMenu = require('./pop-menu');
 
 
 /** @typedef {object} converter

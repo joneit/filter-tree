@@ -7,6 +7,7 @@
 
 'use strict';
 
+var popMenu = require('pop-menu');
 var unstrungify = require('unstrungify');
 
 var FilterNode = require('./FilterNode');
@@ -14,7 +15,6 @@ var TerminalNode = require('./FilterLeaf');
 var template = require('./template');
 var operators = require('./tree-operators');
 var conditionals = require('./conditionals');
-var popMenu = require('./pop-menu');
 
 
 var ordinal = 0;

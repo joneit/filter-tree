@@ -1,15 +1,14 @@
 'use strict';
 
 var _ = require('object-iterators');
+var popMenu = require('pop-menu');
 
 var FilterNode = require('./js/FilterNode');
 var FilterTree = require('./js/FilterTree');
 
 var conditionals = require('./js/conditionals');
-var popMenu = require('./js/pop-menu'); // TODO: Put this in npm
 var copy = require('./js/copy-input');
 var template = require('./js/template');
-
 
 // expose some objects for plug-in access
 
