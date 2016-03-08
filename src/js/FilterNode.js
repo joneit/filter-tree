@@ -250,7 +250,9 @@ FilterNode.optionsSchema = {
      */
     treeOpMenu: { default: conditionals.defaultOpMenu },
 
-    typeOpMenu: {}
+    typeOpMenu: {},
+
+    sortColumnMenu: {}
 };
 
 FilterNode.setWarningClass = function(el, value) {

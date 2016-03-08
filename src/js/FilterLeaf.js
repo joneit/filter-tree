@@ -76,7 +76,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
 
         this.view = {
-            column: this.makeElement(this.schema, 'column', true),
+            column: this.makeElement(this.schema, 'column', this.sortColumnMenu),
             operator: this.makeElement(getOpMenu.call(this, columnName), 'operator'),
             literal: this.makeElement()
         };
