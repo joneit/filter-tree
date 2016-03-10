@@ -181,7 +181,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         this.converter = this.converters[ // undefined if none of the following
             this.type || // the expression's type, if any
             this.op.type || // the expression's operator type, if any
-            (field = popMenu.findItem(this.schema, this[this.view.column])) && field.type // the expression's column type, if any
+            (field = popMenu.findItem(this.schema, this.column)) && field.type // the expression's column type, if any
         ];
     },
 
