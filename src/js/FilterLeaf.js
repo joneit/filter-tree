@@ -33,7 +33,9 @@ var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
-    name: 'column = value',
+    key: 'Default', // key in `this.parent.editors` hash
+
+    name: 'column = value', // display string for drop-down
 
     destroy: function() {
         if (this.view) {
@@ -167,7 +169,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             if (value === '') {
                 var focus = options && options.focus;
                 if (focus === undefined || focus) { clickIn(el); }
-                throw new FilterNode.FilterTreeError('Blank ' + elementName + ' control.\nComplete the filter or delete it.', this);
+                throw new this.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.', this);
             } else {
                 // Copy each controls's value as a new similarly named property of this object.
                 this[elementName] = value;
@@ -222,11 +224,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     /**
-     * @param {string} options.syntax - See {@link FilterTree#getState|subtree version} for more info.
-     * > For `'object'` and `'JSON'` note that the subtree's version of `getState` will not call this leaf verison of `getState` because the former uses `unstrungify()` and `JSON.stringify()`, respectively, both of which recurse on their own.
+     * > For `'object'` and `'JSON'` note that the subtree's version of `getState` will not call this leaf version of `getState` because the former uses `unstrungify()` and `JSON.stringify()`, respectively, both of which recurse on their own.
+     *
+     * @param {object} [options] - See {@link FilterTree#getState|subtree version} for more info.
+     *
      * @memberOf FilterLeaf.prototype
      */
-    getState: function getState(options, suboptions) {
+    getState: function getState(options) {
         var result = '',
             syntax = options && options.syntax || 'object';
 
@@ -235,19 +239,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 result = this.toJSON();
                 break;
             case 'JSON': // see note above
-                result = JSON.stringify(this, null, suboptions && suboptions.space) || '';
+                result = JSON.stringify(this, null, options && options.space) || '';
                 break;
             case 'SQL':
                 result = this.getSyntax(conditionals.sqlOperators);
                 break;
-            case 'CQL':
-                result = this.getSyntax(conditionals.filterCellOperators);
-                if (result[0] === '=') {
-                    result = result.substr(1);
-                }
-                break;
             default:
-                throw new FilterNode.FilterTreeError('Unknown syntax option "' + syntax[0] + '"');
+                throw new this.Error('Unknown syntax option "' + syntax[0] + '"');
         }
 
         return result;

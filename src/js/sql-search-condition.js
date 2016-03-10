@@ -1,5 +1,10 @@
 'use strict';
 
+/** @module sqlSearchCondition
+ *
+ * @see {@link https://msdn.microsoft.com/en-us/library/ms173545.aspx SQL Search Condition}
+ */
+
 var reName,
     reOp = /^((=|>=?|<[>=]?)|(NOT )?(LIKE|IN)\b)/i, // match[1]
     reLit = /^'(\d+)'/,
@@ -17,15 +22,42 @@ pushSqlIdQts({
     beg: '"',
     end: '"'
 });
+
+/** @typedef {object} sqlIdQtsObject
+ * @desc On a practical level, the useful characters are:
+ * * SQL-92 standard: "double quotes"
+ * * SQL Server: "double quotes" or \[square brackets\]
+ * * mySQL: \`tick marks\`
+ * @property {string} beg - The open quote character.
+ * @property {string} end - The close quote character.
+ */
+
+/**
+ * Push a new set of quote characters onto the stack for subsequent use by the parser.
+ * @param {sqlIdQtsObject} qts
+ * @returns {Number}
+ */
 function pushSqlIdQts(qts) {
     reName = new RegExp('^(' + qts.beg + '(.+?)' + qts.end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i'); // match[2] || match[3]
     return idQt.unshift(qts);
-
 }
+
+/**
+ * Pop the current quote characters off the stack revealing the previous set to the parser..
+ * @returns {sqlIdQtsObject}
+ */
 function popSqlIdQts() {
     return idQt.shift();
 }
 
+/**
+ *
+ * @param {string} whereClause
+ *
+ * @param {sqlIdQtsObject} [options.sqlIdQts] - The SQL identifier quote characters to accept while parsing the provided SQL. Alternatively, you can set the quote characters using the {@link module:sqlSearchCondition.pushSqlIdQts|pushSqlIdQts} method.
+ * @returns {*}
+ * @memberOf module:sqlSearchCondition
+ */
 function parser(whereClause, options) {
     var whereTree;
 
@@ -41,8 +73,6 @@ function parser(whereClause, options) {
 
     return whereTree;
 }
-parser.pushSqlIdQts = pushSqlIdQts;
-parser.popSqlIdQts = popSqlIdQts;
 
 function walk(t) {
     var m, name, op, arg, bool, token, tokens = [];
@@ -177,4 +207,8 @@ function stripLiterals(t) {
     return t;
 }
 
-module.exports = parser;
+module.exports = {
+    parser: parser,
+    pushSqlIdQts: pushSqlIdQts,
+    popSqlIdQts: popSqlIdQts
+};

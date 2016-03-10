@@ -26,37 +26,7 @@ window.onload = function() {
 
     var cc = querystring('cc');
     if (cc == null || cc) {
-        // You can make a new filter editor by extending FilterLeaf. The following code patches two existing methods but is highly dependent on the existing code. A more reliable approach would be to override the two methods completely -- rather than extending them (which is essentially what we're doing here by calling them first).
-
-        var DefaultEditor = FilterTree.prototype.editors.Default;
-
-        FilterTree.prototype.addEditor('Columns', {
-            name: 'column = column',
-            createView: function() {
-                // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
-                DefaultEditor.prototype.createView.call(this);
-
-                // Remove the `literal` element from the `view` hash
-                delete this.view.literal;
-
-                this.view.column2 = this.makeElement(this.root.schema, 'column', this.sortColumnMenu);
-                //this.view.column2 = this.el.firstElementChild.cloneNode(true);
-
-                // Replace the 3rd element with the new one. There are no event listeners to worry about.
-                this.el.replaceChild(this.view.column2, this.el.children[2]);
-            },
-            treeOpMenu: [
-                FilterTree.conditionals.groups.equality,
-                FilterTree.conditionals.groups.inequalities,
-                FilterTree.conditionals.groups.sets
-            ],
-            q: function(dataRow) {
-                return dataRow[this.column2];
-            },
-            getSyntax: function(ops) {
-                return ops[this.operator].make.call(ops, this.name, this.column2);
-            }
-        });
+        FilterTree.prototype.addEditor('columns');
     }
 
     var tabz = new Tabz({
@@ -350,7 +320,6 @@ window.onload = function() {
             if (!PROPERTY.CASE_SENSITIVE_COLUMN_NAMES && typeof name === 'string') {
                 name = name.toLowerCase();
             }
-
             return name;
         }
 
@@ -501,7 +470,7 @@ window.onload = function() {
      * @returns {FilterTreeError} Will return on `FilterTreeError`; otherwise throws `Error`.
      */
     function rethrow(error) {
-        if (error instanceof FilterTree.FilterTreeError) {
+        if (error instanceof filterTree.Error) {
             alert(error);
             reveal(error);
         } else if (error) {
@@ -518,7 +487,7 @@ window.onload = function() {
      * @param {boolean} [focus=true]
      */
     function reveal(error, focus) {
-        if (error instanceof FilterTree.FilterTreeError && error.node && (focus === undefined || focus)) {
+        if (error instanceof filterTree.Error && error.node && (focus === undefined || focus)) {
             var el = error.node.el;
             while (el && !(el.tagName === 'SECTION' && el.parentElement.classList.contains('tabz'))) {
                 el = el.parentElement;

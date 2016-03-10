@@ -12,7 +12,6 @@ var IN = 'IN',
     NOT_LIKE = 'NOT ' + LIKE,
     LIKE_WILD_CARD = '%',
     SQT = '\'',
-    SPC = ' ',
     NIL = '';
 
 var idQt = [];
@@ -236,13 +235,13 @@ function getSqlIdentifier(id) {
 var SqlOperators = Operators.extend({
     makeLIKE: function(beg, end, op, a, likePattern) {
         var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
-        return sqlIdentifier(a) + SPC + op + SPC + getSqlString(beg + escaped + end);
+        return sqlIdentifier(a) + ' ' + op + ' ' + getSqlString(beg + escaped + end);
     },
     makeIN: function(op, a, b) {
-        return sqlIdentifier(a) + SPC + op + SPC + '(' + SQT + sqEsc(b).replace(/\s*,\s*/g, SQT + ', ' + SQT) + SQT + ')';
+        return sqlIdentifier(a) + ' ' + op + ' ' + '(' + SQT + sqEsc(b).replace(/\s*,\s*/g, SQT + ', ' + SQT) + SQT + ')';
     },
     makeDiadic: function(op, a, b) {
-        return sqlIdentifier(a) + SPC + op + SPC + sqlLiteral(b);
+        return sqlIdentifier(a) + ' ' + op + ' ' + sqlLiteral(b);
     }
 });
 
@@ -253,23 +252,6 @@ function sqlIdentifier(s) {
 function sqlLiteral(s) {
     return s.identifier ? getSqlIdentifier(s.identifier) : getSqlString(s.literal ? s.literal : s);
 }
-
-/**
- * @constructor
- * @extends Operators
- */
-var FilterCellOperators = Operators.extend({
-    makeLIKE: function(beg, end, op, a, likePattern) {
-        var escaped = likePattern.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
-        return op.toLowerCase() + SPC + beg + escaped + end;
-    },
-    makeIN: function(op, a, b) {
-        return op.toLowerCase() + SPC + b.replace(/\s*,\s*/g, ',');
-    },
-    makeDiadic: function(op, a, b) {
-        return op + b;
-    }
-});
 
 var groups = {
     equality: {
@@ -308,6 +290,8 @@ var groups = {
 _(groups).each(function(group, key) { group.name = key; });
 
 module.exports = {
+    Operators: Operators,
+
     /**
      * @type {module:conditionals~Operators}
      */
@@ -317,11 +301,6 @@ module.exports = {
      * @type {module:conditionals~SqlOperators}
      */
     sqlOperators: new SqlOperators(),
-
-    /**
-     * @type {module:conditionals~FilterCellOperators}
-     */
-    filterCellOperators: new FilterCellOperators(),
 
     /** Hash of logical operator groups for building your own operator drop-downs.
      * Each group is a {@link menuItem} object.*

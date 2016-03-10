@@ -47,22 +47,43 @@ var FilterTree = FilterNode.extend('FilterTree', {
     /**
      * Hash of constructors for objects that extend from {@link FilterLeaf}, which is the `Default` member here.
      *
-     * Add additional editors to this object (in the prototype) prior to instantiating a leaf node that refers to it.
+     * Add additional editors to this object (in the prototype) prior to instantiating a leaf node that refers to it. This object exists in the prototype and additions to it will affect all nodes that don't have their an "own" hash.
      *
-     * Alternatively, you could also override the entire object in your instance but if you do so, be sure to include the default editor, for example: `{ Default: FilterTree.prototype.editors.Default, ... }`. (One way of overriding would be to include such an object in an `editors` member of the options object passed to the constructor on instantiation. This works because all miscellaneous members are simply copied to the new instance. Not to be confused with the standard option `editor` which is a string containing a key from this hash and tells the leaf node what type to use.)
+     * If you create an "own" hash in your instance be sure to include the default editor, for example: `{ Default: FilterTree.prototype.editors.Default, ... }`. (One way of overriding would be to include such an object in an `editors` member of the options object passed to the constructor on instantiation. This works because all miscellaneous members are simply copied to the new instance. Not to be confused with the standard option `editor` which is a string containing a key from this hash and tells the leaf node what type to use.)
      */
     editors: {
         Default: TerminalNode
     },
 
-    addEditor: function(key, overrides) {
-        if (overrides) {
-            this.editors[key] = TerminalNode.extend(overrides);
-        } else {
-            delete this.editors[key];
+    /**
+     * An extension is a hash of prototype overrides (methods, properties) used to extend the default editor.
+     * @param {object|string} [ext] An extension hash or the (lower case) name of one in `FilterTree.extensions`.
+     * @returns {undefined|FillterLeaf} A new class extended from `this.editors.Default` -- which is initially `FilterLeaf` but may itself have been extended by a call to `.addEditor(extension, 'Default')`.
+     */
+    addEditor: function(ext) {
+        if (typeof ext === 'string') {
+            ext = FilterTree.extensions[ext.toLowerCase()];
         }
+        var Extension = this.editors.Default.extend(ext);
+        this.editors[ext.key] = Extension;
+        return Extension;
     },
 
+    /**
+     * @param {string} key - The name of the existing editor to remove.
+     * @memberOf FilterTree.prototype
+     */
+    removeEditor: function(key) {
+        if (key === 'Default') {
+            throw 'Cannot remove default editor.';
+        }
+        delete this.editors[key];
+    },
+
+    /**
+     *
+     * @memberOf FilterTree.prototype
+     */
     createView: function() {
         this.el = template(
             this.type || 'subtree',
@@ -98,6 +119,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el.addEventListener('click', onTreeOpClick.bind(this));
     },
 
+    /**
+     *
+     * @memberOf FilterTree.prototype
+     */
     loadState: function() {
         var state = this.state;
 
@@ -109,13 +134,13 @@ var FilterTree = FilterNode.extend('FilterTree', {
         } else {
             // Validate `state.children` (required)
             if (!(state.children instanceof Array)) {
-                throw new FilterNode.FilterTreeError('Expected `children` property to be an array.');
+                throw new this.Error('Expected `children` property to be an array.');
             }
 
             // Validate `state.operator` (if given)
             if (state.operator) {
                 if (!operators[state.operator]) {
-                    throw new FilterNode.FilterTreeError('Expected `operator` property to be one of: ' + Object.keys(operators));
+                    throw new this.Error('Expected `operator` property to be one of: ' + Object.keys(operators));
                 }
 
                 this.operator = state.operator;
@@ -125,6 +150,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
         }
     },
 
+    /**
+     *
+     * @memberOf FilterTree.prototype
+     */
     render: function() {
         var radioButton = this.el.querySelector(':scope > label > input[value=' + this.operator + ']'),
             addFilterLink = this.el.querySelector('.filter-tree-add-conditional');
@@ -167,6 +196,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @param {boolean} [options.focus=false] Call invalid() after inserting to focus on first blank control (if any).
      *
      * @returns {FilterNode} The new node.
+     *
+     * @memberOf FilterTree.prototype
      */
     add: function(options) {
         var Constructor, newNode;
@@ -200,6 +231,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @param {boolean} [object.alert=true] - Announce error via window.alert() before returning.
      * @param {boolean} [object.focus=true] - Place the focus on the offending control and give it error color.
      * @returns {undefined|FilterTreeError} `undefined` if valid; or the caught `FilterTreeError` if error.
+     * @memberOf FilterTree.prototype
      */
     invalid: function(options) {
         options = options || {};
@@ -214,7 +246,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
             result = err;
 
             // Throw when requested OR when unexpected (not a filter tree error)
-            if (rethrow || !(err instanceof FilterNode.FilterTreeError)) {
+            if (rethrow || !(err instanceof this.Error)) {
                 throw err;
             }
 
@@ -226,6 +258,12 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return result;
     },
 
+    /**
+     *
+     * @param dataRow
+     * @returns {boolean}
+     * @memberOf FilterTree.prototype
+     */
     test: function test(dataRow) {
         var operator = operators[this.operator],
             result = operator.seed,
@@ -249,15 +287,16 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     /**
-     * Get a representation of the filer (sub)tree state.
+     * @summary Get a representation of filter state.
+     * @desc Calling this on the root will get the entire tree's state; calling this on any subtree will get just that subtree's state.
      * @param {string} [options.syntax='object'] - A case-sensitive string indicating the expected type and format of the return value:
      * * `'object'` (default) walks the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterNode#setState|setState}.
      * * `'JSON'` walks the tree using `{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}`, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
      * * `'SQL'` walks the tree, returning a SQL where clause string. Suitable for creating SQL `SELECT` statements.
-     * * `'CQL'` walks the tree, returning a string suitable for a Hypergrid filter cell. This syntax should only be called for from a subtree containing homogeneous column names and no subexpressions.
      * @param {number|string} [options.space] - When `options.syntax === 'JSON'`, forwarded to `JSON.stringify`'s third parameter, `space` (see).
      * @param {object} [options.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
      * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
+     * @memberOf FilterTree.prototype
      */
     getState: function getState(options) {
         var result = '',
@@ -298,24 +337,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 result = lexeme.beg + (result || 'NULL IS NULL') + lexeme.end;
                 break;
 
-            case 'CQL':
-                var operator = operators[this.operator].filterCell.op;
-                this.children.forEach(function(child, idx) {
-                    if (child) {
-                        if (child instanceof TerminalNode) {
-                            if (idx) {
-                                result += ' ' + operator + ' ';
-                            }
-                            result += child.getState(options);
-                        } else if (child.children.length) {
-                            throw new FilterNode.FilterTreeError('Expected conditional but found subexpression (not supported in filter cell syntax).');
-                        }
-                    }
-                });
-                break;
-
             default:
-                throw new FilterNode.FilterTreeError('Unknown syntax option "' + syntax + '"');
+                throw new this.Error('Unknown syntax option "' + syntax + '"');
         }
 
         return result;
@@ -404,7 +427,7 @@ function onTreeOpClick(evt) { // called in context
  */
 function invalid(options) { // called in context
     //if (this instanceof FilterTree && !this.children.length) {
-    //    throw new FilterNode.FilterTreeError('Empty subexpression (no filters).');
+    //    throw new this.Error('Empty subexpression (no filters).');
     //}
 
     this.children.forEach(function(child) {
@@ -415,6 +438,10 @@ function invalid(options) { // called in context
         }
     });
 }
+
+FilterTree.extensions = {
+    columns: require('./extensions/columns')
+};
 
 
 module.exports = FilterTree;

@@ -8,11 +8,20 @@ var extend = require('extend-me'), Base = extend.Base; extend.debug = true;
 var cssInjector = require('./css');
 var template = require('./template');
 var conditionals = require('./conditionals');
-var sqlWhereParse = require('./sql-where-parse');
+var sqlSearchCondition = require('./sql-search-condition');
 
 
 var CHILDREN_TAG = 'OL',
     CHILD_TAG = 'LI';
+
+
+function FilterTreeError(message, node) {
+    this.message = message;
+    this.node = node;
+}
+FilterTreeError.prototype = Object.create(Error.prototype);
+FilterTreeError.prototype.name = 'FilterTreeError';
+
 
 /** @typedef {object} FilterTreeOptionsObject
  *
@@ -47,7 +56,7 @@ var CHILDREN_TAG = 'OL',
  *  * CSS selector of an Element whose `value` contains one of the above
  *  * plain object
  *
- * @property {function} [editor='Default'] - Type of simple expression; a key in the FilterTree.prototype.editors hash which maps to a simple expression constructor, which will be `FilterLeaf` or a constructor extended from `FilterLeaf`.
+ * @property {function} [editor='Default'] - For leaf nodes only. Names the editor to use for this simple expression. Must be found in parent node's {@link FilterTree#editors|this.parent.editors} where it maps to a leaf constructor (`FilterLeaf` or a descendent thereof).
  *
  * @property {FilterTree} [parent] - Used internally to insert element when creating nested subtrees. Optional for the top level tree only. (Note that you are responsible for inserting the top-level `.el` into the DOM.)
  *
@@ -110,6 +119,10 @@ var CHILDREN_TAG = 'OL',
 
 var FilterNode = Base.extend({
 
+    /**
+     * @param {FilterTreeOptionsObject} options
+     * @memberOf FilterNode.prototype
+     */
     initialize: function(options) {
         var self = this,
             state = options && options.state && parseStateString(options.state),
@@ -145,11 +158,12 @@ var FilterNode = Base.extend({
             }
         });
 
-        this.setState(state, options); // forward `options.beg` and `options.end` for use by `sqlWhereParse()`
+        this.setState(state, options);
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
      * > The root tree is has no parent and is inserted into the DOM by the instantiating code (without a delete button).
+     * @memberOf FilterNode.prototype
      */
     render: function() {
         if (this.parent) {
@@ -171,6 +185,32 @@ var FilterNode = Base.extend({
         }
     },
 
+    /** @typedef {undefined|string|object} FilterTreeStateObject
+     *
+     * @desc May be one of:
+     * * `FilterTreeStateObject`
+     * * JSON or SQL string
+     * * CSS selector string
+     * * `undefined` _(or any other falsy value)_)
+     *
+     * See {@link FilterNode~parseStateString|parseStateString} for further information.
+     */
+
+    /** @typedef {object} FilterTreeSetStateOptionsObject
+     *
+     * @property {boolean} [syntax] - Provide to override auto-detection of `state` paremeter. May be one of:
+     * * `'JSON'`
+     * * `'SQL'`
+     *
+     * @property {sqlIdQtsObject} [sqlIdQts] - The SQL identifier quote characters to accept while parsing the provided SQL. Alternatively, you can set the quote characters using the {@link module:sqlSearchCondition.pushSqlIdQts|pushSqlIdQts} method.
+     */
+
+    /**
+     *
+     * @param {FilterTreeStateObject} state
+     * @param {FilterTreeSetStateOptionsObject} [options]
+     * @memberOf FilterNode.prototype
+     */
     setState: function(state, options) {
         var oldEl = this.el;
         this.state = parseStateString(state, options);
@@ -190,6 +230,7 @@ var FilterNode = Base.extend({
     /** Remove both:
      * * `this` filter node from it's `parent`'s `children` collection; and
      * * `this` filter node's `el`'s container (always a `<li>` element) from its parent element.
+     * @memberOf FilterNode.prototype
      */
     remove: function() {
         var node = this.parent;
@@ -204,7 +245,9 @@ var FilterNode = Base.extend({
                 node.remove();
             }
         }
-    }
+    },
+
+    Error: FilterTreeError
 });
 
 FilterNode.optionsSchema = {
@@ -263,14 +306,6 @@ FilterNode.setWarningClass = function(el, value) {
     return value;
 };
 
-function FilterTreeError(message, node) {
-    this.message = message;
-    this.node = node;
-}
-FilterTreeError.prototype = Object.create(Error.prototype);
-FilterTreeError.prototype.name = 'FilterTreeError';
-FilterNode.FilterTreeError = FilterTreeError;
-
 FilterNode.clickIn = function(el) {
     if (el) {
         if (el.tagName === 'SELECT') {
@@ -285,20 +320,21 @@ var reSelector = /^[#\.]?\w+(\s*[ \.\-|*+#:~^$>]+\s*\w+.*)?$/;
 var reJSON = /^\s*[\[\{]/;
 
 /**
+ * @summary Convert a string to a state object.
  *
- * @param {undefined|string|object} state - May be one of:
- * * Filter-tree state object:
- *   Return as is.
- * * String representation of filter-tree state object (JSON or SQL, auto-detected):
- *   Parse the string and return an actual filter-tree state object.
- * * String CSS selector (auto-detected) of a HTML form control with a `value` containing the above:
- *   Parse `value` and return an actual filter-tree state object.
- * * `undefined` (or any other falsy value):
- *   Return as is. (Undefined state represents an new empty FilterNode object.)
+ * @desc The `state` input parameter is interpreted as follows:
+ *   1. If CSS selector syntax (auto-detected), it should select an HTML form control with a `value` property, such as a {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement HTMLInputElement} or a {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement HTMLTextAreaElement}. Select the element and fetch the value from the DOM. It is expected to be in either JSON or SQL syntax.
+ *   2. If JSON syntax (auto-detected), parse the string into an actual `FilterTreeStateObject` using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse|JSON.parse}
+ *   3. If not JSON syntax, it is assumed to be SQL; parse the string into an actual `FilterTreeStateObject` using sql-search-condition's {@link module:sqlSearchCondition.parser|parser}.
+ *   4. If `options.syntax` is defined, it will override the auto-detection.
  *
- * @param {object} [options.syntax] - May be `'JSON'` or `'SQL'` to override auto-detection
+ * @param {FilterTreeStateObject} state
+ * @param {FilterTreeSetStateOptionsObject} [options]
  *
- * @returns {object} filter-tree state object; or throws error if unknown or invalid syntax
+ * @returns {FilterTreeStateObject} Throws an error if `state` is unknown or invalid syntax.
+ *
+ * @memberOf FilterNode
+ * @inner
  */
 function parseStateString(state, options) {
     if (state) {
@@ -320,7 +356,7 @@ function parseStateString(state, options) {
                     break;
                 case 'SQL':
                     try {
-                        state = sqlWhereParse(state, options);
+                        state = sqlSearchCondition.parse(state, options);
                     } catch (error) {
                         throw new FilterTreeError('SQL WHERE clause parser: ' + error);
                     }
