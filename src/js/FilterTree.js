@@ -375,7 +375,9 @@ var FilterTree = FilterNode.extend('FilterTree', {
         });
 
         return state;
-    }
+    },
+
+    setCaseSensitivity: TerminalNode.setCaseSensitivity
 
 });
 

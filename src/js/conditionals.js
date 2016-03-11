@@ -14,6 +14,8 @@ var IN = 'IN',
     SQT = '\'',
     NIL = '';
 
+var API;
+
 var idQt = [];
 pushSqlIdQts({
     beg: '"',
@@ -76,7 +78,7 @@ var Operators = Base.extend({
     /** @type {relationalOperator}
      * @memberof module:conditionals~Operators.prototype
      */
-    '\u2260': {
+    '<>': {
         test: function(a, b) { return a !== b; },
         make: function(a, b) { return this.makeDiadic('<>', a, b); }
     },
@@ -139,7 +141,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     BEGINS: {
-        test: function(a, b) { b = (b + '').toLowerCase(); return beginsOp(a, b.length) === b; },
+        test: function(a, b) { b = API.cvtToString(b); return beginsOp(a, b.length) === b; },
         make: function(a, b) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, a, b); },
         type: 'string'
     },
@@ -148,7 +150,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     'NOT BEGINS': {
-        test: function(a, b) { b = (b + '').toLowerCase(); return beginsOp(a, b.length) !== b; },
+        test: function(a, b) { b = API.cvtToString(b); return beginsOp(a, b.length) !== b; },
         make: function(a, b) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, a, b); },
         type: 'string'
     },
@@ -157,7 +159,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     ENDS: {
-        test: function(a, b) { b = (b + '').toLowerCase(); return endsOp(a, b.length) === b; },
+        test: function(a, b) { b = API.cvtToString(b); return endsOp(a, b.length) === b; },
         make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, a, b); },
         type: 'string'
     },
@@ -166,7 +168,7 @@ var Operators = Base.extend({
      * @memberof module:conditionals~Operators.prototype
      */
     'NOT ENDS': {
-        test: function(a, b) { b = (b + '').toLowerCase(); return endsOp(a, b.length) !== b; },
+        test: function(a, b) { b = API.cvtToString(b); return endsOp(a, b.length) !== b; },
         make: function(a, b) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, a, b); },
         type: 'string'
     },
@@ -190,6 +192,7 @@ var Operators = Base.extend({
 // some synonyms
 Operators.prototype['\u2264'] = Operators.prototype['<='];  // UNICODE 'LESS-THAN OR EQUAL TO'
 Operators.prototype['\u2265'] = Operators.prototype['>='];  // UNICODE 'GREATER-THAN OR EQUAL TO'
+Operators.prototype['\u2260'] = Operators.prototype['<>'];  // UNICODE 'NOT EQUAL TO'
 
 function pureVirtualMethod(name) {
     throw 'Pure virtual method `Conditionals.prototype.' + name + '` has no implementation on this instance.';
@@ -204,15 +207,15 @@ function inOp(a, b) {
 }
 
 function containsOp(a, b) {
-    return (a + '').toLowerCase().indexOf((b + '').toLowerCase());
+    return API.cvtToString(a).indexOf(API.cvtToString(b));
 }
 
 function beginsOp(a, length) {
-    return (a + '').toLowerCase().substr(0, length);
+    return API.cvtToString(a).substr(0, length);
 }
 
 function endsOp(a, length) {
-    return (a + '').toLowerCase().substr(-length, length);
+    return API.cvtToString(a).substr(-length, length);
 }
 
 function sqEsc(string) {
@@ -289,7 +292,12 @@ var groups = {
 // add a `name` prop to each group
 _(groups).each(function(group, key) { group.name = key; });
 
-module.exports = {
+
+API = {
+    cvtToString: function(s) { // replace externally with a .toLowerCase version for case-insensitivity
+        return (s + '');
+    },
+
     Operators: Operators,
 
     /**
@@ -328,3 +336,6 @@ module.exports = {
     pushSqlIdQts: pushSqlIdQts,
     popSqlIdQts: popSqlIdQts
 };
+
+
+module.exports = API;

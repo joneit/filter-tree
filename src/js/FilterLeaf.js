@@ -10,15 +10,32 @@ var template = require('./template');
 var conditionals = require('./conditionals');
 
 
+var cvtToString = toStringCaseSensitive; // The currently set string converter; case-sensitive by default; reset by FilterLeaf.setCaseSensitivity()
+
+
 /** @typedef {object} converter
- * @property {function} to - Returns input value converted to type. Fails silently.
- * @property {function} not - Tests input value against type, returning `false if type or `true` if not type.
+ * @property {function} toType - Returns input value converted to type. Fails silently.
+ * @property {function} failed - Tests input value against type, returning `false if type or `true` if not type.
  */
-/** @type {converter} */
-var numberConverter = { to: Number, not: isNaN };
 
 /** @type {converter} */
-var dateConverter = { to: function(s) { return new Date(s); }, not: isNaN };
+var numberConverter = {
+    toType: Number,
+    failed: isNaN
+};
+
+/** @type {converter} */
+var dateConverter = {
+    toType: function(s) { return new Date(s); },
+    failed: isNaN
+};
+
+/** @type {converter} */
+var stringConverter = {
+    toType: cvtToString, // reset by FilterLeaf.setCaseSensitivity()
+    failed: function() {} // falsy return value because conversion to string always successful
+};
+
 
 /** @constructor
  * @summary An object that represents a terminal node in a filter tree.
@@ -144,7 +161,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         number: numberConverter,
         int: numberConverter, // pseudo-type: really just a Number
         float: numberConverter, // pseudo-type: really just a Number
-        date: dateConverter
+        date: dateConverter,
+        string: stringConverter
     },
 
     /**
@@ -160,7 +178,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @memberOf FilterLeaf.prototype
      */
     invalid: function(options) {
-        var elementName, field;
+        var elementName, field, type;
 
         for (elementName in this.view) {
             var el = this.view[elementName],
@@ -178,11 +196,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         this.op = conditionals.operators[this.operator];
 
-        this.converter = this.converters[ // undefined if none of the following
-            this.type || // the expression's type, if any
+        // TODO: Can setting up this.converter be moved to initialize()?
+
+        type = this.type || // the expression's type, if any
             this.op.type || // the expression's operator type, if any
-            (field = popMenu.findItem(this.schema, this.column)) && field.type // the expression's column type, if any
-        ];
+            (field = popMenu.findItem(this.schema, this.column)) && field.type; // the expression's column type, if any
+
+        this.converter = type && type !== 'string' && this.converters[type];
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
@@ -191,22 +211,24 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     test: function(dataRow) {
         var p, q, // untyped versions of args
             P, Q, // typed versions of p and q
-            convert;
+            converter;
 
+        // TODO: If a literal (this.q not overridden), q only needs to be fetched & converted ONCE for all rows
         return (
-            //(p = valOrFunc(this.p(dataRow))) === undefined || // TODO: right now assuming all values are natively strings
+            // TODO: Uncomment following two lines if values can be functions
+            //(p = valOrFunc(this.p(dataRow))) === undefined ||
             //(q = valOrFunc(this.q(dataRow))) === undefined
             (p = this.p(dataRow)) === undefined ||
             (q = this.q(dataRow)) === undefined
         )
-            ? false
+            ? false // data inaccessible so exclude row
             : (
-                (convert = this.converter) &&
-                !convert.not(P = convert.to(p)) &&
-                !convert.not(Q = convert.to(q))
+                (converter = this.converter) &&
+                !converter.failed(P = converter.toType(p)) && // attempt to convert data to type
+                !converter.failed(Q = converter.toType(q))
             )
-                ? this.op.test(P, Q)
-                : this.op.test(p + '', q + '');
+                ? this.op.test(P, Q) // there was a converter and both conversions were successful so compare as types
+                : this.op.test(cvtToString(p), cvtToString(q)); // no converter or one or both type conversions failed so compare as strings
     },
 
     toJSON: function() {
@@ -419,5 +441,23 @@ function controlValue(el) {
 
     return value;
 }
+
+/**
+ * @summary Set case-sensitivity.
+ * @desc This is a shared property for all filter-trees.
+ * @param {boolean} isSensitive
+ */
+FilterLeaf.setCaseSensitivity = function(isSensitive) {
+    stringConverter.toType =
+        conditionals.cvtToString =
+            cvtToString = isSensitive
+                ? toStringCaseSensitive
+                : toStringCaseInsensitive;
+};
+
+// Following two functions are the possible values for FilterLeaf.prototype.cvtToType:
+function toStringCaseInsensitive(s) { return (s + '').toLowerCase(); }
+function toStringCaseSensitive(s) { return s + ''; }
+
 
 module.exports = FilterLeaf;
