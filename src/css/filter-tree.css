@@ -8,7 +8,7 @@
 }
 .filter-tree input[type=radio],
 .filter-tree input[type=checkbox] {
-    left: 3px; /* damn you, bootstrap! */
+    margin-left: 3px; /* damn you, bootstrap! */
     margin-right: 3px; /* damn you, bootstrap! */
 }
 .filter-tree ol { margin-top: 0 }
@@ -149,26 +149,4 @@
     padding: 0 5px;
     margin: 0 3px;
     border-radius: 3px;
-}
-
-/* Filter editor chooser */
-
-.filter-tree-chooser {
-    position: absolute;
-    font-size: 9pt;
-    outline: 0;
-    box-shadow: 5px 5px 10px grey;
-    z-index: 0;
-    border: 1px solid black;
-    border-radius: 5px;
-    border-top-left-radius: 0;
-    background-color: lightyellow;
-    font-style: italic;
-    font-size: 90%;
-}
-.filter-tree-chooser > option {
-    padding: 4px 6px;
-}
-.filter-tree-chooser > option:not(:last-child) {
-    border-bottom: 1px dashed #666;
 }

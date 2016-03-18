@@ -6,7 +6,7 @@ var _ = require('object-iterators');
 var extend = require('extend-me'), Base = extend.Base; extend.debug = true;
 
 var cssInjector = require('./css');
-var template = require('./template');
+var Templates = require('./Templates');
 var conditionals = require('./conditionals');
 var sqlSearchCondition = require('./sql-search-condition');
 
@@ -97,11 +97,8 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  *
  * @property {function} [eventHandler] - Event handler for UI events.
  *
- * @property {string} [template] - Identifies either:
- * 1. The type of a {@link FilterTree} node, used among other things to select a rendering template:
- *    * `undefined` (or omitted) - A generic filter tree node,
- *    * `'columnFilters'` - A special {@link FilterTree} containing _column filter_ subexpressions
- *    * `'columnFilter'` -  A special {@link FilterTree} containing homogeneous _column filter_ expressions (all referencing the same column on the left side of their dyadic expressions).
+ * @property {string} [type='subtree'] - Identifies either:
+ * 1. The type of a {@link FilterTree} node, used to select a rendering template.
  * 2. The data type of a {@link FilterLeaf} (terminal) node.
  *
  * @property {menuItem[]} [treeOpMenu=conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
@@ -174,7 +171,7 @@ var FilterNode = Base.extend({
             }
 
             if (!(this.state && this.state.locked)) {
-                var el = template('removeButton');
+                var el = this.templates.get('removeButton');
                 el.addEventListener('click', this.remove.bind(this));
                 newListItem.appendChild(el);
             }
@@ -247,7 +244,9 @@ var FilterNode = Base.extend({
         }
     },
 
-    Error: FilterTreeError
+    Error: FilterTreeError,
+
+    templates: new Templates()
 });
 
 FilterNode.optionsSchema = {

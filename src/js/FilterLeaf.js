@@ -6,7 +6,6 @@
 var popMenu = require('pop-menu');
 
 var FilterNode = require('./FilterNode');
-var template = require('./template');
 var conditionals = require('./conditionals');
 
 
@@ -140,11 +139,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
             if (notes.length) {
                 var multiple = notes.length > 1,
-                    footnotes = template(multiple ? 'notes' : 'note'),
+                    footnotes = this.templates.get(multiple ? 'notes' : 'note'),
                     inner = footnotes.querySelector('.footnote');
                 notes.forEach(function(note) {
                     var footnote = multiple ? document.createElement('li') : inner;
-                    note = template('optionMissing', note.key, note.value);
+                    note = this.templates.get('optionMissing', note.key, note.value);
                     while (note.length) { footnote.appendChild(note[0]); }
                     if (multiple) { inner.appendChild(footnote); }
                 });
@@ -305,7 +304,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         if (option) {
             // hard text when single item
-            el = template(
+            el = this.templates.get(
                 'lockedColumn',
                 option.alias || option.name || option,
                 option.name || option.alias || option

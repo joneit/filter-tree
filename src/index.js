@@ -6,7 +6,6 @@ var popMenu = require('pop-menu');
 var FilterTree = require('./js/FilterTree');
 var conditionals = require('./js/conditionals');
 var copy = require('./js/copy-input');
-var template = require('./js/template');
 
 // expose some objects for plug-in access
 
@@ -18,7 +17,6 @@ FilterTree.conditionals = conditionals;
 FilterTree._ = _;
 FilterTree.popMenu = popMenu;
 FilterTree.copy = copy;
-FilterTree.template = template;
 
 
 module.exports = FilterTree;

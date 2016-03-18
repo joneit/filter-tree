@@ -12,7 +12,6 @@ var unstrungify = require('unstrungify');
 
 var FilterNode = require('./FilterNode');
 var TerminalNode = require('./FilterLeaf');
-var template = require('./template');
 var operators = require('./tree-operators');
 var conditionals = require('./conditionals');
 
@@ -85,7 +84,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @memberOf FilterTree.prototype
      */
     createView: function() {
-        this.el = template(
+        this.el = this.templates.get(
             this.type || 'subtree',
             ++ordinal,
             popMenu.formatItem(this.schema[0])
