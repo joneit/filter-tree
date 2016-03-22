@@ -1,1 +1,1 @@
-Each file in this folder returns a hash of overrides (methods and properties) with which to extend `FilterLeaf` (or a descendant thereof). The resulting new class can be added to `myFilterTree.editors` with a name 
+Each file in this folder returns a hash of overrides (methods and properties) with which to extend `FilterLeaf` (or a descendant thereof).

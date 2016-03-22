@@ -26,7 +26,7 @@ window.onload = function() {
 
     var cc = querystring('cc');
     if (cc == null || cc) {
-        FilterTree.prototype.addEditor('columns');
+        FilterTree.prototype.addEditor('Columns');
     }
 
     var tabz = new Tabz({
@@ -65,11 +65,6 @@ window.onload = function() {
         PROPERTY[propertyCheckbox.id] = propertyCheckbox.checked;
     });
 
-    var QUIET_VALIDATION = {
-        alert: false,
-        focus: false
-    };
-
     initialize();
 
     function elid(id) { return document.getElementById(id); }
@@ -89,7 +84,7 @@ window.onload = function() {
 
     function auto() {
         if (elid('autoget').checked) {
-            toJSON(QUIET_VALIDATION);
+            toJSON();
         }
 
         getSqlWhereClause();
@@ -276,7 +271,7 @@ window.onload = function() {
      * Ignores _incomplete_ expressions (empty string OR an operator - a value).
      * @param {string} columnName
      * @param {string[]} expressions
-     * @returns {expression[]} where `expression` is either `{column: string, operator: string, literal: string}` or `{column: string, operator: string, column2: string, editor: 'Columns'}`
+     * @returns {expression[]} where `expression` is either `{column: string, operator: string, literal: string}` or `{column: string, operator: string, identifier: string, editor: 'Columns'}`
      */
     function makeChildren(columnName, expressions) {
         var children = [],
@@ -305,7 +300,7 @@ window.onload = function() {
                     };
 
                     if (fieldName) {
-                        child.column2 = fieldName.name || fieldName;
+                        child.identifier = fieldName.name || fieldName;
                         child.editor = 'Columns';
                     } else {
                         child.literal = literal;
@@ -509,7 +504,7 @@ window.onload = function() {
             var cell = document.querySelector('input[name=' + column.name + ']');
             if (cell) {
                 var columnFilter = activeColumnFilters[column.name];
-                cell.value = columnFilter && !columnFilter.invalid(QUIET_VALIDATION)
+                cell.value = columnFilter && !columnFilter.invalid()
                     ? columnFilter.getState({ syntax: 'CQL' })
                     : '';
             }
@@ -600,7 +595,7 @@ window.onload = function() {
                 ||
             field && field.type && typeOps && typeOps[field.type]
                 ||
-            FilterTree.conditionals.defaultOpMenu
+            FilterTree.Conditionals.defaultOpMenu
         );
     }
 
@@ -676,7 +671,7 @@ window.onload = function() {
     function getSqlWhereClause(force) {
         if (
             (force || elid('autoGetWhere').checked) &&
-            !invalid(!force && QUIET_VALIDATION)
+            !invalid(force && { alert: true, focus: true })
         ) {
             elid('where-data').value = filterTree.getState({ syntax: 'SQL' });
         }
@@ -685,7 +680,7 @@ window.onload = function() {
     function test(force) {
         if (force || elid('autotest').checked) {
             var result, data,
-                options = !force && QUIET_VALIDATION;
+                options = force && { alert: true, focus: true };
             if (invalid(options)) {
                 result = 'invalid-filter';
             } else if (!(data = getLiteral('dataRow', options))) {

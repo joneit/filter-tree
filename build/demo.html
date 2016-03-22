@@ -222,7 +222,7 @@ Regenerate the filter tree UI element based on the filter expression described b
 
     <div class="tabz">
 
-        <input type="button" class="demoButton" value="validate" onclick="harness.invalid()" style="float:right" />
+        <input type="button" class="demoButton" value="validate" onclick="harness.invalid({alert:true,focus:true})" style="float:right" />
 
         <p>
             The Hypergrid filter tree has two main branches (or <i>subtrees</i>),<br>
@@ -272,7 +272,7 @@ Regenerate the filter tree UI element based on the filter expression described b
                                 <li>
                                     Simple expressions
                                     <ul>
-                                        <li>All simple expressions must be of the form <i>column-operator-literal</i> or <i>column1-operator-column2</i>. That is, the left side must refer to a column (may not be a literal).</li>
+                                        <li>All simple expressions must be of the form <i>column operator literal</i> or <i>column operator identifier</i>. That is, the left side must refer to a column (may not be a literal).</li>
 
                                         <li>Column names may be quoted with the currently set quote characters (typically double-quotes). If unquoted, they must consist of classic identifier syntax (alphanumerics and underscore, but not beginning with a numeral).</li>
 
@@ -351,7 +351,7 @@ Regenerate the filter tree UI element based on the filter expression described b
                             <li>
                                 Simple expressions
                                 <ul>
-                                    <li>All simple expressions take the form <i>operator-literal</i> or <i>operator-column2</i>. The (left side) column is always implied and is the same for all simple expressions in a compound expression. This is because column filters are always tied to a known column.</li>
+                                    <li>All simple expressions take the form <i>operator literal</i> or <i>operator identifier</i>. The (left side) column is always implied and is the same for all simple expressions in a compound expression. This is because column filters are always tied to a known column.</li>
 
                                     <li>If the operator is an equals sign (=), it may be omitted.</li>
 

@@ -6,10 +6,10 @@
 var popMenu = require('pop-menu');
 
 var FilterNode = require('./FilterNode');
-var conditionals = require('./conditionals');
+var Conditionals = require('./Conditionals');
 
 
-var cvtToString = toStringCaseSensitive; // The currently set string converter; case-sensitive by default; reset by FilterLeaf.setCaseSensitivity()
+var conditionals = new Conditionals();
 
 
 /** @typedef {object} converter
@@ -31,7 +31,7 @@ var dateConverter = {
 
 /** @type {converter} */
 var stringConverter = {
-    toType: cvtToString, // reset by FilterLeaf.setCaseSensitivity()
+    toType: null, // set by FilterLeaf.setCaseSensitivity()
     failed: function() {} // falsy return value because conversion to string always successful
 };
 
@@ -45,11 +45,9 @@ var stringConverter = {
  * * _operator-property_ is an operator from an extensible list of operators, also selected from a drop-down; and
  * * _argument-property_ is a constant typed into a text box.
  *
- * The default operator list is defined in conditionals.js and includes equality (=), inequality (<, ≤, ≠, ≥, >), and various pattern operators (such as LIKE, NOT LIKE, etc.)
+ * The default operator list is defined in RelatioalOperators.js and includes equality (=), inequality (<, ≤, ≠, ≥, >), and various pattern operators (such as LIKE, NOT LIKE, etc.)
  */
 var FilterLeaf = FilterNode.extend('FilterLeaf', {
-
-    key: 'Default', // key in `this.parent.editors` hash
 
     name: 'column = value', // display string for drop-down
 
@@ -184,8 +182,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 value = controlValue(el).trim();
 
             if (value === '') {
-                var focus = options && options.focus;
-                if (focus === undefined || focus) { clickIn(el); }
+                if (options && options.focus) { clickIn(el); }
                 throw new this.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.', this);
             } else {
                 // Copy each controls's value as a new similarly named property of this object.
@@ -193,7 +190,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
         }
 
-        this.op = conditionals.operators[this.operator];
+        this.op = Conditionals.ops[this.operator];
 
         // TODO: Can setting up this.converter be moved to initialize()?
 
@@ -227,7 +224,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 !converter.failed(Q = converter.toType(q))
             )
                 ? this.op.test(P, Q) // there was a converter and both conversions were successful so compare as types
-                : this.op.test(cvtToString(p), cvtToString(q)); // no converter or one or both type conversions failed so compare as strings
+                : this.op.test(this.cvtToString(p), this.cvtToString(q)); // no converter or one or both type conversions failed so compare as strings
     },
 
     toJSON: function() {
@@ -263,19 +260,15 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 result = JSON.stringify(this, null, options && options.space) || '';
                 break;
             case 'SQL':
-                result = this.getSyntax(conditionals.sqlOperators);
-                break;
-            default:
-                throw new this.Error('Unknown syntax option "' + syntax[0] + '"');
+                result = this.getSyntax(conditionals);
         }
 
         return result;
     },
 
-    getSyntax: function(operators) {
-        return operators[this.operator].make.call(operators, this.column, this.literal);
+    getSyntax: function(conditionals) {
+        return Conditionals.ops[this.operator].make.call(conditionals, this);
     },
-
 
     /** @summary HTML form controls factory.
      * @desc Creates and appends a text box or a drop-down.
@@ -314,7 +307,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             options = {
                 prompt: prompt,
                 sort: sort,
-                group: function(groupName) { return conditionals.groups[groupName]; }
+                group: function(groupName) { return Conditionals.groups[groupName]; }
             };
             el = popMenu.build(tagName, menu, options);
             if (el.type === 'text' && this.eventHandler) {
@@ -440,23 +433,6 @@ function controlValue(el) {
 
     return value;
 }
-
-/**
- * @summary Set case-sensitivity.
- * @desc This is a shared property for all filter-trees.
- * @param {boolean} isSensitive
- */
-FilterLeaf.setCaseSensitivity = function(isSensitive) {
-    stringConverter.toType =
-        conditionals.cvtToString =
-            cvtToString = isSensitive
-                ? toStringCaseSensitive
-                : toStringCaseInsensitive;
-};
-
-// Following two functions are the possible values for FilterLeaf.prototype.cvtToType:
-function toStringCaseInsensitive(s) { return (s + '').toLowerCase(); }
-function toStringCaseSensitive(s) { return s + ''; }
 
 
 module.exports = FilterLeaf;

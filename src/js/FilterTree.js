@@ -13,7 +13,6 @@ var unstrungify = require('unstrungify');
 var FilterNode = require('./FilterNode');
 var TerminalNode = require('./FilterLeaf');
 var operators = require('./tree-operators');
-var conditionals = require('./conditionals');
 
 
 var ordinal = 0;
@@ -56,16 +55,21 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     /**
      * An extension is a hash of prototype overrides (methods, properties) used to extend the default editor.
-     * @param {object|string} [ext] An extension hash or the (lower case) name of one in `FilterTree.extensions`.
-     * @returns {undefined|FillterLeaf} A new class extended from `this.editors.Default` -- which is initially `FilterLeaf` but may itself have been extended by a call to `.addEditor(extension, 'Default')`.
+     * @param {string} [key='Default'] - Nme of the new extension given in `ext` or name of an existing extension in `FilterTree.extensions`. As a constructor, should have an initial capital. If omitted, replaces the default editor (FilterLeaf).
+     * @param {object} [ext] An extension hash
+     * @param {FilerLeaf} [BaseEditor=this.editors.Default] - Constructor to extend from.
+     * @returns {FillterLeaf} A new class extended from `BaseEditor` -- which is initially `FilterLeaf` but may itself have been extended by a call to `.addEditor('Default', extension)`.
      */
-    addEditor: function(ext) {
-        if (typeof ext === 'string') {
-            ext = FilterTree.extensions[ext.toLowerCase()];
+    addEditor: function(key, ext, BaseEditor) {
+        if (typeof key === 'object') {
+            // `key` (string) was omitted
+            BaseEditor = ext;
+            ext = key;
+            key = 'Default';
         }
-        var Extension = this.editors.Default.extend(ext);
-        this.editors[ext.key] = Extension;
-        return Extension;
+        BaseEditor = BaseEditor || this.editors.Default;
+        ext = ext || FilterTree.extensions[key];
+        return (this.editors[key] = BaseEditor.extend(key, ext));
     },
 
     /**
@@ -219,39 +223,37 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         if (options.focus) {
             // focus on blank control a beat after adding it
-            setTimeout(function() { newNode.invalid({ alert: false }); }, 750);
+            setTimeout(function() { newNode.invalid(options); }, 750);
         }
 
         return newNode;
     },
 
     /**
-     * @param {boolean} [object.rethrow=false] - Throw (do not catch) `FilterTreeError`s.
-     * @param {boolean} [object.alert=true] - Announce error via window.alert() before returning.
-     * @param {boolean} [object.focus=true] - Place the focus on the offending control and give it error color.
+     * @param {boolean} [object.throw=false] - Throw (do not catch) `FilterTreeError`s.
+     * @param {boolean} [object.alert=false] - Announce error via window.alert() before returning.
+     * @param {boolean} [object.focus=false] - Place the focus on the offending control and give it error color.
      * @returns {undefined|FilterTreeError} `undefined` if valid; or the caught `FilterTreeError` if error.
      * @memberOf FilterTree.prototype
      */
     invalid: function(options) {
+        var result;
+
         options = options || {};
 
-        var alert = options.alert === undefined || options.alert,
-            rethrow = options.rethrow,
-            result;
-
         try {
-            invalid.call(this, options);
+            result = invalid.call(this, options);
         } catch (err) {
             result = err;
 
             // Throw when requested OR when unexpected (not a filter tree error)
-            if (rethrow || !(err instanceof this.Error)) {
+            if (options.throw || !(err instanceof this.Error)) {
                 throw err;
             }
+        }
 
-            if (alert) {
-                window.alert(err.message); // eslint-disable-line no-alert
-            }
+        if (result && options.alert) {
+            window.alert(result.message || result); // eslint-disable-line no-alert
         }
 
         return result;
@@ -311,12 +313,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 break;
 
             case 'SQL':
-                var lexeme = operators[this.operator].SQL,
-                    qts = !this.parent && options && options.sqlIdQts;
-
-                if (qts) {
-                    conditionals.pushSqlIdQts(qts);
-                }
+                var lexeme = operators[this.operator].SQL;
 
                 this.children.forEach(function(child, idx) {
                     var op = idx ? ' ' + lexeme.op + ' ' : '';
@@ -329,11 +326,9 @@ var FilterTree = FilterNode.extend('FilterTree', {
                     }
                 });
 
-                if (qts) {
-                    conditionals.popSqlIdQts();
+                if (result) {
+                    result = lexeme.beg + result + lexeme.end;
                 }
-
-                result = lexeme.beg + (result || 'NULL IS NULL') + lexeme.end;
                 break;
 
             default:
@@ -422,7 +417,7 @@ function onTreeOpClick(evt) { // called in context
 /**
  * Throws error if invalid expression tree.
  * Caught by {@link FilterTree#invalid|FilterTree.prototype.invalid()}.
- * @param {boolean} [options.focus=true] - Move focus to offending control.
+ * @param {boolean} [options.focus=false] - Move focus to offending control.
  * @returns {undefined} if valid
  * @private
  */
@@ -441,7 +436,7 @@ function invalid(options) { // called in context
 }
 
 FilterTree.extensions = {
-    columns: require('./extensions/columns')
+    Columns: require('./extensions/columns')
 };
 
 

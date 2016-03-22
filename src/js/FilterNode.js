@@ -7,7 +7,7 @@ var extend = require('extend-me'), Base = extend.Base; extend.debug = true;
 
 var cssInjector = require('./css');
 var Templates = require('./Templates');
-var conditionals = require('./conditionals');
+var Conditionals = require('./Conditionals');
 var sqlSearchCondition = require('./sql-search-condition');
 
 
@@ -101,7 +101,7 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  * 1. The type of a {@link FilterTree} node, used to select a rendering template.
  * 2. The data type of a {@link FilterLeaf} (terminal) node.
  *
- * @property {menuItem[]} [treeOpMenu=conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
+ * @property {menuItem[]} [treeOpMenu=Conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
  *
  * @property {object} [typeOpMenu] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
  * 1. do not have their own operator menu (`opMenu` property) of their own; and
@@ -290,7 +290,7 @@ FilterNode.optionsSchema = {
      * @type {string[]}
      * @memberOf FilterNode.prototype
      */
-    treeOpMenu: { default: conditionals.defaultOpMenu },
+    treeOpMenu: { default: Conditionals.defaultOpMenu },
 
     typeOpMenu: {},
 

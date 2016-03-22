@@ -1,24 +1,22 @@
 'use strict';
 
-var groups = require('../conditionals').groups;
+var groups = require('../Conditionals').groups;
+var FilterLeafPrototype = require('../FilterLeaf').prototype;
 
 module.exports = {
-    key: 'Columns', // key in `this.parent.editors` hash
-
     name: 'column = column', // display string for drop-down
 
     createView: function() {
         // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
-        this.super.createView.call(this);
+        FilterLeafPrototype.createView.call(this);
 
         // Remove the `literal` element from the `view` hash
         delete this.view.literal;
 
-        this.view.column2 = this.makeElement(this.root.schema, 'column', this.sortColumnMenu);
-        //this.view.column2 = this.el.firstElementChild.cloneNode(true);
+        this.view.identifier = this.makeElement(this.root.schema, 'column', this.sortColumnMenu);
 
         // Replace the 3rd element with the new one. There are no event listeners to worry about.
-        this.el.replaceChild(this.view.column2, this.el.children[2]);
+        this.el.replaceChild(this.view.identifier, this.el.children[2]);
     },
 
     treeOpMenu: [
@@ -28,10 +26,6 @@ module.exports = {
     ],
 
     q: function(dataRow) {
-        return dataRow[this.column2];
-    },
-
-    getSyntax: function(ops) {
-        return ops[this.operator].make.call(ops, this.name, this.column2);
+        return dataRow[this.identifier];
     }
 };
