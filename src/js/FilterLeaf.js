@@ -139,11 +139,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
             if (notes.length) {
                 var multiple = notes.length > 1,
-                    footnotes = this.templates.get(multiple ? 'notes' : 'note'),
+                    templates = this.templates,
+                    footnotes = templates.get(multiple ? 'notes' : 'note'),
                     inner = footnotes.querySelector('.footnote');
                 notes.forEach(function(note) {
                     var footnote = multiple ? document.createElement('li') : inner;
-                    note = this.templates.get('optionMissing', note.key, note.value);
+                    note = templates.get('optionMissing', note.key, note.value);
                     while (note.length) { footnote.appendChild(note[0]); }
                     if (multiple) { inner.appendChild(footnote); }
                 });
