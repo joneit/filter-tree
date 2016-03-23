@@ -159,7 +159,7 @@ var FilterNode = Base.extend({
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
-     * > The root tree is has no parent and is inserted into the DOM by the instantiating code (without a delete button).
+     * > The root tree (which has no parent) is inserted into the DOM by the instantiating code (without a delete button).
      * @memberOf FilterNode.prototype
      */
     render: function() {
@@ -216,7 +216,7 @@ var FilterNode = Base.extend({
         this.render();
         if (oldEl) {
             var newEl = this.el;
-            if (this.parent) {
+            if (this.parent && oldEl.parentElement.tagName === 'LI') {
                 oldEl = oldEl.parentNode;
                 newEl = newEl.parentNode;
             }

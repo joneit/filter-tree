@@ -14,7 +14,7 @@ var IN = 'IN',
     NIL = '';
 
 var idQt = [];
-var cvtToString;
+var toString;
 
 /**
  * @constructor
@@ -160,7 +160,7 @@ Conditionals.ops = {
      * @memberof Conditionals.prototype
      */
     BEGINS: {
-        test: function(a, b) { b = cvtToString(b); return beginsOp(a, b.length) === b; },
+        test: function(a, b) { b = toString(b); return beginsOp(a, b.length) === b; },
         make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, c); },
         type: 'string'
     },
@@ -169,7 +169,7 @@ Conditionals.ops = {
      * @memberof Conditionals.prototype
      */
     'NOT BEGINS': {
-        test: function(a, b) { b = cvtToString(b); return beginsOp(a, b.length) !== b; },
+        test: function(a, b) { b = toString(b); return beginsOp(a, b.length) !== b; },
         make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, c); },
         type: 'string'
     },
@@ -178,7 +178,7 @@ Conditionals.ops = {
      * @memberof Conditionals.prototype
      */
     ENDS: {
-        test: function(a, b) { b = cvtToString(b); return endsOp(a, b.length) === b; },
+        test: function(a, b) { b = toString(b); return endsOp(a, b.length) === b; },
         make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, c); },
         type: 'string'
     },
@@ -187,7 +187,7 @@ Conditionals.ops = {
      * @memberof Conditionals.prototype
      */
     'NOT ENDS': {
-        test: function(a, b) { b = cvtToString(b); return endsOp(a, b.length) !== b; },
+        test: function(a, b) { b = toString(b); return endsOp(a, b.length) !== b; },
         make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, c); },
         type: 'string'
     }
@@ -208,15 +208,15 @@ function inOp(a, b) {
 }
 
 function containsOp(a, b) {
-    return cvtToString(a).indexOf(cvtToString(b));
+    return toString(a).indexOf(toString(b));
 }
 
 function beginsOp(a, length) {
-    return cvtToString(a).substr(0, length);
+    return toString(a).substr(0, length);
 }
 
 function endsOp(a, length) {
-    return cvtToString(a).substr(-length, length);
+    return toString(a).substr(-length, length);
 }
 
 function sqEsc(string) {
@@ -305,22 +305,13 @@ Conditionals.popSqlIdQts = function() {
     return idQt.shift();
 };
 
-/**
- * @summary Set case-sensitivity.
- * @desc This is a shared property for all filter-trees.
- * @param {boolean} isSensitive
- * @memberof Conditionals.prototype
- */
-Conditionals.setCaseSensitivity = function(isSensitive) {
-    return (cvtToString = isSensitive ? toStringCaseSensitive : toStringCaseInsensitive);
-};
-function toStringCaseInsensitive(s) { return (s + '').toLowerCase(); }
-function toStringCaseSensitive(s) { return s + ''; }
-
-
 Conditionals.pushSqlIdQts({ beg: '"', end: '"' });
 
-Conditionals.setCaseSensitivity(false);
+
+// Meant to be called by FilterTree.prototype.setSensitivity only
+Conditionals.setToString = function(fn) {
+    return (toString = fn);
+};
 
 
 module.exports = Conditionals;

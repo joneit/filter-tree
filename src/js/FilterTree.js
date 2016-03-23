@@ -11,7 +11,7 @@ var popMenu = require('pop-menu');
 var unstrungify = require('unstrungify');
 
 var FilterNode = require('./FilterNode');
-var TerminalNode = require('./FilterLeaf');
+var FilterLeaf = require('./FilterLeaf');
 var operators = require('./tree-operators');
 
 
@@ -50,7 +50,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * If you create an "own" hash in your instance be sure to include the default editor, for example: `{ Default: FilterTree.prototype.editors.Default, ... }`. (One way of overriding would be to include such an object in an `editors` member of the options object passed to the constructor on instantiation. This works because all miscellaneous members are simply copied to the new instance. Not to be confused with the standard option `editor` which is a string containing a key from this hash and tells the leaf node what type to use.)
      */
     editors: {
-        Default: TerminalNode
+        Default: FilterLeaf
     },
 
     /**
@@ -273,7 +273,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.children.find(function(child) {
             if (child) {
                 noChildrenDefined = false;
-                if (child instanceof TerminalNode) {
+                if (child instanceof FilterLeaf) {
                     result = operator.reduce(result, child.test(dataRow));
                 } else if (child.children.length) {
                     result = operator.reduce(result, test.call(child, dataRow));
@@ -318,7 +318,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 this.children.forEach(function(child, idx) {
                     var op = idx ? ' ' + lexeme.op + ' ' : '';
                     if (child) {
-                        if (child instanceof TerminalNode) {
+                        if (child instanceof FilterLeaf) {
                             result += op + child.getState(options);
                         } else if (child.children.length) {
                             result += op + getState.call(child, options);
@@ -346,7 +346,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
         this.children.forEach(function(child) {
             if (child) {
-                if (child instanceof TerminalNode) {
+                if (child instanceof FilterLeaf) {
                     state.children.push(child);
                 } else {
                     var ready = toJSON.call(child);
@@ -371,9 +371,23 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return state;
     },
 
-    setCaseSensitivity: TerminalNode.setCaseSensitivity
+    /**
+     * @summary Set case-sensitivity.
+     * Sets a shared set of properties that affects all filter trees.
+     * @param {boolean} isSensitive
+     * @returns {function} Chosen string converter.
+     * @memberOf Filtertree.prototype.prototype
+     */
+    setCaseSensitivity: function(isSensitive) {
+        var toString = isSensitive ? toStringCaseSensitive : toStringCaseInsensitive;
+        FilterLeaf.setToString(toString);
+        return toString;
+    }
 
 });
+
+function toStringCaseInsensitive(s) { return (s + '').toLowerCase(); }
+function toStringCaseSensitive(s) { return s + ''; }
 
 // Some event handlers bound to FilterTree object
 
@@ -427,7 +441,7 @@ function invalid(options) { // called in context
     //}
 
     this.children.forEach(function(child) {
-        if (child instanceof TerminalNode) {
+        if (child instanceof FilterLeaf) {
             child.invalid(options);
         } else if (child.children.length) {
             invalid.call(child, options);
@@ -438,6 +452,9 @@ function invalid(options) { // called in context
 FilterTree.extensions = {
     Columns: require('./extensions/columns')
 };
+
+// module initialization
+FilterTree.prototype.setCaseSensitivity(true);  // default is case-sensitive which is more efficient; may be reset at will
 
 
 module.exports = FilterTree;

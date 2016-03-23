@@ -11,6 +11,8 @@ var Conditionals = require('./Conditionals');
 
 var conditionals = new Conditionals();
 
+var toString; // set by FilterLeaf.setToString() called from ../index.js
+
 
 /** @typedef {object} converter
  * @property {function} toType - Returns input value converted to type. Fails silently.
@@ -31,7 +33,7 @@ var dateConverter = {
 
 /** @type {converter} */
 var stringConverter = {
-    toType: null, // set by FilterLeaf.setCaseSensitivity()
+    toType: null, // set by FilterLeaf.setToString() called from ../index.js
     failed: function() {} // falsy return value because conversion to string always successful
 };
 
@@ -223,8 +225,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 !converter.failed(P = converter.toType(p)) && // attempt to convert data to type
                 !converter.failed(Q = converter.toType(q))
             )
-                ? this.op.test(P, Q) // there was a converter and both conversions were successful so compare as types
-                : this.op.test(this.cvtToString(p), this.cvtToString(q)); // no converter or one or both type conversions failed so compare as strings
+                ? this.op.test(P, Q) // both conversions successful: compare as types
+                : this.op.test(toString(p), toString(q)); // one or both conversions failed: compare as strings
     },
 
     toJSON: function() {
@@ -433,6 +435,11 @@ function controlValue(el) {
 
     return value;
 }
+
+// Meant to be called by FilterTree.prototype.setSensitivity only
+FilterLeaf.setToString = function(fn) {
+    return Conditionals.setToString(stringConverter.toType = toString = fn);
+};
 
 
 module.exports = FilterLeaf;
