@@ -4,6 +4,7 @@
 
 var _ = require('object-iterators');
 var extend = require('extend-me'), Base = extend.Base; extend.debug = true;
+var popMenu = require('pop-menu');
 
 var cssInjector = require('./css');
 var Templates = require('./Templates');
@@ -143,6 +144,10 @@ var FilterNode = Base.extend({
                     );
 
                 if (option) {
+                    if (key === 'schema') {
+                        option.walk = popMenu.walk.bind(option);
+                        option.findItem = popMenu.findItem.bind(option);
+                    }
                     self[key] = option;
                 }
             }

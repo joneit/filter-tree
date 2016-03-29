@@ -19,7 +19,7 @@ window.onload = function() {
     var Hyperfilter = FilterTree.extend('Hyperfilter', {
         preInitialize: function(options) {
             if (options && (options.type || options.state && options.state.type) === 'columnFilter') {
-                this.schema = [ FilterTree.popMenu.findItem(options.parent.root.schema, options.state.children[0].column) ];
+                this.schema = [ options.parent.root.schema.findItem(options.state.children[0].column) ];
             }
         }
     });
@@ -465,7 +465,7 @@ window.onload = function() {
      * @returns {FilterTreeError} Will return on `FilterTreeError`; otherwise throws `Error`.
      */
     function rethrow(error) {
-        if (error instanceof filterTree.Error) {
+        if (filterTree && error instanceof filterTree.Error) {
             alert(error);
             reveal(error);
         } else if (error) {
@@ -500,7 +500,7 @@ window.onload = function() {
             return hash;
         }, {});
 
-        FilterTree.popMenu.walk(getLiteral('schema'), function(column) {
+        FilterTree.popMenu.walk.call(getLiteral('schema'), function(column) {
             var cell = document.querySelector('input[name=' + column.name + ']');
             if (cell) {
                 var columnFilter = activeColumnFilters[column.name];
@@ -588,7 +588,7 @@ window.onload = function() {
     function opMenu(fieldName) {
         var typeOps = getLiteral('typeOpMenu'),
             schema = getLiteral('schema'),
-            field = FilterTree.popMenu.findItem(schema, fieldName);
+            field = FilterTree.popMenu.findItem.call(schema, fieldName);
 
         return (
             field && field.opMenu

@@ -199,7 +199,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         type = this.type || // the expression's type, if any
             this.op.type || // the expression's operator type, if any
-            (field = popMenu.findItem(this.schema, this.column)) && field.type; // the expression's column type, if any
+            (field = this.schema.findItem(this.column)) && field.type; // the expression's column type, if any
 
         this.converter = type && type !== 'string' && this.converters[type];
     },
@@ -374,7 +374,7 @@ function cleanUpAndMoveOn(evt) {
 }
 
 function getOpMenu(columnName) {
-    var column = popMenu.findItem(this.schema, columnName);
+    var column = this.schema.findItem(columnName);
     return (
         !column && []
             ||
