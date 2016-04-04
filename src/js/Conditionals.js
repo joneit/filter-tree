@@ -43,9 +43,9 @@ var Conditionals = Base.extend({
      * @memberof Conditionals.prototype
      */
     make: function(op, c) {
-        return getSqlIdentifier(c) + ' '
-            + op + ' '
-            + getSqlLiteral(c);
+        return getSqlIdentifier(c) +
+            ' ' + op +
+            ' ' + getSqlLiteral(c);
     }
 });
 
@@ -143,7 +143,7 @@ Conditionals.ops = {
      */
     CONTAINS: {
         test: function(a, b) { return containsOp(a, b) >= 0; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE, c); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE, c, 'CONTAINS'); },
         type: 'string'
     },
 
@@ -152,7 +152,7 @@ Conditionals.ops = {
      */
     'NOT CONTAINS': {
         test: function(a, b) { return containsOp(a, b) < 0; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE, c); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE, c, 'NOT CONTAINS'); },
         type: 'string'
     },
 
@@ -161,7 +161,7 @@ Conditionals.ops = {
      */
     BEGINS: {
         test: function(a, b) { b = toString(b); return beginsOp(a, b.length) === b; },
-        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, c); },
+        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, c, 'BEGINS'); },
         type: 'string'
     },
 
@@ -170,7 +170,7 @@ Conditionals.ops = {
      */
     'NOT BEGINS': {
         test: function(a, b) { b = toString(b); return beginsOp(a, b.length) !== b; },
-        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, c); },
+        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, c, 'NOT BEGINS'); },
         type: 'string'
     },
 
@@ -179,7 +179,7 @@ Conditionals.ops = {
      */
     ENDS: {
         test: function(a, b) { b = toString(b); return endsOp(a, b.length) === b; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, c); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, c, 'ENDS'); },
         type: 'string'
     },
 
@@ -188,7 +188,7 @@ Conditionals.ops = {
      */
     'NOT ENDS': {
         test: function(a, b) { b = toString(b); return endsOp(a, b.length) !== b; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, c); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, c, 'NOT ENDS'); },
         type: 'string'
     }
 };
