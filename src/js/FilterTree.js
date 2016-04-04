@@ -288,6 +288,19 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     /**
+     * @returns {number} Number of filters (terminal nodes) defined in this subtree.
+     */
+    filterCount: function filterCount() {
+        var n = 0;
+
+        this.children.forEach(function(child) {
+            n += child instanceof FilterLeaf ? 1 : filterCount.call(child);
+        });
+
+        return n;
+    },
+
+    /**
      * @summary Get a representation of filter state.
      * @desc Calling this on the root will get the entire tree's state; calling this on any subtree will get just that subtree's state.
      * @param {string} [options.syntax='object'] - A case-sensitive string indicating the expected type and format of the return value:

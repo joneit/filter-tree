@@ -115,7 +115,7 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  * @property {HTMLElement} el - The DOM element created by the `render` method to represent this node. Contains the `el`s for all child nodes (which are themselves pointed to by those nodes). This is always generated but is only in the page DOM if you put it there.
  */
 
-var FilterNode = Base.extend({
+var FilterNode = Base.extend('FilterNode', {
 
     /**
      * @param {FilterTreeOptionsObject} options

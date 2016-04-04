@@ -4,6 +4,8 @@ var _ = require('object-iterators');
 var popMenu = require('pop-menu');
 
 var FilterTree = require('./js/FilterTree');
+FilterTree.Node = require('./js/FilterNode'); // aka: Object.getPrototypeOf(FilterTree.prototype).constructor
+FilterTree.Leaf = require('./js/FilterLeaf'); // aka: FilterTree.prototype.editors.Default
 
 // expose some objects for plug-in access
 
