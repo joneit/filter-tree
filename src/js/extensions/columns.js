@@ -1,14 +1,23 @@
 'use strict';
 
 var groups = require('../Conditionals').groups;
-var FilterLeafPrototype = require('../FilterLeaf').prototype;
+var FilterLeaf = require('../FilterLeaf');
 
-module.exports = {
+/**
+ * Similar to {@link FilterLeaf} except:
+ * 1. Instead of a `literal` property, has an `identifier` property.
+ * 2. Operators are limited to equality, inequalities, and sets (IN/NOT IN). Omitted are the string and pattern scans (BEGINS/NOT BEGINS, ENDS/NOT ENDS, CONTAINS/NOT CONTAINS, and LIKE/NOT LIKE).
+ *
+ * @extends FilterLeaf
+ *
+ * @property {string} identifier - Name of member of data row to compare against the member of data row named by `column`.
+ */
+var ColumnLeaf = {
     name: 'column = column', // display string for drop-down
 
     createView: function() {
         // Create the `view` hash and insert the three default elements (`column`, `operator`, `literal`) into `.el`
-        FilterLeafPrototype.createView.call(this);
+        FilterLeaf.prototype.createView.call(this);
 
         // Remove the `literal` element from the `view` hash
         delete this.view.literal;
@@ -29,3 +38,5 @@ module.exports = {
         return dataRow[this.identifier];
     }
 };
+
+module.exports = ColumnLeaf;

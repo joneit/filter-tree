@@ -18,27 +18,40 @@ var operators = require('./tree-operators');
 var ordinal = 0;
 
 /** @constructor
- * @summary An object that represents a non-terminal node in a filter tree.
- * @desc A node representing a subexpression in the filter expression. May be thought of as a parenthesized subexpression in algebraic expression syntax. It's children may be either {@link FilterLeaf}* (terminal) nodes or other (nested) `FilterTree`* subexpressions. The same `operator` to be applied to all its `children`.
+ * @summary An object that represents the root node or a branch node in a filter tree.
+ * @desc A node representing a subexpression in the filter expression. May be thought of as a parenthesized subexpression in algebraic expression syntax. As discussed under {@link FilterNode}, a `FilterTree` instance's child nodes may be either:
+ * * Other (nested) `FilterTree` (or subclass thereof) nodes representing subexpressions.
+ * * {@link FilterLeaf} (or subclass thereof) terminal nodes representing conditional expressions.
  *
- * \* Or other "class" objects extended therefrom.
+ * The `FilterTree` object also has methods, some of which operate on a specific subtree instance, and some of which recurse through all the subtree's child nodes and all their descendants, _etc._
  *
- * Has all the properties of {@link FilterNode} (see), plus the following additional properties:
+ * The recursive methods are interesting. They all work similarly, looping through the list of child nodes, recursing when the child node is a nested subtree (which will recurse further when it has its own nested subtrees); and calling the polymorphic method when the child node is a `FilterLeaf` object, which is a terminal node. Such polymorphic methods include `setState()`, `getState()`, `invalid()`, and `test()`.
  *
- * @property {string} [operator='op-and'] - One of:
+ * For example, calling `test(dataRow)` on the root tree recurses through any subtrees eventually calling `test(dataRow)` on each of its leaf nodes and concatenating the results together using the subtree's `operator`. The subtree's `test(dataRow)` call then returns the result to it's parent's `test()` call, _etc.,_ eventually bubbling up to the root node's `test(dataRow)` call, which returns the final result to the original caller. This result determines if the given data row passed through the entire filter expression successfully (`true`) and should be displayed, or was blocked somewhere (`false`) and should not be displayed.
+ *
+ * Note that in practice:
+ * 1. `children` may be empty. This represents a an empty subexpression. Normally pointless, empty subexpressions could be pruned. Filter-tree allows them however as harmless placeholders.
+ * 1. `operator` may be omitted in which case it defaults to AND.
+ * 1. A `false` result from a child node will short-stop an AND operation; a `true` result will short-stop an OR or NOR operation.
+ *
+ * Additional notes:
+ * 1. A `FilterTree` may consist of a single leaf, in which case the concatenation `operator` is not needed and may be left undefined. However, if a second child is added and the operator is still undefined, it will be set to the default (`'op-and'`).
+ * 2. The order of the children is undefined as all operators are commutative. For the '`op-or`' operator, evaluation ceases on the first positive result and for efficiency, all simple conditional expressions will be evaluated before any complex subexpressions.
+ * 3. A nested `FilterTree` is distinguished (duck-typed) from a leaf node by the presence of a `children` member.
+ * 4. Nesting a `FilterTree` containing a single child is valid (albeit pointless).
+ *
+ * `FilterTree` instances have all the same properties of {@link FilterNode} (see), plus the following additional properties:
+ *
+ * @property {string} [operator='op-and'] - The operator that concatentates the test results from all the node's `children` (child nodes). Must be one of:
  * * `'op-and'`
  * * `'op-or'`
  * * `'op-nor'`
  *
- * @property {FilterNode[]} children - A list of descendants of this node. May be any number including 0 (none; empty).
+ * Note that there is only one `operator` per subexpression. If you need to mix operators, create a subordinate subexpression as one of the child nodes.
+ *
+ * @property {FilterNode[]} children - A list of descendants of this node. As noted, these may be other `FilterTree` (or subclass thereof) nodes; or may be terminal `FilterLeaf` (or subclass thereof) nodes. May be any length including 0 (none; empty).
  *
  * @property {fieldItem[]} [ownSchema] - Column menu to be used only by leaf nodes that are children (direct descendants) of this node.
- *
- * Notes:
- * 1. A `FilterTree` may consist of a single leaf, in which case the `operator` is not used and may be left undefined. However, if a second child is added and the operator is still undefined, it will be set to the default (`'op-and'`).
- * 2. The order of the children is undefined as all operators are commutative. For the '`op-or`' operator, evaluation ceases on the first positive result and for efficiency, all simple conditional expressions will be evaluated before any complex subexpressions.
- * 3. A nested `FilterTree` is distinguished from a `Filter` by the presence of a `children` member.
- * 4. Nesting a `FilterTree` containing a single child is valid (albeit pointless).
  */
 var FilterTree = FilterNode.extend('FilterTree', {
 

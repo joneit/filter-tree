@@ -57,7 +57,7 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  *  * CSS selector of an Element whose `value` contains one of the above
  *  * plain object
  *
- * @property {function} [editor='Default'] - For leaf nodes only. Names the editor to use for this simple expression. Must be found in parent node's {@link FilterTree#editors|this.parent.editors} where it maps to a leaf constructor (`FilterLeaf` or a descendent thereof).
+ * @property {function} [editor='Default'] - For leaf nodes only. Names the editor to use for this simple expression. Must be found in parent node's {@link FilterTree#editors|this.parent.editors} where it maps to a leaf constructor (`FilterLeaf` or a descendant thereof).
  *
  * @property {FilterTree} [parent] - Used internally to insert element when creating nested subtrees. Optional for the top level tree only. (Note that you are responsible for inserting the top-level `.el` into the DOM.)
  *
@@ -69,24 +69,16 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  *
  * @summary A node in a filter tree.
  *
- * @description A filter tree represents a _complex conditional expression_ and consists of a single instance of a {@link FilterTree} as the _root_ of an _n_-ary tree.
+ * @description A filter tree represents a _complex conditional expression_ and consists of a single instance of a {@link FilterTree} object as the _root_ of an _n_-ary tree.
  *
- * In general, each instance of a `FilterNode` may be:
- * * a {@link FilterTree}, an object that represents a non-terminal node in a filter tree;
- * * a {@link FilterLeaf}, an object that represents a terminal node in a filter tree; or
- * * any other object extended from either of the above.
+ * Filter trees are comprised of instances of `FilterNode` objects. However, the `FilterNode` constructor is an "abstract class"; filter node objects are never instantiated directly from this constructor. A filter tree is actually comprised of instances of two "subclasses" of `FilterNode` objects:
+ * * {@link FilterTree} (or subclass thereof) objects, instances of which represent the root node and all the branch nodes:
+ *   * There is always exactly one root node, containing the whole filter tree, which represents the filter expression in its entirety. The root node is distinguished by having no parent node.
+ *   * There are zero or more branch nodes, or subtrees, which are child nodes of the root or other branches higher up in the tree, representing subexpressions within the larger filter expression. Each branch node has exactly one parent node.
+ *   * These nodes point to zero or more child nodes which are either nested subtrees, or:
+ * * {@link FilterLeaf} (or subclass thereof) objects, each instance of which represents a single simple conditional expression. These are terminal nodes, having exactly one parent node, and no child nodes.
  *
- * The `FilterTree` object has polymorphic methods that operate on the entire tree using recursion. When the recursion reaches a terminal node, it calls the methods on the `FilterLeaf` object instead. Calling `test()` on the root tree therefore returns a boolean that determines if the row passes through the entire filter expression (`true`) or is blocked by it (`false`).
- *
- * The `FilterLeaf` object is the default type of simple expression, which is
- *
- * The programmer may define a new type of simple expression by extending from `FilterLeaf`. An example is the `FilterField` object. Such an implementation must include methods:
- *
- * * Save and subsequently reload the state of the conditional as entered by the user (`getState()` and `setState()`, respectively).
- * * Create the DOM objects that represent the UI filter editor and render them to the UI (`createView()` and `render()`, respectively).
- * * Filter a table by implementing one or more of the following:
- *   * Apply the conditional logic to available table row data (`test()`).
- *   * Apply the conditional logic to a remote data-store by generating a **SQL** or **Q** _WHERE_ clause (`toSQL()` and `toQ()`, respectively).
+ * The programmer may extend the semantics of filter trees by extending the above objects.
  *
  * @property {FilterNode} [parent] - Undefined means this is the root node.
  *
@@ -332,10 +324,10 @@ var reJSON = /^\s*[\[\{]/;
  *   3. If not JSON syntax, it is assumed to be SQL; parse the string into an actual `FilterTreeStateObject` using sql-search-condition's {@link module:sqlSearchCondition.parser|parser}.
  *   4. If `options.syntax` is defined, it will override the auto-detection.
  *
- * @param {FilterTreeStateObject} state
+ * @param {FilterTreeStateObject} [state] - If undefined, fails silently.
  * @param {FilterTreeSetStateOptionsObject} [options]
  *
- * @returns {FilterTreeStateObject} Throws an error if `state` is unknown or invalid syntax.
+ * @returns {FilterTreeStateObject} The unmolested value of the `state` parameter. Throws an error if `state` is unknown or invalid syntax.
  *
  * @memberOf FilterNode
  * @inner
