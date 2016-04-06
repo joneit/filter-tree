@@ -24,8 +24,8 @@ var Conditionals = Base.extend({
      * @memberof Conditionals.prototype
      */
     makeLIKE: function(beg, end, op, c) {
-        var escaped = c.literal.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
-        return getSqlIdentifier(c) +
+        var escaped = c.operand.replace(/([\[_%\]])/g, '[$1]'); // escape all LIKE reserved chars
+        return makeSqlIdentifier(c.column) +
             ' ' + op +
             ' ' + makeSqlString(beg + escaped + end);
     },
@@ -34,18 +34,18 @@ var Conditionals = Base.extend({
      * @memberof Conditionals.prototype
      */
     makeIN: function(op, c) {
-        return getSqlIdentifier(c) +
+        return makeSqlIdentifier(c.column) +
             ' ' + op +
-            ' ' + '(\'' + sqEsc(c.literal).replace(/\s*,\s*/g, '\', \'') + '\')';
+            ' ' + '(\'' + sqEsc(c.operand).replace(/\s*,\s*/g, '\', \'') + '\')';
     },
 
     /**
      * @memberof Conditionals.prototype
      */
     make: function(op, c) {
-        return getSqlIdentifier(c) +
+        return makeSqlIdentifier(c.column) +
             ' ' + op +
-            ' ' + getSqlLiteral(c);
+            ' ' + c.makeSqlOperand();
     }
 });
 
@@ -231,13 +231,6 @@ function makeSqlIdentifier(id) {
     return idQt[0].beg + id + idQt[0].end;
 }
 
-function getSqlIdentifier(c) {
-    return makeSqlIdentifier(c.column);
-}
-
-function getSqlLiteral(c) {
-    return 'literal' in c ? makeSqlString(c.literal) : makeSqlIdentifier(c.identifier);
-}
 var groups = {
     equality: {
         label: 'Equality',
@@ -313,5 +306,7 @@ Conditionals.setToString = function(fn) {
     return (toString = fn);
 };
 
+Conditionals.makeSqlIdentifier = makeSqlIdentifier;
+Conditionals.makeSqlString = makeSqlString;
 
 module.exports = Conditionals;

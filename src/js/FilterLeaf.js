@@ -42,7 +42,7 @@ var stringConverter = {
  *
  * @property {HTMLElement} column` - A drop-down with options from the `FilterLeaf` instance's schema. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
  * * `this.view.operator` - A drop-down with options from {@link columnOpMenu}, {@link typeOpMenu}, or {@link treeOpMenu}. Value is the string representation of the operator.
- * * `this.view.literal` - A text box.
+ * * `this.view.operand` - A text box.
  */
 
 /** @constructor
@@ -61,11 +61,11 @@ var stringConverter = {
  *
  * The three terms of the dyadic expression above are represented by the first three properties in the following list. Each of these three properties is set either by `setState()` or by the user via a control in `el`:
  *
- * @property {string} column - Name of the member in the data row objects against which `literal` will be compared. (May be set by user via the `view.column` control.)
+ * @property {string} column - Name of the member in the data row objects against which `operand` will be compared. (May be set by user via the `view.column` control.)
  *
  * @property {string} operator - Operator symbol. This must match a key in the `Conditionals.ops` hash. (May be set by user via the `view.operator` control.)
  *
- * @property {string} literal - Value to compare against the the member of data row named by `column`. (May be set by user via the `view.literal` control.)
+ * @property {string} operand - Value to compare against the the member of data row named by `column`. (May be set by user via the `view.operand` control.)
  *
  * @property {string} name - Used to describe the object in the UI so user can select an expression editor.
  *
@@ -109,7 +109,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         this.view = {
             column: this.makeElement(this.schema, 'column', this.sortColumnMenu),
             operator: this.makeElement(getOpMenu.call(this, columnName), 'operator'),
-            literal: this.makeElement()
+            operand: this.makeElement()
         };
 
         el.appendChild(document.createElement('br'));
@@ -220,7 +220,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
-    q: function() { return this.literal; },
+    q: function() { return this.operand; },
 
     test: function(dataRow) {
         var p, q, // untyped versions of args
@@ -282,6 +282,10 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         }
 
         return result;
+    },
+
+    makeSqlOperand: function() {
+        return Conditionals.makeSqlString(this.operand); // todo: this should be a number if type is number instead of a string -- but we will have to ensure it is numeric!
     },
 
     getSyntax: function(conditionals) {
