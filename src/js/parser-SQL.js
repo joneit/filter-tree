@@ -51,37 +51,6 @@ ParserSQL.prototype = {
 
     constructor: ParserSQL.prototype.constructor,
 
-    /** Override default properties with properties defined by supplied property resolver.
-     * @param {function} [propResolver]
-     */
-    setOptions: function(propResolver) {
-        if (propResolver) {
-            for (var key in optionsPrototype) {
-                if (optionsPrototype.hasOwnProperty(key)) {
-                    var prop = propResolver(key);
-                    if (prop !== undefined) {
-                        this.options[key] = prop;
-                    } else {
-                        delete this.options[key]; // reveals prototype (default) value
-                    }
-                }
-            }
-        }
-    },
-
-    /**
-     * @summary Make a "locked" subexpression definition object from an expression chain.
-     * @desc _Locked_ means it is locked to a single field.
-     *
-     * When there is only a single expression in the chain, the `operator` is omitted (defaults to `'op-and'`).
-     * @param {string} columnName
-     * @param {string} cql - A CQL expression (one or more simple expressions all separated by the same logical operator).
-     * @returns {undefined|{operator: string, children: string[], schema: string[]}}
-     * `undefined` when there are no complete expressions
-     *
-     * @memberOf module:CQL
-     */
-
     /**
      * @param {string} sql
      * @returns {*}
@@ -185,7 +154,10 @@ function walk(t) {
                 if (item) {
                     name = item.name;
                 } else {
-                    throw new ParserSqlError('Expected valid column name.')
+                    throw new ParserSqlError(this.resolveAliases
+                        ? 'Expected valid column name.'
+                        : 'Expected valid column name or alias.'
+                    );
                 }
             }
 

@@ -203,17 +203,17 @@ var FilterNode = Base.extend('FilterNode', {
         });
 
         if (this === this.root) {
-            var options = {};
+            var sqlOptions = {};
 
             if (this.sqlIdQts) {
-                options.sqlIdQts = this.sqlIdQts;
+                sqlOptions.sqlIdQts = this.sqlIdQts;
             }
 
-            this.conditionals = new Conditionals(options);
+            this.conditionals = new Conditionals(sqlOptions);
 
-            options.schema = this.schema;
-            options.resolveAliases = true;
-            this.ParserSQL = new ParserSQL(options);
+            sqlOptions.schema = this.schema;
+            sqlOptions.resolveAliases = true;
+            this.ParserSQL = new ParserSQL(sqlOptions);
         }
 
         this.setState(state, options);
