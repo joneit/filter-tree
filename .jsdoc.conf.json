@@ -21,6 +21,7 @@
         "recurse": true,
         "verbose": true,
         "destination": "./doc/",
-        "private": false
+        "private": false,
+        "readme": "README.md"
     }
 }

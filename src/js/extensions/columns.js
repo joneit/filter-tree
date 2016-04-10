@@ -28,7 +28,7 @@ var ColumnLeaf = {
     },
 
     makeSqlOperand: function() {
-        return Conditionals.makeSqlIdentifier(this.operand);
+        return this.conditionals.makeSqlIdentifier(this.operand);
     },
 
     treeOpMenu: [

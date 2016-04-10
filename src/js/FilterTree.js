@@ -40,7 +40,7 @@ var ordinal = 0;
  * 3. A nested `FilterTree` is distinguished (duck-typed) from a leaf node by the presence of a `children` member.
  * 4. Nesting a `FilterTree` containing a single child is valid (albeit pointless).
  *
- * `FilterTree` instances have all the same properties of {@link FilterNode} (see), plus the following additional properties:
+ * **See also the properties of the superclass:** {@link FilterNode}
  *
  * @property {string} [operator='op-and'] - The operator that concatentates the test results from all the node's `children` (child nodes). Must be one of:
  * * `'op-and'`
@@ -51,7 +51,11 @@ var ordinal = 0;
  *
  * @property {FilterNode[]} children - A list of descendants of this node. As noted, these may be other `FilterTree` (or subclass thereof) nodes; or may be terminal `FilterLeaf` (or subclass thereof) nodes. May be any length including 0 (none; empty).
  *
+ * @property {boolean} [keep=false] - Do not automatically prune when last child removed.
+ *
  * @property {fieldItem[]} [ownSchema] - Column menu to be used only by leaf nodes that are children (direct descendants) of this node.
+ *
+ * @property {string} [type='subtree'] - Type of node, for rendering purposes; names the rendering template to use to generate the node's UI representation.
  */
 var FilterTree = FilterNode.extend('FilterTree', {
 

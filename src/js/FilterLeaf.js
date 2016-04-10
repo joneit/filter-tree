@@ -9,8 +9,6 @@ var FilterNode = require('./FilterNode');
 var Conditionals = require('./Conditionals');
 
 
-var conditionals = new Conditionals();
-
 var toString; // set by FilterLeaf.setToString() called from ../index.js
 
 
@@ -40,34 +38,41 @@ var stringConverter = {
 /**
  * @typedef {object} filterLeafViewObject
  *
- * @property {HTMLElement} column` - A drop-down with options from the `FilterLeaf` instance's schema. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
- * * `this.view.operator` - A drop-down with options from {@link columnOpMenu}, {@link typeOpMenu}, or {@link treeOpMenu}. Value is the string representation of the operator.
- * * `this.view.operand` - A text box.
+ * @property {HTMLElement} column - A drop-down with options from the `FilterLeaf` instance's schema. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
+ *
+ * @property operator - A drop-down with options from {@link columnOpMenu}, {@link typeOpMenu}, or {@link treeOpMenu}. Value is the string representation of the operator.
+ *
+ * @property operand - An input element, such as a drop-down or a text box.
  */
 
 /** @constructor
  * @summary An object that represents a conditional expression node in a filter tree.
- * @desc Conditional expressions have no child nodes (terminal nodes). They represent a simple dyadic conditional expression with the following simple syntax:
+ * @desc This object represents a conditional expression. It is always a terminal node in the filter tree; it has no child nodes of its own.
  *
- * > _column operator argument_
+ * A conditional expression is a simple dyadic expression with the following syntax in the UI:
  *
- * Before we discuss the semantics of the above, note that other types of expressions could be supported by extending from `FilterLeaf` and registering your extension with `FilterTree`'s `addEditor()` method. Such an implementation must be able to:
- * * Save (`getState()`) and load (`loadState()`) the state of the conditional.
- * * If you want to support the UI feature, you need to create the DOM objects that allow the user to edit the state of the conditional (`createView()`) and render them to the UI (`render()`).
- * * Filter a table by implementing one or more of the following:
- *   * Apply the conditional logic to local table row data (`test()`).
- *   * Apply the conditional logic to a remote data-store that understands SQL by generating a **SQL** _WHERE_ clause (`toSQL()`).
- *   * Other data-stores could be supported by implementing addtional methods (such as `toQ()`, _etc._).
+ * > _column operator operand_
  *
- * The three terms of the dyadic expression above are represented by the first three properties in the following list. Each of these three properties is set either by `setState()` or by the user via a control in `el`:
+ * where:
+ * * _column_ is the name of a column from the data row object
+ * * _operator_ is the name of an operator from the node's operator list
+ * * _operand_ is a literal value to compare against the value in the named column
  *
- * @property {string} column - Name of the member in the data row objects against which `operand` will be compared. (May be set by user via the `view.column` control.)
+ * **NOTE:** The {@link ColumnLeaf} extension of this object has a different implementation of _operand_ which is: The name of a column from which to fetch the compare value (from the same data row object) to compare against the value in the named column. See *Extending the conditional expression object* in the {@link http://joneit.github.io/filter-tree/index.html|readme}.
  *
- * @property {string} operator - Operator symbol. This must match a key in the `Conditionals.ops` hash. (May be set by user via the `view.operator` control.)
+ * The values of the terms of the expression above are stored in the first three properties below. Each of these three properties is set either by `setState()` or by the user via a control in `el`. Note that these properties are not dynamically bound to the UI controls; they are updated by the validation function, `invalid()`.
  *
- * @property {string} operand - Value to compare against the the member of data row named by `column`. (May be set by user via the `view.operand` control.)
+ * **See also the properties of the superclass:** {@link FilterNode}
+ *
+ * @property {string} column - Name of the member in the data row objects against which `operand` will be compared. Reflects the value of the `view.column` control after validation.
+ *
+ * @property {string} operator - Operator symbol. This must match a key in the `Conditionals.ops` hash. Reflects the value of the `view.operator` control after validation.
+ *
+ * @property {string} operand - Value to compare against the the member of data row named by `column`. Reflects the value of the `view.operand` control, after validation.
  *
  * @property {string} name - Used to describe the object in the UI so user can select an expression editor.
+ *
+ * @property {string} [type='string'] - The data type of the subexpression if neither the operator nor the column schema defines a type.
  *
  * @property {HTMLElement} el - A `<span>...</span>` element that contains the UI controls. This element is automatically appeneded to the parent `FilterTree`'s `el`. Generated by {@link FilterLeaf#createView|createView}.
  *
@@ -193,7 +198,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @memberOf FilterLeaf.prototype
      */
     invalid: function(options) {
-        var elementName, field, type;
+        var elementName, type;
 
         for (elementName in this.view) {
             var el = this.view[elementName],
@@ -210,11 +215,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
         this.op = Conditionals.ops[this.operator];
 
-        // TODO: Can setting up this.converter be moved to initialize()?
-
-        type = this.type || // the expression's type, if any
-            this.op.type || // the expression's operator type, if any
-            (field = this.schema.findItem(this.column)) && field.type; // the expression's column type, if any
+        type = (
+            this.op.type // the expression's operator's type (because some operators only work with strings)
+                ||
+            (this.schema.findItem(this.column) || {}).type // the expression's column schema type
+                ||
+            this.type // the expression node's type
+        );
 
         this.converter = type && type !== 'string' && this.converters[type];
     },
@@ -227,7 +234,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             P, Q, // typed versions of p and q
             converter;
 
-        // TODO: If a literal (this.q not overridden), q only needs to be fetched & converted ONCE for all rows
+        // TODO: If a literal (i.e., when this.q is not overridden), q only needs to be fetched & converted ONCE for all rows
         return (
             // TODO: Uncomment following two lines if values can be functions
             //(p = valOrFunc(this.p(dataRow))) === undefined ||
@@ -262,7 +269,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     /**
      * For `'object'` and `'JSON'` note that the subtree's version of `getState` will not call this leaf version of `getState` because the former uses `unstrungify()` and `JSON.stringify()`, respectively, both of which recurse and call `toJSON()` on their own.
      *
-     * @param {object} [options] - See the subtree version of {@link FilterTree#getState|getState} for more info.
+     * @param {object} [options='object'] - See the subtree version of {@link FilterTree#getState|getState} for more info.
      *
      * @memberOf FilterLeaf.prototype
      */
@@ -278,14 +285,14 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 result = JSON.stringify(this, null, options && options.space) || '';
                 break;
             case 'SQL':
-                result = this.getSyntax(conditionals);
+                result = this.getSyntax(this.root.conditionals);
         }
 
         return result;
     },
 
     makeSqlOperand: function() {
-        return Conditionals.makeSqlString(this.operand); // todo: this should be a number if type is number instead of a string -- but we will have to ensure it is numeric!
+        return this.root.conditionals.makeSqlString(this.operand); // todo: this should be a number if type is number instead of a string -- but we will have to ensure it is numeric!
     },
 
     getSyntax: function(conditionals) {
@@ -331,12 +338,19 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 sort: sort,
                 group: function(groupName) { return Conditionals.groups[groupName]; }
             };
+
+            // make an element
             el = popMenu.build(tagName, menu, options);
+
+            // if it's a textbox, listen for keyup events
             if (el.type === 'text' && this.eventHandler) {
                 this.el.addEventListener('keyup', this.eventHandler);
             }
+
+            // handle onchange events
             this.onChange = this.onChange || cleanUpAndMoveOn.bind(this);
             this.el.addEventListener('change', this.onChange);
+
             FilterNode.setWarningClass(el);
             result = el;
         }
@@ -387,19 +401,18 @@ function cleanUpAndMoveOn(evt) {
         }
     }
 
+    // forward the event to the application's event handler
     if (this.eventHandler) {
         this.eventHandler(evt);
     }
 }
 
 function getOpMenu(columnName) {
-    var column = this.schema.findItem(columnName);
+    var column = this.schema.findItem(columnName) || {};
     return (
-        !column && []
-            ||
         column.opMenu
             ||
-        this.typeOpMenu && this.typeOpMenu[column.type]
+        this.typeOpMenu && this.typeOpMenu[column.type || this.type]
             ||
         this.treeOpMenu
     );
@@ -408,7 +421,7 @@ function getOpMenu(columnName) {
 function makeOpMenu(columnName) {
     var opMenu = getOpMenu.call(this, columnName);
 
-    if (opMenu !== this.oldOpMenu) {
+    if (opMenu !== this.opMenu) {
         var newOpDrop = this.makeElement(opMenu, 'operator');
 
         newOpDrop.value = this.view.operator.value;

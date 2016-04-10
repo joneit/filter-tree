@@ -23,7 +23,7 @@
         <a class="more-info" href="javascript:void(0)" style="display:block; margin:-30px 0 25px; text-align:right" onclick="harness.moreinfo(this.nextElementSibling)"></a>
         <div class="more-info" style="font-size:9pt; margin: .5em 0;">
             <p>
-                Typically defined on the root of the filter tree, the column <code>schema</code> defines the columns available to all descending conditionals in the tree. At a minimum each entry in the list defines a column name. This is a <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs"><code>menuItem</code></a> object, which means it could simply be a string. To organize columns into groups (shown as an optgroup in column drop-downs), this can also be an array of such objects (or strings). Specifying a string is very limiting; specifying an object allows defining the following additional properties on the column:
+                Typically defined on the root of the filter tree, the column <code>schema</code> defines the columns available to all descending conditionals in the tree. At a minimum each entry in the list defines a column name. This is a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs"><code>menuItem</code></a> object, which means it could simply be a string. To organize columns into groups (shown as an optgroup in column drop-downs), this can also be an array of such objects (or strings). Specifying a string is very limiting; specifying an object allows defining the following additional properties on the column:
             </p>
             <ol>
                 <li><code>alias</code> A string used for display purposes in the UI instead of the raw column name.</li>
@@ -45,20 +45,15 @@
         </div>
 
         <label><input type="radio" name="opMenu" value="schema" checked /><code>options.schema</code></label>
-        <i>(required)</i>
-        <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array for columns<br>
+        &mdash; a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> array for columns<br>
 
         <label><input type="radio" name="opMenu" value="typeOpMenu" /><code>options.typeOpMenu</code></label>
-        <i>(optional)</i>
-        hash of operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> arrays<br>
+        &mdash; a hash of <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> arrays for various types<br>
 
         <label><input type="radio" name="opMenu" value="treeOpMenu" /><code>options.treeOpMenu</code></label>
-        <i>(optional)</i>
-        operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array<br>
+        &mdash; a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> array for operators<br>
 
         <label><input type="radio" name="opMenu" value="state" /><code>options.state</code></label>
-        <i>(optional)</i>
-        operator <a href="http://joneit.github.io/filter-tree/global.html#menuItem" target="jsdocs">menuItem</a> array
 
         <div id="section-schema">
             <textarea id="schema" rows="16">[

@@ -9,12 +9,14 @@ var popMenu = require('pop-menu');
 var cssInjector = require('./css');
 var Templates = require('./Templates');
 var Conditionals = require('./Conditionals');
-var sqlSearchCondition = require('./sql-search-condition');
+var ParserSQL = require('./parser-SQL');
 
 
 var CHILDREN_TAG = 'OL',
     CHILD_TAG = 'LI';
 
+// JSON-detector: begins _and_ ends with either [ and ] _or_ { and }
+var reJSON = /^\s*((\[[^]*\])|(\{[^]*\}))\s*$/;
 
 function FilterTreeError(message, node) {
     this.message = message;
@@ -23,45 +25,82 @@ function FilterTreeError(message, node) {
 FilterTreeError.prototype = Object.create(Error.prototype);
 FilterTreeError.prototype.name = 'FilterTreeError';
 
+/** @typedef {object} FilterTreeGetStateOptionsObject
+ *
+ * @summary Object containing options for producing a state object.
+ *
+ * @desc State is commonly used for two purposes:
+ * 1. To persist the filter state so that it can be reloaded later.
+ * 2. To send a query to a database engine.
+ *
+ * @property {boolean} [syntax='object'] - Specify output syntax. One of:
+ * * `'object'` - The raw state object produced by {@link https://www.npmjs.com/package/unstrungify|unstrungify} (which calls the nodes' `toJSON()` methods). This is an "essential" version of the node objects themselves.
+ * * `'JSON'` - The same "essential" object produced by `JSON.srtringify()` (which also calls the nodes' `toJSON()` methods).
+ * * `'SQL'` - The subexpression in SQL conditional syntax. Intended for issuing a SQL query to a data store. This result has no meta-data; do not use to persist filter state.
+ *
+ * NOTE: Not all available syntaxes include the meta-data.
+ */
+
+/** @typedef {object} FilterTreeSetStateOptionsObject
+ *
+ * @property {boolean} [syntax='auto'] - Specify parser to use on `state`. One of:
+ * * `'auto'` - Auto-detect; see {@link FilterNode~parseStateString} for algorithm.
+ * * `'object'` - The raw state object produced by {@link https://www.npmjs.com/package/unstrungify|unstrungify} (which calls the nodes' `toJSON()` methods). This is an "essential" version of the node objects themselves.
+ * * `'JSON'` - The same "essential" object produced by `JSON.srtringify()` (which also calls the nodes' `toJSON()` methods).
+ * * `'SQL'` - The subexpression in SQL conditional syntax. Intended for issuing a SQL query to a data store. This result has no meta-data; do not use to persist filter state.
+ *
+ * @param {Element} [context] If defined, reassign input from the `value` property of the `HTMLElement` selected using the provided input as a selector.
+ */
 
 /** @typedef {object} FilterTreeOptionsObject
  *
- * @property {string[]} [schema] - A default list of column names for field drop-downs of all descendant terminal nodes. Overrides `options.state.schema` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no `ownSchema`), will use the nearest ancestor `schema` definition. However, descendants with their own definition of `types` will override any ancestor definition.
+ * @property {menuItem[]} [schema] - A default list of column names for field drop-downs of all descendant terminal nodes. Overrides `options.state.schema` (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no `ownSchema`), will use the nearest ancestor `schema` definition. However, descendants with their own definition of `types` will override any ancestor definition.
  *
  * > Typically only used by the caller for the top-level (root) tree.
  *
- * @property {string[]} [ownSchema] - A default list of column names for field drop-downs of immediate descendant terminal nodes _only_. Overrides `options.state.ownSchema` (see).
+ * @property {menuItem[]} [ownSchema] - A default list of column names for field drop-downs of immediate descendant terminal nodes _only_. Overrides `options.state.ownSchema` (see).
  *
- * Although both `options.schema` and `options.ownSchema` are notated as optional herein, by the time a terminal node tries to render a schema drop-down, a `schema` list _must_ be defined through (in order of priority):
+ * Although both `options.schema` and `options.ownSchema` are notated as optional herein, by the time a terminal node tries to render a schema drop-down, a `schema` list should be defined through (in order of priority):
  *
  * * Terminal node's own `options.schema` (or `options.state.schema`) definition.
  * * Terminal node's parent node's `option.ownSchema` (or `option.state.nodesFields`) definition.
- * * Any of terminal node's ancestor's `options.schema` (or `options.state.schema`) definition.
+ * * Terminal node's parent (or any ancestor) node's `options.schema` (or `options.state.schema`) definition.
  *
- * @property {object|string} [state] - A data structure that describes a tree, subtree, or leaf (terminal node):
+ * @property {FilterTreeStateObject} [state] - A data structure that describes a tree, subtree, or leaf (terminal node). If undefined, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
- * * May describe a terminal node with properties:
- *   * `schema` - Overridden on instantiation by `options.schema`. If both unspecified, uses parent's definition.
- *   * `editor` - A string identifying the type of conditional. Must be in the parent node's {@link FilterTree#editors|editors} hash. If omitted, defaults to `'Default'`.
- *   * misc. - Other properties peculiar to this filter type (but typically including at least a `field` property).
+ * @property {function} [editor='Default'] - The name of the conditional expression's UI "editor." This name must be registered in the parent node's {@link FilterTree#editors|editors} hash, where it maps to a leaf constructor (`FilterLeaf` or a descendant thereof). (Use {@link FilterTree#addEditor} to register new editors.)
+ *
+ * @property {FilterTree} [parent] - Used internally to insert element when creating nested subtrees. The only time it may be (and must be) omitted is when creating the root node.
+ *
+ * @property {string|HTMLElement} [cssStylesheetReferenceElement] - passed to cssInsert
+ */
+
+/** @typedef {object|string} FilterTreeStateObject
+ *
+ * @summary State with which to create a new node or replace an existing node.
+ *
+ * @desc A string or plain object that describes a filter-tree node. If a string, it is parsed into an object by {@link FilterNode~parseStateString}. (See, for available overloads.)
+ *
+ * The resulting object may be a flat object that describes a terminal node or a childless root or branch node; or may be a hierarchical object to define an entire tree or subtree.
+ *
+ * In any case, the resulting object may have any of the following properties:
+ *
+ * @property {menuItem[]} [schema] - See `schema` property of {@link FilterTreeOptionsObject}.
+ *
+ * @property {string} [editor='Default'] - See `editor` property of {@link FilterTreeOptionsObject}.
+ *
+ * @property misc - Other miscellaneous properties will be copied directly to the new `FitlerNode` object. (The name "misc" here is just a stand-in; there is no specific property called "misc".)
+ *
  * * May describe a non-terminal node with properties:
  *   * `schema` - Overridden on instantiation by `options.schema`. If both unspecified, uses parent's definition.
  *   * `operator` - One of {@link treeOperators}.
  *   * `children` -  Array containing additional terminal and non-terminal nodes.
- *
- * If this `options.state` object is omitted altogether, loads an empty filter, which is a `FilterTree` node consisting the default `operator` value (`'op-and'`).
  *
  * The constructor auto-detects `state`'s type:
  *  * JSON string to be parsed by `JSON.parse()` into a plain object
  *  * SQL WHERE clause string to be parsed into a plain object
  *  * CSS selector of an Element whose `value` contains one of the above
  *  * plain object
- *
- * @property {function} [editor='Default'] - For leaf nodes only. Names the editor to use for this simple expression. Must be found in parent node's {@link FilterTree#editors|this.parent.editors} where it maps to a leaf constructor (`FilterLeaf` or a descendant thereof).
- *
- * @property {FilterTree} [parent] - Used internally to insert element when creating nested subtrees. Optional for the top level tree only. (Note that you are responsible for inserting the top-level `.el` into the DOM.)
- *
- * @property {string|HTMLElement} [cssStylesheetReferenceElement] - passed to cssInsert
  */
 
 /**
@@ -88,13 +127,9 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  *
  * @property {string} [editor] - Name of filter editor used by descendant leaf nodes (including this node if it is a leaf node).
  *
- * @property {function} [eventHandler] - Event handler for UI events.
+ * @property {function} [eventHandler] - Event handler for UI events. See *Events* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for more information.
  *
- * @property {string} [type='subtree'] - Identifies either:
- * 1. The type of a {@link FilterTree} node, used to select a rendering template.
- * 2. The data type of a {@link FilterLeaf} (terminal) node.
- *
- * @property {menuItem[]} [treeOpMenu=Conditionals.defaultOpMenu] -  Default operator menu for all descendant leaf nodes.
+ * @property {menuItem[]} [treeOpMenu=Conditionals.defaultOpMenu] - Default operator menu for all descendant leaf nodes. Only used if the leaf node has no defined `opMenu` property _and_ there is no menu defined in `typeOpMenus` keyed to the column's `type`.
  *
  * @property {object} [typeOpMenu] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
  * 1. do not have their own operator menu (`opMenu` property) of their own; and
@@ -104,31 +139,45 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  * 1. the `type` property of the {@link FilterLeaf}; or
  * 2. the `type` property of the element in the nearest node (including the leaf node itself) that has a defined `ownSchema` or `schema` array property with an element having a matching column name.
  *
+ * @property {sqlIdQtsObject} [sqlIdQts={beg:'"',end:'"'}] - Quote characters for SQL identifiers. Used for both parsing and generating SQL. Should be placed on the root node.
+ *
  * @property {HTMLElement} el - The DOM element created by the `render` method to represent this node. Contains the `el`s for all child nodes (which are themselves pointed to by those nodes). This is always generated but is only in the page DOM if you put it there.
  */
 
 var FilterNode = Base.extend('FilterNode', {
 
     /**
-     * @param {FilterTreeOptionsObject} options
-     * @memberOf FilterNode.prototype
+     * @summary Create a new node or subtree.
+     * @desc Typically used by the application layer to create the entire filter tree.
+     *
+     * If your app wants to make use of the generated UI, you are responsible for inserting the top-level `.el` into the DOM.
+     *
+     * @param {FilterTreeStateObject|FilterTreeOptionsObject} [optionsOrState] - The node state; or an options object possibly containing `state` among other options. Although you can instantiate a filter without specifying any options, this is generally not be very useful. See *Instantiating a filter* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for a practical discussion of minimum options.
+     *
+     * * @memberOf FilterNode.prototype
      */
-    initialize: function(options) {
+    initialize: function(optionsOrState) {
         var self = this,
-            state = options && options.state && parseStateString(options.state),
-            parent = options && options.parent;
+            isObject = typeof optionsOrState === 'object',
+            isOptions = isObject && !optionsOrState.children,
+            options = isOptions && optionsOrState || {},
+            state = isOptions && options.state || // options object with state property
+                (!isObject || optionsOrState.children) && optionsOrState, // state string or object
+            parent = this.parent = options.parent;
 
-        this.state = state;
-        this.parent = parent;
         this.root = parent && parent.root || this;
 
-        this.root.stylesheet = this.root.stylesheet ||
-            cssInjector(options && options.cssStylesheetReferenceElement);
+        if (state) {
+            this.state = this.parseStateString(state, options);
+        }
 
-        // create each standard option from `options` or `state` or `parent` (wherever it's defined first, if anywhere)
+        this.root.stylesheet = this.root.stylesheet ||
+            cssInjector(options.cssStylesheetReferenceElement);
+
+        // Create each standard option from `options` or `state` or `parent` in that priority order.
         _(FilterNode.optionsSchema).each(function(optionSchema, key) {
             if (!self.hasOwnProperty(key) && !optionSchema.ignore) {
-                var option = options && options[key] ||
+                var option = options[key] ||
                     state && state[key] ||
                     !optionSchema.own && (
                         parent && parent[key] || // reference parent value now so we don't have to search up the tree later
@@ -137,6 +186,7 @@ var FilterNode = Base.extend('FilterNode', {
 
                 if (option) {
                     if (key === 'schema') {
+                        // attach the `walk` and `find` convenience methods to the `schema` array
                         option.walk = popMenu.walk.bind(option);
                         option.findItem = popMenu.findItem.bind(option);
                     }
@@ -145,12 +195,26 @@ var FilterNode = Base.extend('FilterNode', {
             }
         });
 
-        // copy all remaining options directly to the new instance, overriding members of the same name in the prototype
+        // copy all remaining options directly to the new instance, overriding prototype members of the same name
         _(options).each(function(value, key) {
             if (!FilterNode.optionsSchema[key]) {
                 self[key] = value;
             }
         });
+
+        if (this === this.root) {
+            var options = {};
+
+            if (this.sqlIdQts) {
+                options.sqlIdQts = this.sqlIdQts;
+            }
+
+            this.conditionals = new Conditionals(options);
+
+            options.schema = this.schema;
+            options.resolveAliases = true;
+            this.ParserSQL = new ParserSQL(options);
+        }
 
         this.setState(state, options);
     },
@@ -179,26 +243,6 @@ var FilterNode = Base.extend('FilterNode', {
         }
     },
 
-    /** @typedef {undefined|string|object} FilterTreeStateObject
-     *
-     * @desc May be one of:
-     * * `FilterTreeStateObject`
-     * * JSON or SQL string
-     * * CSS selector string
-     * * `undefined` _(or any other falsy value)_)
-     *
-     * See {@link FilterNode~parseStateString|parseStateString} for further information.
-     */
-
-    /** @typedef {object} FilterTreeSetStateOptionsObject
-     *
-     * @property {boolean} [syntax] - Provide to override auto-detection of `state` paremeter. May be one of:
-     * * `'JSON'`
-     * * `'SQL'`
-     *
-     * @property {sqlIdQtsObject} [sqlIdQts] - The SQL identifier quote characters to accept while parsing the provided SQL. Alternatively, you can set the quote characters using the {@link module:sqlSearchCondition.pushSqlIdQts|pushSqlIdQts} method.
-     */
-
     /**
      *
      * @param {FilterTreeStateObject} state
@@ -207,7 +251,7 @@ var FilterNode = Base.extend('FilterNode', {
      */
     setState: function(state, options) {
         var oldEl = this.el;
-        this.state = parseStateString(state, options);
+        this.state = this.parseStateString(state, options);
         this.createView();
         this.loadState();
         this.render();
@@ -221,22 +265,93 @@ var FilterNode = Base.extend('FilterNode', {
         }
     },
 
+
+    /**
+     * @summary Convert a string to a state object.
+     *
+     * @desc They string's syntax is inferred as follows:
+     * 1. If state is undefined or already an object, return as is.
+     * 2. If `options.context` is defined, `state` is assumed to be a CSS selector string (auto-detected) pointing to an HTML form control with a `value` property, such as a {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement HTMLInputElement} or a {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement HTMLTextAreaElement}. The element is selected and if found, its value is fetched from the DOM and assigned to `state`.
+     * 3. If `options.syntax` is `'auto'`, JSON syntax is detected if `state` begins _and_ ends with either `[` and `]` _or_ `{` and `}` (ignoring leading and trailing white space).
+     * 4. If JSON syntax, parse the string into an actual `FilterTreeStateObject` using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse|JSON.parse} and throw an error if unparsable.
+     * 5. If not JSON, parse the string as SQL into an actual `FilterTreeStateObject` using parser-SQL's {@link ParserSQL#parser|parser} and throw an error if unparsable.
+     *
+     * @param {FilterTreeStateObject} [state]
+     * @param {FilterTreeSetStateOptionsObject} [options]
+     *
+     * @returns {FilterTreeStateObject} The unmolested `state` parameter. Throws an error if `state` is unknown or invalid syntax.
+     *
+     * @memberOf FilterNode
+     * @inner
+     */
+    parseStateString: function(state, options) {
+        if (state) {
+            if (typeof state === 'string') {
+                var context = options && options.context,
+                    syntax = options && options.syntax || 'auto'; // default is 'auto'
+
+                if (context) {
+                    state = context.querySelector(state).value;
+                }
+
+                if (syntax === 'auto') {
+                    syntax = reJSON.test(state) ? 'JSON' : 'SQL';
+                }
+
+                switch (syntax) {
+                    case 'JSON':
+                        try {
+                            state = JSON.parse(state);
+                        } catch (error) {
+                            throw new FilterTreeError('JSON parser: ' + error);
+                        }
+                        break;
+                    case 'SQL':
+                        try {
+                            state = this.root.ParserSQL.parse(state);
+                        } catch (error) {
+                            throw new FilterTreeError('SQL WHERE clause parser: ' + error);
+                        }
+                        break;
+                }
+            }
+
+            if (typeof state !== 'object') {
+                throw new FilterTreeError('Unexpected input state.');
+            }
+        }
+
+        return state;
+    },
+
     /** Remove both:
      * * `this` filter node from it's `parent`'s `children` collection; and
      * * `this` filter node's `el`'s container (always a `<li>` element) from its parent element.
      * @memberOf FilterNode.prototype
      */
     remove: function() {
-        var node = this.parent;
-        if (node) {
+        var avert,
+            parent = this.parent;
+
+        if (parent) {
             if (this.eventHandler) {
-                this.eventHandler({ type: 'delete' });
+                this.eventHandler.call(parent, {
+                    type: 'delete',
+                    preventDefault: function() { avert = true; }
+                });
             }
-            if (node.persist || node.children.length > 1) {
-                this.el.parentNode.remove(); // always the containing <li> tag
-                node.children.splice(node.children.indexOf(this), 1);
-            } else {
-                node.remove();
+            if (!avert) {
+                if (
+                    parent.keep || // never "prune" (remove if empty) this particular subexpression
+                    parent.children.length > 1 // this node has siblings so will not be empty after this remove
+                ) {
+                    // proceed with remove
+                    this.el.parentNode.remove(); // the parent is always the containing <li> tag
+                    parent.children.splice(parent.children.indexOf(this), 1);
+                } else {
+                    // recurse to prune entire subexpression because it's prune-able and would end up empty (childless)
+                    parent.remove();
+                }
             }
         }
     },
@@ -280,7 +395,7 @@ FilterNode.optionsSchema = {
 
     type: { own: true },
 
-    persist: { own: true },
+    keep: { own: true },
 
     /** @summary Override operator list at any node.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
@@ -311,61 +426,5 @@ FilterNode.clickIn = function(el) {
         }
     }
 };
-
-var reSelector = /^[#\.]?\w+(\s*[ \.\-|*+#:~^$>]+\s*\w+.*)?$/;
-var reJSON = /^\s*[\[\{]/;
-
-/**
- * @summary Convert a string to a state object.
- *
- * @desc The `state` input parameter is interpreted as follows:
- *   1. If CSS selector syntax (auto-detected), it should select an HTML form control with a `value` property, such as a {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement HTMLInputElement} or a {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement HTMLTextAreaElement}. Select the element and fetch the value from the DOM. It is expected to be in either JSON or SQL syntax.
- *   2. If JSON syntax (auto-detected), parse the string into an actual `FilterTreeStateObject` using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse|JSON.parse}
- *   3. If not JSON syntax, it is assumed to be SQL; parse the string into an actual `FilterTreeStateObject` using sql-search-condition's {@link module:sqlSearchCondition.parser|parser}.
- *   4. If `options.syntax` is defined, it will override the auto-detection.
- *
- * @param {FilterTreeStateObject} [state] - If undefined, fails silently.
- * @param {FilterTreeSetStateOptionsObject} [options]
- *
- * @returns {FilterTreeStateObject} The unmolested value of the `state` parameter. Throws an error if `state` is unknown or invalid syntax.
- *
- * @memberOf FilterNode
- * @inner
- */
-function parseStateString(state, options) {
-    if (state) {
-        if (typeof state === 'string') {
-            if (reSelector.test(state)) {
-                state = document.querySelector(state).value;
-            }
-
-            var syntax = options && options.syntax ||
-                reJSON.test(state) && 'JSON';
-
-            switch (syntax) {
-                case 'JSON':
-                    try {
-                        state = JSON.parse(state);
-                    } catch (error) {
-                        throw new FilterTreeError('JSON parser: ' + error);
-                    }
-                    break;
-                case 'SQL':
-                    try {
-                        state = sqlSearchCondition.parse(state, options);
-                    } catch (error) {
-                        throw new FilterTreeError('SQL WHERE clause parser: ' + error);
-                    }
-                    break;
-            }
-        }
-
-        if (typeof state !== 'object') {
-            throw new FilterTreeError('Unexpected input state.');
-        }
-    }
-
-    return state;
-}
 
 module.exports = FilterNode;
