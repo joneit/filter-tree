@@ -275,7 +275,11 @@ window.onload = function() {
      */
     function makeChildren(columnName, expressions) {
         var children = [],
-            orphanedOps = [];
+            orphanedOps = [],
+            findOptions = {
+                caseInsensitive: true,
+                keys: ['name', 'alias']
+            };
 
         expressions.forEach(function(expression) {
             if (expression) {
@@ -286,37 +290,23 @@ window.onload = function() {
                 if (!literal) {
                     orphanedOps.push(op);
                 } else {
-                    var compareLiteral = comparable(literal);
-                    var fieldName = filterTree.schema.find(function(field) {
-                        return (
-                            compareLiteral === (PROPERTY.AUTO_COLUMN_LOOKUP_BY_NAME && comparable(field.name || field)) ||
-                            compareLiteral === (PROPERTY.AUTO_COLUMN_LOOKUP_BY_ALIAS && comparable(field.alias))
-                        );
-                    });
-
                     var child = {
                         column: columnName,
                         operator: opMap[op] || op
                     };
 
+                    var fieldName = filterTree.schema.findItem(literal, findOptions);
                     if (fieldName) {
-                        child.identifier = fieldName.name || fieldName;
+                        child.operand = fieldName.name || fieldName;
                         child.editor = 'Columns';
                     } else {
-                        child.literal = literal;
+                        child.operand = literal;
                     }
 
                     children.push(child);
                 }
             }
         });
-
-        function comparable(name) {
-            if (!PROPERTY.CASE_SENSITIVE_COLUMN_NAMES && typeof name === 'string') {
-                name = name.toLowerCase();
-            }
-            return name;
-        }
 
         if (children.length > 0 && orphanedOps.length > 0 || orphanedOps.length > 1) {
             var RED = ' <code style="color:red">';

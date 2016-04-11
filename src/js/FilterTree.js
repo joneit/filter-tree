@@ -416,7 +416,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
 });
 
-function toStringCaseInsensitive(s) { return (s + '').toLowerCase(); }
+function toStringCaseInsensitive(s) { return (s + '').toUpperCase(); }
 function toStringCaseSensitive(s) { return s + ''; }
 
 // Some event handlers bound to FilterTree object

@@ -212,7 +212,8 @@ var FilterNode = Base.extend('FilterNode', {
             this.conditionals = new Conditionals(sqlOptions);
 
             sqlOptions.schema = this.schema;
-            sqlOptions.resolveAliases = true;
+            sqlOptions.resolveAliases = options.resolveAliases;
+            sqlOptions.caseSensitiveColumnNames = options.caseSensitiveColumnNames;
             this.ParserSQL = new ParserSQL(sqlOptions);
         }
 

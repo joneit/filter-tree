@@ -34,16 +34,26 @@ ParserSqlError.prototype.name = 'ParserSqlError';
  * @summary Structured Query Language (SQL) parser
  * @author Jonathan Eiten <jonathan@openfin.com>
  * @desc This is a subset of SQL conditional expression syntax.
+ *
  * @see {@link https://msdn.microsoft.com/en-us/library/ms173545.aspx SQL Search Condition}
+ *
  * @param {menuItem[]} [options.schema] - Column schema for column name validation. Throws an error if name fails validation (but see `resolveAliases`). Omit to skip column name validation.
- * @param {boolean} [options.resolveAliases] - If given and schema given and column name fails validation, instead of throwing an error, search for a column with a matching alias and use the name of the found column. Throws error if no such column found.
+ * @param {boolean} [options.resolveAliases] - Validate column aliases against schema and use the associated column name in the returned expression state object. Requires `options.schema`. Throws error if no such column found.
+ * @param {boolean} [options.caseSensitiveColumnNames] - Ignore case while validating column names and aliases.
  * @param {sqlIdQtsObject} [options.sqlIdQts={beg:'"',end:'"'}]
  */
 function ParserSQL(options) {
     options = options || {};
+
     this.schema = options.schema;
-    this.resolveAliases = options.resolveAliases;
+
+    this.findOptions = {
+        keys: options.resolveAliases ? ['name', 'alias'] : ['name'],
+        caseInsensitive: options.caseSensitiveColumnNames
+    };
+
     var idQts = options.sqlIdQts || defaultIdQts;
+
     this.reName = new RegExp('^(' + idQts.beg + '(.+?)' + idQts.end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i'); // match[2] || match[3]
 }
 
@@ -148,9 +158,7 @@ function walk(t) {
             }
 
             if (this.schema) {
-                var item = this.schema.findItem(name) ||
-                    this.resolveAliases && this.schema.findItem(name, 'alias');
-
+                var item = this.schema.findItem(name, this.findOptions);
                 if (item) {
                     name = item.name;
                 } else {
