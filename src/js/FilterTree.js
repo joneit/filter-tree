@@ -246,10 +246,14 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return newNode;
     },
 
+    /** @typedef {object} FilterTreeValidationOptionsObject
+     * @property {boolean} [throw=false] - Throw (do not catch) `FilterTreeError`s.
+     * @property {boolean} [alert=false] - Announce error via window.alert() before returning.
+     * @property {boolean} [focus=false] - Place the focus on the offending control and give it error color.
+     */
+
     /**
-     * @param {boolean} [object.throw=false] - Throw (do not catch) `FilterTreeError`s.
-     * @param {boolean} [object.alert=false] - Announce error via window.alert() before returning.
-     * @param {boolean} [object.focus=false] - Place the focus on the offending control and give it error color.
+     * @param {FilterTreeValidationOptionsObject} [options]
      * @returns {undefined|FilterTreeError} `undefined` if valid; or the caught `FilterTreeError` if error.
      * @memberOf FilterTree.prototype
      */
@@ -317,14 +321,28 @@ var FilterTree = FilterNode.extend('FilterTree', {
         return n;
     },
 
+    /** @typedef {object} FilterTreeGetStateOptionsObject
+     *
+     * @summary Object containing options for producing a state object.
+     *
+     * @desc State is commonly used for two purposes:
+     * 1. To persist the filter state so that it can be reloaded later.
+     * 2. To send a query to a database engine.
+     *
+     * @property {boolean} [syntax='object'] - A case-sensitive string indicating the expected type and format of a state object to be generated from a filter tree. One of:
+     * * `'object'` (default) A raw state object produced by walking the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterNode#setState|setState}. This is an "essential" version of the actual node objects in the tree.
+     * * `'JSON'` - A stringified state object produced by walking the tree using `{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}`, returning a JSON string by calling `toJSON` at every node. This is a string representation of the same "essential" object as that produced by the `'object'` option, but "stringified" and therefore suitable for text-based storage media.
+     * * `'SQL'` - The subexpression in SQL conditional syntax produced by walking the tree and returning a SQL [search condition expression]{@link https://msdn.microsoft.com/en-us/library/ms173545.aspx}. Suitable for use in the WHERE clause of a SQL `SELECT` statement used to query a database for a filtered result set.
+     *
+     * @param {number|string} [space] - When `options.syntax === 'JSON'`, forwarded to `JSON.stringify` as the third parameter, `space` (see).
+     *
+     * NOTE: The SQL syntax result cannot accommodate node meta-data. While meta-data such as `type` typically comes from the column schema, meta-data can be installed directly on a node. Such meta-data will not be part of the resulting SQL expression. For this reason, SQL should not be used to persist filter state but rather its use should be limited to generating a filter query for a remote data server.
+     */
+
     /**
      * @summary Get a representation of filter state.
      * @desc Calling this on the root will get the entire tree's state; calling this on any subtree will get just that subtree's state.
-     * @param {string} [options.syntax='object'] - A case-sensitive string indicating the expected type and format of the return value:
-     * * `'object'` (default) walks the tree using `{@link https://www.npmjs.com/package/unstrungify|unstrungify()}`, respecting `JSON.stringify()`'s "{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|toJSON() behavior}," and returning a plain object suitable for resubmitting to {@link FilterNode#setState|setState}.
-     * * `'JSON'` walks the tree using `{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior|JSON.stringify()}`, returning a JSON string by calling toJSON at every node. Suitable for text-based storage media.
-     * * `'SQL'` walks the tree, returning a SQL where clause string. Suitable for creating SQL `SELECT` statements.
-     * @param {number|string} [options.space] - When `options.syntax === 'JSON'`, forwarded to `JSON.stringify`'s third parameter, `space` (see).
+     * @param {FilterTreeGetStateOptionsObject} [options]
      * @param {object} [options.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
      * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
      * @memberOf FilterTree.prototype
@@ -402,8 +420,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     /**
-     * @summary Set case-sensitivity.
-     * Sets a shared set of properties that affects all filter trees.
+     * @summary Set the case sensitivity of filter tests against data.
+     * @desc Case sensitivity pertains to string compares only. This includes untyped columns, columns typed as strings, typed columns containing data that cannot be coerced to type or when the filter expression operand cannot be coerced.
+     *
+     * NOTE: This is a shared property and affects all filter-tree instances constructed by this code instance.
      * @param {boolean} isSensitive
      * @returns {function} Chosen string converter.
      * @memberOf Filtertree.prototype.prototype

@@ -25,31 +25,15 @@ function FilterTreeError(message, node) {
 FilterTreeError.prototype = Object.create(Error.prototype);
 FilterTreeError.prototype.name = 'FilterTreeError';
 
-/** @typedef {object} FilterTreeGetStateOptionsObject
- *
- * @summary Object containing options for producing a state object.
- *
- * @desc State is commonly used for two purposes:
- * 1. To persist the filter state so that it can be reloaded later.
- * 2. To send a query to a database engine.
- *
- * @property {boolean} [syntax='object'] - Specify output syntax. One of:
- * * `'object'` - The raw state object produced by {@link https://www.npmjs.com/package/unstrungify|unstrungify} (which calls the nodes' `toJSON()` methods). This is an "essential" version of the node objects themselves.
- * * `'JSON'` - The same "essential" object produced by `JSON.srtringify()` (which also calls the nodes' `toJSON()` methods).
- * * `'SQL'` - The subexpression in SQL conditional syntax. Intended for issuing a SQL query to a data store. This result has no meta-data; do not use to persist filter state.
- *
- * NOTE: Not all available syntaxes include the meta-data.
- */
-
 /** @typedef {object} FilterTreeSetStateOptionsObject
  *
  * @property {boolean} [syntax='auto'] - Specify parser to use on `state`. One of:
- * * `'auto'` - Auto-detect; see {@link FilterNode~parseStateString} for algorithm.
- * * `'object'` - The raw state object produced by {@link https://www.npmjs.com/package/unstrungify|unstrungify} (which calls the nodes' `toJSON()` methods). This is an "essential" version of the node objects themselves.
- * * `'JSON'` - The same "essential" object produced by `JSON.srtringify()` (which also calls the nodes' `toJSON()` methods).
- * * `'SQL'` - The subexpression in SQL conditional syntax. Intended for issuing a SQL query to a data store. This result has no meta-data; do not use to persist filter state.
+ * * `'auto'` - Auto-detect; see {@link FilterNode#parseStateString} for algorithm.
+ * * `'object'` - A raw state object such as that produced by the [getState()]{@link FilterTree#getState} method.
+ * * `'JSON'` - A JSON string version of a state object such as that produced by the [getState()]{@link FilterTree#getState} method.
+ * * `'SQL'` - A SQL [search condition expression]{@link https://msdn.microsoft.com/en-us/library/ms173545.aspx} string.
  *
- * @param {Element} [context] If defined, reassign input from the `value` property of the `HTMLElement` selected using the provided input as a selector.
+ * @param {Element} [context] If defined, the provided input string is used as a selector to an `HTMLElement` contained in `context`. The `value` property of this element is fetched from the DOM and is used as the input state string; proceed as above.
  */
 
 /** @typedef {object} FilterTreeOptionsObject
