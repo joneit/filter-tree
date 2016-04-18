@@ -132,11 +132,26 @@ var FilterNode = Base.extend('FilterNode', {
 
     /**
      * @summary Create a new node or subtree.
-     * @desc Typically used by the application layer to create the entire filter tree.
+     * @desc Typically used by the application layer to create the entire filter tree; and internally, recursively, to create each node including both subtrees and leaves.
      *
-     * If your app wants to make use of the generated UI, you are responsible for inserting the top-level `.el` into the DOM.
+     * **Node properties and options:** Nodes are instantiated with:
+     * 1. Certain **required properties** which differ for subtrees and leaves.
+     * 2. Arbitrary **non-standard option properties** are defined on the `options` object (so long as their names do not conflict with any standard options) and never persist.
+     * 3. Certain **standard options properties** as defined in the {@link FilterNode~optionsSchema|optionsSchema} hash, come from various sources, as prioritized as follows:
+     *    1. `options` object; does not persist
+     *    2. `state`; object; persists
+     *    3. `parent` object; persists
+     *    4. `default` object; does not persist
      *
-     * @param {FilterTreeStateObject|FilterTreeOptionsObject} [optionsOrState] - The node state; or an options object possibly containing `state` among other options. Although you can instantiate a filter without specifying any options, this is generally not be very useful. See *Instantiating a filter* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for a practical discussion of minimum options.
+     * Notes:
+     * 1. "Persists" means output by {@link FilterTree#getState|getState()}.
+     * 2. The `parent` object is generated internally for subtrees. It allows standard options to inherit from the parent node.
+     * 3. The `default` object comes from the `default` property, if any, of the {@link FilterNode~optionsSchema|schema object} for the standard option in question. Note that once defined, subtrees will then inherit this value.
+     * 4. If not defined by any of the above, the standard option remains undefined on the node.
+     *
+     * **Query Builder UI support:** If your app wants to make use of the generated UI, you are responsible for inserting the top-level `.el` into the DOM. (Otherwise just ignore it.)
+     *
+     * @param {FilterTreeStateObject|FilterTreeOptionsObject} [optionsOrState] - The node state; or an options object possibly containing `state` among other options. Although you can instantiate a filter without specifying state or options, this is generally not useful. See *Instantiating a filter* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for a practical discussion of minimum options.
      *
      * * @memberOf FilterNode.prototype
      */
@@ -147,7 +162,8 @@ var FilterNode = Base.extend('FilterNode', {
             options = isOptions && optionsOrState || {},
             state = isOptions && options.state || // options object with state property
                 (!isObject || optionsOrState.children) && optionsOrState, // state string or object
-            parent = this.parent = options.parent;
+            parent = this.parent = options.parent,
+            dontPersist = this.dontPersist = {}; // hash of truthy values
 
         this.root = parent && parent.root || this;
 
@@ -158,15 +174,17 @@ var FilterNode = Base.extend('FilterNode', {
         this.root.stylesheet = this.root.stylesheet ||
             cssInjector(options.cssStylesheetReferenceElement);
 
-        // Create each standard option from `options` or `state` or `parent` in that priority order.
+        // Create each standard option from when found on the `options` or `state` objects, respectively; or if not an "own" option, on the `parent` object or from the options schema default (if any)
         _(FilterNode.optionsSchema).each(function(optionSchema, key) {
             if (!self.hasOwnProperty(key) && !optionSchema.ignore) {
-                var option = options[key] ||
-                    state && state[key] ||
-                    !optionSchema.own && (
-                        parent && parent[key] || // reference parent value now so we don't have to search up the tree later
-                        optionSchema.default
-                    );
+                var option;
+
+                dontPersist[key] = // truthy if from `options` or `default`
+                    (option = options[key]) ||
+                    !(option = state && state[key]) &&
+                    !optionSchema.own &&
+                    !(option = parent && parent[key]) &&
+                    (option = optionSchema.default);
 
                 if (option) {
                     if (key === 'schema') {
@@ -249,7 +267,6 @@ var FilterNode = Base.extend('FilterNode', {
             oldEl.parentNode.replaceChild(newEl, oldEl);
         }
     },
-
 
     /**
      * @summary Convert a string to a state object.
@@ -346,6 +363,12 @@ var FilterNode = Base.extend('FilterNode', {
     templates: new Templates()
 });
 
+/**
+ * @summary Defines the standard options available to a node.
+ * @desc The following properties bear the same names as the node options they define.
+ * @type {pbject}
+ * @memberOf FilterNode
+ */
 FilterNode.optionsSchema = {
 
     cssStylesheetReferenceElement: { ignore: true },
@@ -353,28 +376,28 @@ FilterNode.optionsSchema = {
     /** @summary Default column schema for column drop-downs of direct descendant leaf nodes only.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string[]}
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode.optionsSchema
      */
     ownSchema: { own: true },
 
     /** @summary Default column schema for column drop-downs of all descendant leaf nodes.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {menuItem[]}
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode.optionsSchema
      */
     schema: {},
 
     /** @summary Type of filter editor.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string}
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode.optionsSchema
      */
     editor: {},
 
     /** @summary Event handler for UI events.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string}
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode.optionsSchema
      */
     eventHandler: {},
 
@@ -385,7 +408,7 @@ FilterNode.optionsSchema = {
     /** @summary Override operator list at any node.
      * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
      * @type {string[]}
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode.optionsSchema
      */
     treeOpMenu: { default: Conditionals.defaultOpMenu },
 

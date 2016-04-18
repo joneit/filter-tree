@@ -10,6 +10,7 @@
 var popMenu = require('pop-menu');
 var unstrungify = require('unstrungify');
 
+var _ = require('object-iterators');
 var FilterNode = require('./FilterNode');
 var FilterLeaf = require('./FilterLeaf');
 var operators = require('./tree-operators');
@@ -342,6 +343,25 @@ var FilterTree = FilterNode.extend('FilterTree', {
     /**
      * @summary Get a representation of filter state.
      * @desc Calling this on the root will get the entire tree's state; calling this on any subtree will get just that subtree's state.
+     *
+     * Only _essential_ properties will be output:
+     *
+     * 1. `FilterTree` nodes will output at least 2 properties:
+     *    * `operator`
+     *    * `children`
+     * 2. `FilterLeaf` nodes will output (via {@link FilterLeaf#getState|getState}) at least 3 properties, one property for each item in it's `view`:
+     *    * `column`
+     *    * `operator`
+     *    * `operand`
+     * 3. Additional node properties will be output when:
+     *    1. When the property was **NOT** externally sourced:
+     *       1. Did *not* come from the `options` object on node instantiation.
+     *       2. Did *not* come from the options schema `default` object, if any.
+     *    2. **AND** at least one of the following is true:
+     *       1. When it's an "own" property.
+     *       2. When its value differs from it's parent's.
+     *       3. When this is the root node.
+     *
      * @param {FilterTreeGetStateOptionsObject} [options]
      * @param {object} [options.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
      * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
@@ -365,12 +385,10 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
                 this.children.forEach(function(child, idx) {
                     var op = idx ? ' ' + lexeme.op + ' ' : '';
-                    if (child) {
-                        if (child instanceof FilterLeaf) {
-                            result += op + child.getState(options);
-                        } else if (child.children.length) {
-                            result += op + getState.call(child, options);
-                        }
+                    if (child instanceof FilterLeaf) {
+                        result += op + child.getState(options);
+                    } else if (child.children.length) {
+                        result += op + getState.call(child, options);
                     }
                 });
 
@@ -387,32 +405,26 @@ var FilterTree = FilterNode.extend('FilterTree', {
     },
 
     toJSON: function toJSON() {
-        var state = {
-            operator: this.operator,
-            children: []
-        };
+        var self = this,
+            state = {
+                operator: this.operator,
+                children: []
+            };
 
         this.children.forEach(function(child) {
-            if (child) {
-                if (child instanceof FilterLeaf) {
-                    state.children.push(child);
-                } else {
-                    var ready = toJSON.call(child);
+            state.children.push(child instanceof FilterLeaf ? child : toJSON.call(child));
+        });
 
-                    for (var key in FilterNode.optionsSchema) {
-                        if (
-                            FilterNode.optionsSchema.hasOwnProperty(key) &&
-                            child[key] && (
-                                FilterNode.optionsSchema[key].own ||
-                                child[key] !== child.parent[key]
-                            )
-                        ) {
-                            ready[key] = child[key];
-                        }
-                    }
-
-                    state.children.push(ready);
-                }
+        _(FilterNode.optionsSchema).each(function(item, key) {
+            if (
+                self[key] && // there is a standard option on the node which may need to be output
+                !self.dontPersist[key] && (
+                    item.own || // output because it's an "own" option (belongs to the node)
+                    !self.parent || // output because it's the root node
+                    self[key] !== self.parent[key] // output because it differs from its parent's version
+                )
+            ) {
+                state[key] = self[key];
             }
         });
 
