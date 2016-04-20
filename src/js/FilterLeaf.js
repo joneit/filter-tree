@@ -29,12 +29,6 @@ var dateConverter = {
     failed: isNaN
 };
 
-/** @type {converter} */
-var stringConverter = {
-    toType: null, // set by FilterLeaf.setToString() called from ../index.js
-    failed: function() {} // falsy return value because conversion to string always successful
-};
-
 /**
  * @typedef {object} filterLeafViewObject
  *
@@ -182,8 +176,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         number: numberConverter,
         int: numberConverter,
         float: numberConverter,
-        date: dateConverter,
-        string: stringConverter
+        date: dateConverter
     },
 
     /**
@@ -471,7 +464,8 @@ function controlValue(el) {
 
 // Meant to be called by FilterTree.prototype.setSensitivity only
 FilterLeaf.setToString = function(fn) {
-    return Conditionals.setToString(stringConverter.toType = toString = fn);
+    toString = fn;
+    return Conditionals.setToString(fn);
 };
 
 

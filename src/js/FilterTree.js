@@ -437,13 +437,11 @@ var FilterTree = FilterNode.extend('FilterTree', {
      *
      * NOTE: This is a shared property and affects all filter-tree instances constructed by this code instance.
      * @param {boolean} isSensitive
-     * @returns {function} Chosen string converter.
      * @memberOf Filtertree.prototype.prototype
      */
     setCaseSensitivity: function(isSensitive) {
         var toString = isSensitive ? toStringCaseSensitive : toStringCaseInsensitive;
         FilterLeaf.setToString(toString);
-        return toString;
     }
 
 });

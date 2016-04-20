@@ -48,9 +48,13 @@ function ParserSQL(options) {
     this.schema = options.schema;
 
     this.findOptions = {
-        keys: options.resolveAliases ? ['name', 'alias'] : ['name'],
-        caseInsensitive: options.caseSensitiveColumnNames
+        caseSensitive: options.caseSensitiveColumnNames,
+        keys: ['name']
     };
+
+    if (options.resolveAliases) {
+        this.findOptions.keys.push('alias');
+    }
 
     var idQts = options.sqlIdQts || defaultIdQts;
 
