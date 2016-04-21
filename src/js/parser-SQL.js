@@ -47,17 +47,7 @@ function ParserSQL(options) {
 
     this.schema = options.schema;
 
-    this.findOptions = {
-        caseSensitive: options.caseSensitiveColumnNames,
-        keys: ['name']
-    };
-
-    if (options.resolveAliases) {
-        this.findOptions.keys.push('alias');
-    }
-
     var idQts = options.sqlIdQts || defaultIdQts;
-
     this.reName = new RegExp('^(' + idQts.beg + '(.+?)' + idQts.end + '|([A-Z_][A-Z_@\\$#]*)\\b)', 'i'); // match[2] || match[3]
 }
 
@@ -162,7 +152,7 @@ function walk(t) {
             }
 
             if (this.schema) {
-                var item = this.schema.findItem(name, this.findOptions);
+                var item = this.schema.lookup(name);
                 if (item) {
                     name = item.name;
                 } else {

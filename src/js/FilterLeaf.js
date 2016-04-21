@@ -211,7 +211,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         type = (
             this.op.type // the expression's operator's type (because some operators only work with strings)
                 ||
-            (this.schema.findItem(this.column) || {}).type // the expression's column schema type
+            (this.schema.lookup(this.column) || {}).type // the expression's column schema type
                 ||
             this.type // the expression node's type
         );
@@ -401,7 +401,7 @@ function cleanUpAndMoveOn(evt) {
 }
 
 function getOpMenu(columnName) {
-    var column = this.schema.findItem(columnName) || {};
+    var column = this.schema.lookup(columnName) || {};
     return (
         column.opMenu
             ||

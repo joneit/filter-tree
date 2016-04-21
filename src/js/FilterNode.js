@@ -163,15 +163,15 @@ var FilterNode = Base.extend('FilterNode', {
             state = isOptions && options.state || // options object with state property
                 (!isObject || optionsOrState.children) && optionsOrState, // state string or object
             parent = this.parent = options.parent,
+            root = this.root = parent && parent.root || this,
+            findOptions = root.findOptions = root.findOptions || {},
             dontPersist = this.dontPersist = {}; // hash of truthy values
-
-        this.root = parent && parent.root || this;
 
         if (state) {
             this.state = this.parseStateString(state, options);
         }
 
-        this.root.stylesheet = this.root.stylesheet ||
+        root.stylesheet = root.stylesheet ||
             cssInjector(options.cssStylesheetReferenceElement);
 
         // Create each standard option from when found on the `options` or `state` objects, respectively; or if not an "own" option, on the `parent` object or from the options schema default (if any)
@@ -190,7 +190,7 @@ var FilterNode = Base.extend('FilterNode', {
                     if (key === 'schema') {
                         // attach the `walk` and `find` convenience methods to the `schema` array
                         option.walk = popMenu.walk.bind(option);
-                        option.findItem = popMenu.findItem.bind(option);
+                        option.lookup = popMenu.lookup.bind(option, findOptions);
                     }
                     self[key] = option;
                 }
@@ -204,7 +204,7 @@ var FilterNode = Base.extend('FilterNode', {
             }
         });
 
-        if (this === this.root) {
+        if (this === root) {
             var sqlOptions = {};
 
             if (this.sqlIdQts) {
@@ -214,10 +214,17 @@ var FilterNode = Base.extend('FilterNode', {
             this.conditionals = new Conditionals(sqlOptions);
 
             sqlOptions.schema = this.schema;
-            sqlOptions.resolveAliases = options.resolveAliases;
-            sqlOptions.caseSensitiveColumnNames = options.caseSensitiveColumnNames;
+            sqlOptions.caseSensitiveColumnNames = this.caseSensitiveColumnNames;
+            sqlOptions.resolveAliases = this.resolveAliases;
             this.ParserSQL = new ParserSQL(sqlOptions);
+
+            findOptions.caseSensitive = this.caseSensitiveColumnNames;
+            findOptions.keys = ['name'];
+            if (this.resolveAliases) {
+                findOptions.keys.push('alias');
+            }
         }
+
 
         this.setState(state, options);
     },

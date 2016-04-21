@@ -19,7 +19,7 @@ window.onload = function() {
     var Hyperfilter = FilterTree.extend('Hyperfilter', {
         preInitialize: function(options) {
             if (options && (options.type || options.state && options.state.type) === 'columnFilter') {
-                this.schema = [ options.parent.root.schema.findItem(options.state.children[0].column) ];
+                this.schema = [ options.parent.root.schema.lookup(options.state.children[0].column) ];
             }
         }
     });
@@ -277,7 +277,7 @@ window.onload = function() {
         var children = [],
             orphanedOps = [],
             findOptions = {
-                caseInsensitive: true,
+                caseSensitive: false,
                 keys: ['name', 'alias']
             };
 
@@ -295,7 +295,7 @@ window.onload = function() {
                         operator: opMap[op] || op
                     };
 
-                    var fieldName = filterTree.schema.findItem(literal, findOptions);
+                    var fieldName = filterTree.schema.lookup(literal);
                     if (fieldName) {
                         child.operand = fieldName.name || fieldName;
                         child.editor = 'Columns';
@@ -578,7 +578,7 @@ window.onload = function() {
     function opMenu(fieldName) {
         var typeOps = getLiteral('typeOpMenu'),
             schema = getLiteral('schema'),
-            field = FilterTree.popMenu.findItem.call(schema, fieldName);
+            field = FilterTree.popMenu.lookup.call(schema, fieldName);
 
         return (
             field && field.opMenu
