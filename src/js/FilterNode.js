@@ -115,7 +115,7 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  *
  * @property {menuItem[]} [treeOpMenu=Conditionals.defaultOpMenu] - Default operator menu for all descendant leaf nodes. Only used if the leaf node has no defined `opMenu` property _and_ there is no menu defined in `typeOpMenus` keyed to the column's `type`.
  *
- * @property {object} [typeOpMenu] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
+ * @property {object} [typeOpMap] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
  * 1. do not have their own operator menu (`opMenu` property) of their own; and
  * 2. whose columns resolve to that type.
  *
@@ -151,82 +151,42 @@ var FilterNode = Base.extend('FilterNode', {
      *
      * **Query Builder UI support:** If your app wants to make use of the generated UI, you are responsible for inserting the top-level `.el` into the DOM. (Otherwise just ignore it.)
      *
-     * @param {FilterTreeStateObject|FilterTreeOptionsObject} [optionsOrState] - The node state; or an options object possibly containing `state` among other options. Although you can instantiate a filter without specifying state or options, this is generally not useful. See *Instantiating a filter* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for a practical discussion of minimum options.
+     * @param {FilterTreeOptionsObject} [options] - The node state; or an options object possibly containing `state` among other options. Although you can instantiate a filter without any options, this is generally not useful. See *Instantiating a filter* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for a practical discussion of minimum options.
      *
      * * @memberOf FilterNode.prototype
      */
-    initialize: function(optionsOrState) {
-        var self = this,
-            isObject = typeof optionsOrState === 'object',
-            isOptions = isObject && !optionsOrState.children,
-            options = isOptions && optionsOrState || {},
-            state = isOptions && options.state || // options object with state property
-                (!isObject || optionsOrState.children) && optionsOrState, // state string or object
-            parent = this.parent = options.parent,
-            root = this.root = parent && parent.root || this,
-            findOptions = root.findOptions = root.findOptions || {},
-            dontPersist = this.dontPersist = {}; // hash of truthy values
+    initialize: function(options) {
+        options = options || {};
 
-        if (state) {
-            this.state = this.parseStateString(state, options);
+        var parent = this.parent = this.parent || options.parent,
+            root = parent && parent.root;
+
+        if (!root) {
+            root = this;
+
+            this.stylesheet = this.stylesheet ||
+                cssInjector(options.cssStylesheetReferenceElement);
+
+            this.conditionals = new Conditionals(options); // .sqlIdQts
+
+            this.ParserSQL = new ParserSQL(options); // .schema, .caseSensitiveColumnNames, .resolveAliases
+
+            var keys = ['name'];
+            if (options.resolveAliases) {
+                keys.push('alias');
+            }
+
+            this.findOptions = {
+                caseSensitive: options.caseSensitiveColumnNames,
+                keys: keys
+            };
         }
 
-        root.stylesheet = root.stylesheet ||
-            cssInjector(options.cssStylesheetReferenceElement);
+        this.root = root;
 
-        // Create each standard option from when found on the `options` or `state` objects, respectively; or if not an "own" option, on the `parent` object or from the options schema default (if any)
-        _(FilterNode.optionsSchema).each(function(optionSchema, key) {
-            if (!self.hasOwnProperty(key) && !optionSchema.ignore) {
-                var option;
+        this.dontPersist = {}; // hash of truthy values
 
-                dontPersist[key] = // truthy if from `options` or `default`
-                    (option = options[key]) ||
-                    !(option = state && state[key]) &&
-                    !optionSchema.own &&
-                    !(option = parent && parent[key]) &&
-                    (option = optionSchema.default);
-
-                if (option) {
-                    if (key === 'schema') {
-                        // attach the `walk` and `find` convenience methods to the `schema` array
-                        option.walk = popMenu.walk.bind(option);
-                        option.lookup = popMenu.lookup.bind(option, findOptions);
-                    }
-                    self[key] = option;
-                }
-            }
-        });
-
-        // copy all remaining options directly to the new instance, overriding prototype members of the same name
-        _(options).each(function(value, key) {
-            if (!FilterNode.optionsSchema[key]) {
-                self[key] = value;
-            }
-        });
-
-        if (this === root) {
-            var sqlOptions = {};
-
-            if (this.sqlIdQts) {
-                sqlOptions.sqlIdQts = this.sqlIdQts;
-            }
-
-            this.conditionals = new Conditionals(sqlOptions);
-
-            sqlOptions.schema = this.schema;
-            sqlOptions.caseSensitiveColumnNames = this.caseSensitiveColumnNames;
-            sqlOptions.resolveAliases = this.resolveAliases;
-            this.ParserSQL = new ParserSQL(sqlOptions);
-
-            findOptions.caseSensitive = this.caseSensitiveColumnNames;
-            findOptions.keys = ['name'];
-            if (this.resolveAliases) {
-                findOptions.keys.push('alias');
-            }
-        }
-
-
-        this.setState(state, options);
+        this.setState(options.state, options);
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
@@ -241,7 +201,7 @@ var FilterNode = Base.extend('FilterNode', {
                 newListItem.appendChild(this.notesEl);
             }
 
-            if (!(this.state && this.state.locked)) {
+            if (!this.keep) {
                 var el = this.templates.get('removeButton');
                 el.addEventListener('click', this.remove.bind(this));
                 newListItem.appendChild(el);
@@ -261,10 +221,15 @@ var FilterNode = Base.extend('FilterNode', {
      */
     setState: function(state, options) {
         var oldEl = this.el;
-        this.state = this.parseStateString(state, options);
-        this.createView();
-        this.loadState();
+
+        state = this.parseStateString(state, options);
+
+        this.mixInStandardOptions(state, options);
+        this.mixInNonstandardOptions(options);
+        this.createView(state);
+        this.loadState(state);
         this.render();
+
         if (oldEl) {
             var newEl = this.el;
             if (this.parent && oldEl.parentElement.tagName === 'LI') {
@@ -333,6 +298,54 @@ var FilterNode = Base.extend('FilterNode', {
         return state;
     },
 
+    /**
+     * Create each standard option from when found on the `options` or `state` objects, respectively; or if not an "own" option, on the `parent` object or from the options schema default (if any)
+     * @param state
+     * @param options
+     */
+    mixInStandardOptions: function(state, options) {
+        var node = this;
+
+        _(FilterNode.optionsSchema).each(function(optionSchema, key) {
+            if (!optionSchema.ignore && (this !== this.root || optionSchema.rootBound)) {
+                var option;
+
+                node.dontPersist[key] = // truthy if from `options` or `default`
+                    (option = options[key]) !== undefined ||
+                    (option = state && state[key]) === undefined &&
+                    !(optionSchema.own || node.hasOwnProperty(key) && option !== null) &&
+                    !(option = node.parent && node.parent[key]) &&
+                    (option = optionSchema.default);
+
+                if (option === null) {
+                    delete node[key];
+                    node.dontPersist[key] = false;
+                } else if (option) {
+                    if (key === 'schema' && !option.walk) {
+                        // attach the `walk` and `find` convenience methods to the `schema` array
+                        option.walk = popMenu.walk.bind(option);
+                        option.lookup = popMenu.lookup.bind(option, node.root.findOptions);
+                    }
+                    node[key] = option;
+                }
+            }
+        });
+    },
+
+    /**
+     * @param options
+     */
+    mixInNonstandardOptions: function(options) {
+        var node = this;
+
+        // copy all remaining options directly to the new instance, overriding prototype members of the same name
+        _(options).each(function(value, key) {
+            if (!FilterNode.optionsSchema[key]) {
+                node[key] = value;
+            }
+        });
+    },
+
     /** Remove both:
      * * `this` filter node from it's `parent`'s `children` collection; and
      * * `this` filter node's `el`'s container (always a `<li>` element) from its parent element.
@@ -370,6 +383,15 @@ var FilterNode = Base.extend('FilterNode', {
     templates: new Templates()
 });
 
+/** @typedef optionsSchemaObject
+ * @summary Standard option schema
+ * @desc Standard options are automatically added to nodes. Data sources for standard options include `options`, `state`, `parent` and `default` (in that order). Describes standard options through various properties:
+ * @property {boolean} [ignore] - Do not automatically add to nodes (processed elsewhere).
+ * @property {boolean} [own] - Do not automatically add from `parent` or `default`.
+ * @property {boolean} [rootBound] - Automatically add to root node only.
+ * @property {*} [default] - This is the default data source when all other strategies fail.
+ */
+
 /**
  * @summary Defines the standard options available to a node.
  * @desc The following properties bear the same names as the node options they define.
@@ -377,6 +399,8 @@ var FilterNode = Base.extend('FilterNode', {
  * @memberOf FilterNode
  */
 FilterNode.optionsSchema = {
+
+    state: { ignore: true },
 
     cssStylesheetReferenceElement: { ignore: true },
 
@@ -417,10 +441,14 @@ FilterNode.optionsSchema = {
      * @type {string[]}
      * @memberOf FilterNode.optionsSchema
      */
-    treeOpMenu: { default: Conditionals.defaultOpMenu },
+    opMenu: { default: Conditionals.defaultOpMenu },
 
-    typeOpMenu: {},
+    typeOpMap: { rootBound: true },
 
+    /** @summary Truthy will sort the column menus.
+     * @type {boolean}
+     * @memberOf FilterNode.optionsSchema
+     */
     sortColumnMenu: {}
 };
 

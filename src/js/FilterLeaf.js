@@ -34,7 +34,7 @@ var dateConverter = {
  *
  * @property {HTMLElement} column - A drop-down with options from the `FilterLeaf` instance's schema. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).
  *
- * @property operator - A drop-down with options from {@link columnOpMenu}, {@link typeOpMenu}, or {@link treeOpMenu}. Value is the string representation of the operator.
+ * @property operator - A drop-down with options from {@link columnOpMenu}, {@link typeOpMap}, or {@link treeOpMenu}. Value is the string representation of the operator.
  *
  * @property operand - An input element, such as a drop-down or a text box.
  */
@@ -88,21 +88,21 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @desc This new "view" is a group of HTML `Element` controls that completely describe the conditional expression this object represents. This method creates the view, setting `this.el` to point to it, and the members of `this.view` to point to the individual controls therein.
      * @memberOf FilterLeaf.prototype
      */
-    createView: function() {
+    createView: function(state) {
         var el = this.el = document.createElement('span');
 
         el.className = 'filter-tree-editor filter-tree-default';
 
-        if (this.state.column) {
+        if (state && state.column) {
             // State includes column:
             // Operator menu is built later in loadState; we don't need to build it now. The call to
             // getOpMenu below with undefined columnName returns [] resulting in an empty drop-down.
         } else {
             // When state does NOT include column, it's because either:
-            // a. column is unknown and no op menu will be empty until user chooses a column; or
+            // a. column is unknown and op menu will be empty until user chooses a column; or
             // b. column is hard-coded when there's only one possible column as inferable from schema:
             var schema = this.schema && this.schema.length === 1 && this.schema[0],
-                columnName = schema && (schema.name || schema);
+                columnName = schema && schema.name || schema;
         }
 
         this.view = {
@@ -114,9 +114,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         el.appendChild(document.createElement('br'));
     },
 
-    loadState: function() {
-        var state = this.state;
-
+    loadState: function(state) {
         if (state) {
             var value, el, i, b, selected, notes = [];
             for (var key in state) {
@@ -186,7 +184,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * Copies all `this.view`' values from the DOM to similarly named properties of `this`.
      * * Pre-sets `this.op` and `this.converter` for use in `test`'s tree walk.
      *
-     * @param {boolean} [options.focus=true] - Move focus to offending control.
+     * @param {boolean} [options.throw=false] - Throw an error if missing or invalid value.
+     * @param {boolean} [options.focus=false] - Move focus to offending control.
      * @returns {undefined} This is the normal return when valid; otherwise throws error when invalid.
      * @memberOf FilterLeaf.prototype
      */
@@ -198,8 +197,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 value = controlValue(el).trim();
 
             if (value === '') {
-                if (options && options.focus) { clickIn(el); }
-                throw new this.Error('Blank ' + elementName + ' control.\nComplete the filter or delete it.', this);
+                if (options && options.focus) {
+                    clickIn(el);
+                }
+                if (options && options.throw) {
+                    throw new this.Error('Missing or invalid ' + elementName + ' in conditional expression. Complete the expression or remove it.', this);
+                }
             } else {
                 // Copy each controls's value as a new similarly named property of this object.
                 this[elementName] = value;
@@ -301,6 +304,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * If contains only a single option, will create a `<span>...</span>` element containing the string and a `<input type=hidden>` containing the value.
      * * Otherwise, creates a `<select>...</select>` element with these menu items.
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
+     * @param [sort]
      * @memberOf FilterLeaf.prototype
      */
     makeElement: function(menu, prompt, sort) {
@@ -405,9 +409,9 @@ function getOpMenu(columnName) {
     return (
         column.opMenu
             ||
-        this.typeOpMenu && this.typeOpMenu[column.type || this.type]
+        this.typeOpMap && this.typeOpMap[column.type || this.type]
             ||
-        this.treeOpMenu
+        this.opMenu
     );
 }
 

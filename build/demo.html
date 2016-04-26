@@ -35,8 +35,8 @@
             </p>
             <ol>
                 <li>The <code>opMenu</code> property, if defined on the column* in the node's column <code>schema</code> array.</li>
-                <li>The node's <code>typeOpMenu</code> hash, if defined. This would be the property in <code>typeOpMenu</code> named for the <code>type</code> property if defined on the column.*
-                <li>The node's <code>treeOpMenu</code> array, if defined.</li>
+                <li>The node's <code>typeOpMap</code> hash, if defined. This would be the property in <code>typeOpMap</code> named for the <code>type</code> property if defined on the column.*
+                <li>The node's <code>opMenu</code> array, if defined.</li>
                 <li>The default operator menu, as defined in <code><a href="http://joneit.github.io/filter-tree/module-conditionals.html#/.defaultOpMenu" target="jsdocs">conditionals.defaultOpMenu</a></code>.</li>
             </ol>
             <small>
@@ -47,10 +47,10 @@
         <label><input type="radio" name="opMenu" value="schema" checked /><code>options.schema</code></label>
         &mdash; a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> array for columns<br>
 
-        <label><input type="radio" name="opMenu" value="typeOpMenu" /><code>options.typeOpMenu</code></label>
+        <label><input type="radio" name="opMenu" value="typeOpMap" /><code>options.typeOpMap</code></label>
         &mdash; a hash of <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> arrays for various types<br>
 
-        <label><input type="radio" name="opMenu" value="treeOpMenu" /><code>options.treeOpMenu</code></label>
+        <label><input type="radio" name="opMenu" value="treeOpMenu" /><code>options.opMenu</code></label>
         &mdash; a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> array for operators<br>
 
         <label><input type="radio" name="opMenu" value="state" /><code>options.state</code></label>
@@ -71,8 +71,8 @@
             <p class="smallprint">Format: JavaScript object literal syntax</p>
         </div>
 
-        <div id="section-typeOpMenu" style="display:none">
-            <textarea id="typeOpMenu" rows="16">{
+        <div id="section-typeOpMap" style="display:none">
+            <textarea id="typeOpMap" rows="16">{
     date: [
         "group(equality)",
         { label: "More or less", submenu: [ "<", ">" ] }

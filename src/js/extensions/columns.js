@@ -4,7 +4,8 @@ var Conditionals = require('../Conditionals');
 var FilterLeaf = require('../FilterLeaf');
 
 /**
- * Similar to {@link FilterLeaf} except:
+ * @summary Prototype additions object for extending {@link FilterLeaf}.
+ * @desc Resulting object is similar to {@link FilterLeaf} except:
  * 1. The `operand` property names another column rather than contains a literal.
  * 2. Operators are limited to equality, inequalities, and sets (IN/NOT IN). Omitted are the string and pattern scans (BEGINS/NOT BEGINS, ENDS/NOT ENDS, CONTAINS/NOT CONTAINS, and LIKE/NOT LIKE).
  *
@@ -31,7 +32,7 @@ var ColumnLeaf = {
         return this.conditionals.makeSqlIdentifier(this.operand);
     },
 
-    treeOpMenu: [
+    opMenu: [
         Conditionals.groups.equality,
         Conditionals.groups.inequalities,
         Conditionals.groups.sets

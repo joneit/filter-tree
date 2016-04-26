@@ -276,7 +276,7 @@ window.onload = function() {
     function makeChildren(columnName, expressions) {
         var children = [],
             orphanedOps = [],
-            findOptions = {
+            findOptions = { // eslint-disable-line no-unused-vars
                 caseSensitive: false,
                 keys: ['name', 'alias']
             };
@@ -505,8 +505,8 @@ window.onload = function() {
         try {
             var newFilterTree = new Hyperfilter({
                 schema: getLiteral('schema'),
-                typeOpMenu: getLiteral('typeOpMenu'),
-                treeOpMenu: getLiteral('treeOpMenu'),
+                typeOpMap: getLiteral('typeOpMap'),
+                opMenu: getLiteral('treeOpMenu'),
                 state: elid('state').value,
                 eventHandler: function(evt) {
                     if (evt.type === 'change' || evt.type === 'keyup' || evt.type === 'delete') {
@@ -576,7 +576,7 @@ window.onload = function() {
     }
 
     function opMenu(fieldName) {
-        var typeOps = getLiteral('typeOpMenu'),
+        var typeOps = getLiteral('typeOpMap'),
             schema = getLiteral('schema'),
             field = FilterTree.popMenu.lookup.call(schema, fieldName);
 

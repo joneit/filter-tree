@@ -144,9 +144,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      *
      * @memberOf FilterTree.prototype
      */
-    loadState: function() {
-        var state = this.state;
-
+    loadState: function(state) {
         this.operator = 'op-and';
         this.children = [];
 
@@ -268,14 +266,20 @@ var FilterTree = FilterNode.extend('FilterTree', {
         } catch (err) {
             result = err;
 
-            // Throw when requested OR when unexpected (not a filter tree error)
-            if (options.throw || !(err instanceof this.Error)) {
+            // Throw when unexpected (not a filter tree error)
+            if (!(err instanceof this.Error)) {
                 throw err;
             }
         }
 
-        if (result && options.alert) {
-            window.alert(result.message || result); // eslint-disable-line no-alert
+        // Alter and/or throw when requested
+        if (result) {
+            if (options.alert) {
+                window.alert(result.message || result); // eslint-disable-line no-alert
+            }
+            if (options.throw) {
+                throw result;
+            }
         }
 
         return result;
@@ -415,11 +419,11 @@ var FilterTree = FilterNode.extend('FilterTree', {
             state.children.push(child instanceof FilterLeaf ? child : toJSON.call(child));
         });
 
-        _(FilterNode.optionsSchema).each(function(item, key) {
+        _(FilterNode.optionsSchema).each(function(optionSchema, key) {
             if (
                 self[key] && // there is a standard option on the node which may need to be output
                 !self.dontPersist[key] && (
-                    item.own || // output because it's an "own" option (belongs to the node)
+                    optionSchema.own || // output because it's an "own" option (belongs to the node)
                     !self.parent || // output because it's the root node
                     self[key] !== self.parent[key] // output because it differs from its parent's version
                 )
