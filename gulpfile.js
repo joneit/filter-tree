@@ -25,6 +25,22 @@ gulp.task('injection', injectCSS);
 gulp.task('browserify', browserify);
 gulp.task('serve', browserSyncLaunchServer);
 
+gulp.task('templates', function() {
+    gulp.src(srcDir + 'html/*.html')
+        .pipe($$.each(function(content, file, callback) {
+            var filename = path.basename(file.path, '.html');
+            var member = /[^\w]/.test(filename) ? '[\'' + filename + '\']' : '.' + filename;
+            content = 'exports' + member + ' = [\n\'' + content
+                    .replace(/\'/g, '\\\'')
+                    .replace(/\n/g, '\',\n\'') + '\'\n].join(\'\\n\');\n';
+            content = content.replace(/,\n\'\'\n]/g, '\n]');
+            callback(null, content); // the first argument is an error, if you encounter one
+        }))
+        .pipe($$.concat('index.js'))
+        .pipe($$.header('\'use strict\';\n\n'))
+        .pipe(gulp.dest(srcDir + 'html'));
+});
+
 gulp.task('build', function(callback) {
     clearBashScreen();
     runSequence(
