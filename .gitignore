@@ -1,6 +1,7 @@
 .DS_Store
 /build/lib
+/html/index.js
 /.idea
 /doc
 /node_modules
-/src/js/css.js
+/js/stylesheet.js

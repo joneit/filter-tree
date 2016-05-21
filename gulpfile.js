@@ -12,7 +12,6 @@ var gulp        = require('gulp'),
 
 var name     = 'filter-tree',
     main     = 'FilterTree',
-    srcDir   = './src/',
     testDir  = './test/',
     buildDir = './build/';
 
@@ -25,26 +24,15 @@ gulp.task('injection', injectCSS);
 gulp.task('browserify', browserify);
 gulp.task('serve', browserSyncLaunchServer);
 
-gulp.task('templates', function() {
-    gulp.src(srcDir + 'html/*.html')
-        .pipe($$.each(function(content, file, callback) {
-            var filename = path.basename(file.path, '.html');
-            var member = /[^\w]/.test(filename) ? '[\'' + filename + '\']' : '.' + filename;
-            content = 'exports' + member + ' = [\n\'' + content
-                    .replace(/\'/g, '\\\'')
-                    .replace(/\n/g, '\',\n\'') + '\'\n].join(\'\\n\');\n';
-            content = content.replace(/,\n\'\'\n]/g, '\n]');
-            callback(null, content); // the first argument is an error, if you encounter one
-        }))
-        .pipe($$.concat('index.js'))
-        .pipe($$.header('\'use strict\';\n\n'))
-        .pipe(gulp.dest(srcDir + 'html'));
+gulp.task('html-templates', function() {
+    templates('html');
 });
 
 gulp.task('build', function(callback) {
     clearBashScreen();
     runSequence(
         'lint',
+        'html-templates',
         //'test',
         //'doc',
         'injection',
@@ -60,8 +48,10 @@ gulp.task('reload', function() {
 gulp.task('watch', function () {
 
     gulp.watch([
-        srcDir + '**',
-        '!' + srcDir + 'js/css.js',
+        './css/*.css',
+        './html/*.html',
+        './js/**',
+        '!./js/stylesheet.js', // generated file
         testDir + '**',
         buildDir + '*'
     ], [
@@ -94,7 +84,7 @@ function cssToJsFn(filePath, file) {
 }
 
 function lint() {
-    return gulp.src([srcDir + '**/*.js', buildDir + '*.js'])
+    return gulp.src(['./js/**/*.js', buildDir + '*.js'])
         .pipe($$.excludeGitignore())
         .pipe($$.eslint())
         .pipe($$.eslint.format())
@@ -118,19 +108,20 @@ function browserSyncLaunchServer() {
 }
 
 function injectCSS() {
-    // inject the css from css/filter-tree.css via css/filter-tree.js into new file js/css.js
-    return gulp.src(srcDir + 'css/css.js')
-        .pipe($$.inject(gulp.src(srcDir + 'css/' + name + '.css'), {
+    // inject the css from css/filter-tree.css via css/css.js into new file js/stylesheet.js
+    return gulp.src('./css/css.js')
+        .pipe($$.inject(gulp.src('./css/' + name + '.css'), {
             transform: cssToJsFn,
             starttag: '/* {{name}}:{{ext}} */',
             endtag: '/* endinject */'
         }))
-        .pipe(gulp.dest(srcDir + 'js/'));
+        .pipe($$.rename('stylesheet.js'))
+        .pipe(gulp.dest('./js/'));
 }
 
 function browserify() {
     // browserify the root file src/index.js into build/filter-tree.js and filter-tree.min.js
-    return gulp.src(srcDir + 'index.js')
+    return gulp.src('./index.js')
         .pipe($$.replace(
             'module.exports =',
             'window.' + main + ' ='
@@ -162,4 +153,31 @@ function doc(callback) {
 function clearBashScreen() {
     var ESC = '\x1B';
     console.log(ESC + 'c'); // (VT-100 escape sequence)
+}
+
+function templates(folder) {
+    return gulp.src('./' + folder + '/*.' + folder)
+        .pipe($$.each(function(content, file, callback) {
+            var filename = path.basename(file.path, ".html"),
+                member = /[^\w]/.test(filename) ? "['" + filename + "']" : "." + filename;
+
+            // convert (groups of) 4 space chars at start of lines to tab(s)
+            do {
+                var len = content.length;
+                content = content.replace(/\n(    )*    (.*)/, "\n$1\t$2");
+            } while (content.length < len);
+
+            // quote each line and join them into a single string
+            content = 'exports' + member + " = [\n'" + content
+                    .replace(/'/g, "\\'")
+                    .replace(/\n/g, "',\n'") + "'\n].join('\\n');\n";
+
+            // remove possible blank line at end of each
+            content = content.replace(/,\n''\n]/g, "\n]");
+
+            callback(null, content); // the first argument is an error, if you encounter one
+        }))
+        .pipe($$.concat("index.js"))
+        .pipe($$.header("'use strict';\n\n"))
+        .pipe(gulp.dest(function(file) { return file.base; }));
 }

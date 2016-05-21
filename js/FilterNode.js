@@ -6,7 +6,7 @@ var _ = require('object-iterators');
 var extend = require('extend-me'), Base = extend.Base; extend.debug = true;
 var popMenu = require('pop-menu');
 
-var cssInjector = require('./css');
+var cssInjector = require('./stylesheet');
 var Templates = require('./Templates');
 var Conditionals = require('./Conditionals');
 var ParserSQL = require('./parser-SQL');

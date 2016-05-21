@@ -1,0 +1,8 @@
+.*
+/build
+/css
+/doc
+/jsdoc*
+/*.sh
+/gulpfile.js
+/test
