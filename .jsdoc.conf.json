@@ -4,7 +4,8 @@
         "dictionaries": ["jsdoc","closure"]
     },
     "source": {
-        "include": "src"
+        "include": [ "." ],
+        "exclude": [ "node_modules" ]
     },
     "plugins": ["plugins/markdown"],
     "markdown": {

@@ -60,7 +60,7 @@ var dateConverter = {
  *
  * @property {string} column - Name of the member in the data row objects against which `operand` will be compared. Reflects the value of the `view.column` control after validation.
  *
- * @property {string} operator - Operator symbol. This must match a key in the `Conditionals.ops` hash. Reflects the value of the `view.operator` control after validation.
+ * @property {string} operator - Operator symbol. This must match a key in the `this.root.conditionals.ops` hash. Reflects the value of the `view.operator` control after validation.
  *
  * @property {string} operand - Value to compare against the the member of data row named by `column`. Reflects the value of the `view.operand` control, after validation.
  *
@@ -209,17 +209,21 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             }
         }
 
-        this.op = Conditionals.ops[this.operator];
+        this.op = this.root.conditionals.ops[this.operator];
 
-        type = (
-            this.op.type // the expression's operator's type (because some operators only work with strings)
-                ||
-            (this.schema.lookup(this.column) || {}).type // the expression's column schema type
-                ||
-            this.type // the expression node's type
-        );
+        type = this.getType();
 
         this.converter = type && type !== 'string' && this.converters[type];
+    },
+
+    getType: function() {
+        return (
+            this.op.type // the expression's operator's type (because some operators only work with strings)
+            ||
+            (this.schema.lookup(this.column) || {}).type // the expression's column schema type
+            ||
+            this.type // the expression node's type
+        );
     },
 
     p: function(dataRow) { return dataRow[this.column]; },
@@ -281,7 +285,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 result = JSON.stringify(this, null, options && options.space) || '';
                 break;
             case 'SQL':
-                result = this.getSyntax(this.root.conditionals);
+                result = this.getSyntax();
         }
 
         return result;
@@ -291,8 +295,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return this.root.conditionals.makeSqlString(this.operand); // todo: this should be a number if type is number instead of a string -- but we will have to ensure it is numeric!
     },
 
-    getSyntax: function(conditionals) {
-        return Conditionals.ops[this.operator].make.call(conditionals, this);
+    getSyntax: function() {
+        return this.root.conditionals.ops[this.operator].make.call(this.root.conditionals, this);
     },
 
     /** @summary HTML form controls factory.

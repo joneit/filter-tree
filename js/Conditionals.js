@@ -58,7 +58,7 @@ var Conditionals = Base.extend({
     /**
      * @memberOf Conditionals.prototype
      */
-    makeLIKE: function(beg, end, op, c) {
+    makeLIKE: function(beg, end, op, originalOp, c) {
         var escaped = c.operand.replace(/([_\[\]%])/g, '[$1]'); // escape all LIKE reserved chars
         return this.makeSqlIdentifier(c.column) +
             ' ' + op +
@@ -84,7 +84,7 @@ var Conditionals = Base.extend({
     }
 });
 
-Conditionals.ops = {
+var ops = Conditionals.prototype.ops = {
     undefined: {
         test: function() { return true; },
         make: function() { return ''; }
@@ -161,6 +161,7 @@ Conditionals.ops = {
     IN: { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) >= 0; },
         make: function(c) { return this.makeIN(IN, c); },
+        operandList: true,
         type: 'string'
     },
 
@@ -170,6 +171,7 @@ Conditionals.ops = {
     'NOT IN': { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) < 0; },
         make: function(c) { return this.makeIN(NOT_IN, c); },
+        operandList: true,
         type: 'string'
     },
 
@@ -178,7 +180,7 @@ Conditionals.ops = {
      */
     CONTAINS: {
         test: function(a, b) { return containsOp(a, b) >= 0; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE, c, 'CONTAINS'); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, LIKE, 'CONTAINS', c); },
         type: 'string'
     },
 
@@ -187,7 +189,7 @@ Conditionals.ops = {
      */
     'NOT CONTAINS': {
         test: function(a, b) { return containsOp(a, b) < 0; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE, c, 'NOT CONTAINS'); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, LIKE_WILD_CARD, NOT_LIKE, 'NOT CONTAINS', c); },
         type: 'string'
     },
 
@@ -196,7 +198,7 @@ Conditionals.ops = {
      */
     BEGINS: {
         test: function(a, b) { b = toString(b); return beginsOp(a, b.length) === b; },
-        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, c, 'BEGINS'); },
+        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, LIKE, 'BEGINS', c); },
         type: 'string'
     },
 
@@ -205,7 +207,7 @@ Conditionals.ops = {
      */
     'NOT BEGINS': {
         test: function(a, b) { b = toString(b); return beginsOp(a, b.length) !== b; },
-        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, c, 'NOT BEGINS'); },
+        make: function(c) { return this.makeLIKE(NIL, LIKE_WILD_CARD, NOT_LIKE, 'NOT BEGINS', c); },
         type: 'string'
     },
 
@@ -214,7 +216,7 @@ Conditionals.ops = {
      */
     ENDS: {
         test: function(a, b) { b = toString(b); return endsOp(a, b.length) === b; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, c, 'ENDS'); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, LIKE, 'ENDS', c); },
         type: 'string'
     },
 
@@ -223,13 +225,12 @@ Conditionals.ops = {
      */
     'NOT ENDS': {
         test: function(a, b) { b = toString(b); return endsOp(a, b.length) !== b; },
-        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, c, 'NOT ENDS'); },
+        make: function(c) { return this.makeLIKE(LIKE_WILD_CARD, NIL, NOT_LIKE, 'NOT ENDS', c); },
         type: 'string'
     }
 };
 
 // some synonyms
-var ops = Conditionals.ops;
 ops['\u2264'] = ops['<='];  // UNICODE 'LESS-THAN OR EQUAL TO'
 ops['\u2265'] = ops['>='];  // UNICODE 'GREATER-THAN OR EQUAL TO'
 ops['\u2260'] = ops['<>'];  // UNICODE 'NOT EQUAL TO'

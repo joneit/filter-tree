@@ -158,7 +158,7 @@ function clearBashScreen() {
 function templates(folder) {
     return gulp.src('./' + folder + '/*.' + folder)
         .pipe($$.each(function(content, file, callback) {
-            var filename = path.basename(file.path, ".html"),
+            var filename = path.basename(file.path, "." + folder),
                 member = /[^\w]/.test(filename) ? "['" + filename + "']" : "." + filename;
 
             // convert (groups of) 4 space chars at start of lines to tab(s)
@@ -169,7 +169,8 @@ function templates(folder) {
 
             // quote each line and join them into a single string
             content = 'exports' + member + " = [\n'" + content
-                    .replace(/'/g, "\\'")
+                    .replace(/\\/g, "\\\\") // escape all backslashes
+                    .replace(/'/g, "\\'") // escape all single-quotes
                     .replace(/\n/g, "',\n'") + "'\n].join('\\n');\n";
 
             // remove possible blank line at end of each
