@@ -311,7 +311,7 @@ var FilterNode = Base.extend('FilterNode', {
                 var option;
 
                 node.dontPersist[key] = // truthy if from `options` or `default`
-                    (option = options[key]) !== undefined ||
+                    (option = options && options[key]) !== undefined ||
                     (option = state && state[key]) === undefined &&
                     !(optionSchema.own || node.hasOwnProperty(key) && option !== null) &&
                     !(option = node.parent && node.parent[key]) &&

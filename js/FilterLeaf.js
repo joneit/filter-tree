@@ -285,7 +285,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 result = JSON.stringify(this, null, options && options.space) || '';
                 break;
             case 'SQL':
-                result = this.getSyntax();
+                result = this.getSyntax(this.root.conditionals);
         }
 
         return result;
@@ -295,8 +295,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return this.root.conditionals.makeSqlString(this.operand); // todo: this should be a number if type is number instead of a string -- but we will have to ensure it is numeric!
     },
 
-    getSyntax: function() {
-        return this.root.conditionals.ops[this.operator].make.call(this.root.conditionals, this);
+    getSyntax: function(conditionals) {
+        return this.root.conditionals.ops[this.operator].make.call(conditionals, this);
     },
 
     /** @summary HTML form controls factory.
