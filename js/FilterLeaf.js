@@ -190,15 +190,16 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @memberOf FilterLeaf.prototype
      */
     invalid: function(options) {
-        var elementName, type;
+        var elementName, type, focused;
 
         for (elementName in this.view) {
             var el = this.view[elementName],
                 value = controlValue(el).trim();
 
             if (value === '') {
-                if (options && options.focus) {
+                if (!focused && options && options.focus) {
                     clickIn(el);
+                    focused = true;
                 }
                 if (options && options.throw) {
                     throw new this.Error('Missing or invalid ' + elementName + ' in conditional expression. Complete the expression or remove it.', this);
@@ -422,7 +423,7 @@ function getOpMenu(columnName) {
 function makeOpMenu(columnName) {
     var opMenu = getOpMenu.call(this, columnName);
 
-    if (opMenu !== this.opMenu) {
+    if (opMenu !== this.renderedOpMenu) {
         var newOpDrop = this.makeElement(opMenu, 'operator');
 
         newOpDrop.value = this.view.operator.value;
@@ -431,7 +432,7 @@ function makeOpMenu(columnName) {
 
         FilterNode.setWarningClass(newOpDrop);
 
-        this.opMenu = opMenu;
+        this.renderedOpMenu = opMenu;
     }
 }
 
