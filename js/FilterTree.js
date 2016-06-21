@@ -109,7 +109,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         this.el = this.templates.get(
             this.type || 'subtree',
             ++ordinal,
-            popMenu.formatItem(this.schema[0])
+            this.schema[0] && popMenu.formatItem(this.schema[0])
         );
 
         // Add the expression editors to the "add new" drop-down
