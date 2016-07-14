@@ -39,7 +39,7 @@ var ColumnLeaf = {
     ],
 
     q: function(dataRow) {
-        return dataRow[this.operand];
+        return this.valOrFunc(dataRow, this.operand);
     }
 };
 

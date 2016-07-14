@@ -227,19 +227,28 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         );
     },
 
-    p: function(dataRow) { return dataRow[this.column]; },
-    q: function() { return this.operand; },
+    valOrFunc: function(dataRow, columnName) {
+        var vf = dataRow[columnName];
+        var result = (typeof vf)[0] === 'f' ? vf(dataRow, columnName) : vf;
+        return result || result === 0 ? result : '';
+    },
+
+    p: function(dataRow) {
+        return this.valOrFunc(dataRow, this.column);
+    },
+
+    // To be overridden when operand is a column name (see columns.js).
+    q: function() {
+        return this.operand;
+    },
 
     test: function(dataRow) {
         var p, q, // untyped versions of args
             P, Q, // typed versions of p and q
             converter;
 
-        // TODO: If a literal (i.e., when this.q is not overridden), q only needs to be fetched & converted ONCE for all rows
+        // TODO: If a literal (i.e., when this.q is not overridden), q only needs to be fetched ONCE for all rows
         return (
-            // TODO: Uncomment following two lines if values can be functions
-            //(p = valOrFunc(this.p(dataRow))) === undefined ||
-            //(q = valOrFunc(this.q(dataRow))) === undefined
             (p = this.p(dataRow)) === undefined ||
             (q = this.q(dataRow)) === undefined
         )
@@ -362,11 +371,6 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return result;
     }
 });
-
-//function valOrFunc(vf) {
-//var result = (typeof vf)[0] === 'f' ? vf() : vf;
-//    return result || result === 0 ? result : '';
-//}
 
 /** `change` event handler for all form controls.
  * Rebuilds the operator drop-down as needed.
