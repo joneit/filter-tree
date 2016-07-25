@@ -215,6 +215,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         type = this.getType();
 
         this.converter = type && type !== 'string' && this.converters[type];
+
+        this.calculator = this.getCalculator();
     },
 
     getType: function() {
@@ -227,10 +229,20 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         );
     },
 
+    getCalculator: function() {
+        return (
+            (this.schema.lookup(this.column) || {}).calculator || // the expression's column schema calculator
+            this.calculator // the expression node's calculator
+        );
+    },
+
     valOrFunc: function(dataRow, columnName) {
-        var vf = dataRow[columnName];
-        var result = (typeof vf)[0] === 'f' ? vf(dataRow, columnName) : vf;
-        return result || result === 0 ? result : '';
+        var result = dataRow[columnName],
+            calculator = (typeof result)[0] === 'f' && result || this.calculator;
+        if (calculator) {
+            result = calculator(dataRow, columnName);
+        }
+        return result || result === 0 || result === false ? result : '';
     },
 
     p: function(dataRow) {
