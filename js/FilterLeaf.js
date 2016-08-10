@@ -196,6 +196,23 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             var el = this.view[elementName],
                 value = controlValue(el).trim();
 
+            if (value === '' && elementName === 'operator') {
+                var ops = this.root.conditionals.ops,
+                    op = ops[this.operator];
+
+                if (op) {
+                    // Operator not found in menu because may be a synonym.
+                    // Check each menu item's op object for equivalency to possible synonym's.
+                    var opMenu = getOpMenu.call(this, this.column);
+                    popMenu.walk.call(opMenu, function(opMenuItem) {
+                        var opName = opMenuItem.name || opMenuItem;
+                        if (ops[opName] === op) {
+                            value = opName;
+                        }
+                    });
+                }
+            }
+
             if (value === '') {
                 if (!focused && options && options.focus) {
                     clickIn(el);
@@ -220,20 +237,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     getType: function() {
-        return (
-            this.op.type // the expression's operator's type (because some operators only work with strings)
-            ||
-            (this.schema.lookup(this.column) || {}).type // the expression's column schema type
-            ||
-            this.type // the expression node's type
-        );
+        return this.op.type || getProperty.call(this, this.column, 'type');
     },
 
     getCalculator: function() {
-        return (
-            (this.schema.lookup(this.column) || {}).calculator || // the expression's column schema calculator
-            this.calculator // the expression node's calculator
-        );
+        return getProperty.call(this, this.column, 'calculator');
     },
 
     valOrFunc: function(dataRow, columnName) {
@@ -390,7 +398,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
  * Adds warning CSS class from control if blank; removes if not blank.
  * Adds warning CSS class from control if blank; removes if not blank.
  * Moves focus to next non-blank sibling control.
- * @this Bound to this node.
+ * @this {FilterLeaf}
  */
 function cleanUpAndMoveOn(evt) {
     var el = evt.target;
@@ -425,17 +433,46 @@ function cleanUpAndMoveOn(evt) {
     }
 }
 
-function getOpMenu(columnName) {
-    var column = this.schema.lookup(columnName) || {};
+/**
+ * @summary Get the node property.
+ * @desc Priority ladder:
+ * 1. Schema property.
+ * 2. Mixin (if given).
+ * 3. Node property is final priority.
+ * @this {FilterLeaf}
+ * @param {string} columnName
+ * @param {string} propertyName
+ * @param {function|boolean} [mixin] - Optional function or value if schema property undefined. If function, called in context with `propertyName` and `columnName`.
+ * @returns {object}
+ */
+function getProperty(columnName, propertyName, mixin) {
+    var columnSchema = this.schema.lookup(columnName) || {};
     return (
-        column.opMenu
+        columnSchema[propertyName] // the expression's column schema property
             ||
-        this.typeOpMap && this.typeOpMap[column.type || this.type]
+        typeof mixin === 'function' && mixin.call(this, columnSchema, propertyName)
             ||
-        this.opMenu
+        typeof mixin !== 'function' && mixin
+            ||
+        this[propertyName] // the expression node's property
     );
 }
 
+/**
+ * @this {FilterLeaf}
+ * @param {string} columnName
+ * @returns {undefined|menuItem[]}
+ */
+function getOpMenu(columnName) {
+    return getProperty.call(this, columnName, 'opMenu', function(columnSchema) {
+        return this.typeOpMap && this.typeOpMap[columnSchema.type || this.type];
+    });
+}
+
+/**
+ * @this {FilterLeaf}
+ * @param {string} columnName
+ */
 function makeOpMenu(columnName) {
     var opMenu = getOpMenu.call(this, columnName);
 
