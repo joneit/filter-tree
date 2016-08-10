@@ -92,7 +92,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     /**
      * @param {string} key - The name of the existing editor to remove.
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     removeEditor: function(key) {
         if (key === 'Default') {
@@ -103,7 +103,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     /**
      *
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     createView: function() {
         this.el = this.templates.get(
@@ -142,7 +142,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     /**
      *
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     loadState: function(state) {
         this.operator = 'op-and';
@@ -171,7 +171,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
 
     /**
      *
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     render: function() {
         var radioButton = this.el.querySelector(':scope > label > input[value=' + this.operator + ']'),
@@ -216,7 +216,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      *
      * @returns {FilterNode} The new node.
      *
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     add: function(options) {
         var Constructor, newNode;
@@ -254,7 +254,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
     /**
      * @param {FilterTreeValidationOptionsObject} [options]
      * @returns {undefined|FilterTreeError} `undefined` if valid; or the caught `FilterTreeError` if error.
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     invalid: function(options) {
         var result;
@@ -289,7 +289,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      *
      * @param dataRow
      * @returns {boolean}
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     test: function test(dataRow) {
         var operator = operators[this.operator],
@@ -369,7 +369,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @param {FilterTreeGetStateOptionsObject} [options]
      * @param {object} [options.sqlIdQts] - When `options.syntax === 'SQL'`, forwarded to `conditionals.pushSqlIdQts()`.
      * @returns {object|string} Returns object when `options.syntax === 'object'`; otherwise returns string.
-     * @memberOf FilterTree.prototype
+     * @memberOf FilterTree#
      */
     getState: function getState(options) {
         var result = '',
@@ -441,7 +441,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      *
      * NOTE: This is a shared property and affects all filter-tree instances constructed by this code instance.
      * @param {boolean} isSensitive
-     * @memberOf Filtertree.prototype.prototype
+     * @memberOf Filtertree#.prototype
      */
     setCaseSensitivity: function(isSensitive) {
         var toString = isSensitive ? toStringCaseSensitive : toStringCaseInsensitive;

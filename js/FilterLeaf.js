@@ -86,7 +86,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
 
     /** @summary Create a new view.
      * @desc This new "view" is a group of HTML `Element` controls that completely describe the conditional expression this object represents. This method creates the view, setting `this.el` to point to it, and the members of `this.view` to point to the individual controls therein.
-     * @memberOf FilterLeaf.prototype
+     * @memberOf FilterLeaf#
      */
     createView: function(state) {
         var el = this.el = document.createElement('span');
@@ -187,7 +187,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * @param {boolean} [options.throw=false] - Throw an error if missing or invalid value.
      * @param {boolean} [options.focus=false] - Move focus to offending control.
      * @returns {undefined} This is the normal return when valid; otherwise throws error when invalid.
-     * @memberOf FilterLeaf.prototype
+     * @memberOf FilterLeaf#
      */
     invalid: function(options) {
         var elementName, type, focused;
@@ -305,7 +305,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      *
      * @param {object} [options='object'] - See the subtree version of {@link FilterTree#getState|getState} for more info.
      *
-     * @memberOf FilterLeaf.prototype
+     * @memberOf FilterLeaf#
      */
     getState: function getState(options) {
         var result = '',
@@ -343,7 +343,7 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
      * * Otherwise, creates a `<select>...</select>` element with these menu items.
      * @param {null|string} [prompt=''] - Adds an initial `<option>...</option>` element to the drop-down with this value, parenthesized, as its `text`; and empty string as its `value`. Omitting creates a blank prompt; `null` suppresses.
      * @param [sort]
-     * @memberOf FilterLeaf.prototype
+     * @memberOf FilterLeaf#
      */
     makeElement: function(menu, prompt, sort) {
         var el, result, options,

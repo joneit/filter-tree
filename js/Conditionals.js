@@ -27,7 +27,7 @@ var defaultIdQts = {
 var Conditionals = Base.extend({
     /**
      * @param {sqlIdQtsObject} [options.sqlIdQts={beg:'"',end:'"'}]
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     initialize: function(options) {
         var idQts = options && options.sqlIdQts;
@@ -40,7 +40,7 @@ var Conditionals = Base.extend({
     /**
      * @param id
      * @returns {string}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     makeSqlIdentifier: function(id) {
         return this.sqlIdQts.beg + id + this.sqlIdQts.end;
@@ -49,14 +49,14 @@ var Conditionals = Base.extend({
     /**
      * @param string
      * @returns {string}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     makeSqlString: function(string) {
         return '\'' + sqEsc(string) + '\'';
     },
 
     /**
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     makeLIKE: function(beg, end, op, originalOp, c) {
         var escaped = c.operand.replace(/([_\[\]%])/g, '[$1]'); // escape all LIKE reserved chars
@@ -66,7 +66,7 @@ var Conditionals = Base.extend({
     },
 
     /**
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     makeIN: function(op, c) {
         return this.makeSqlIdentifier(c.column) +
@@ -75,7 +75,7 @@ var Conditionals = Base.extend({
     },
 
     /**
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     make: function(op, c) {
         return this.makeSqlIdentifier(c.column) +
@@ -91,14 +91,14 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     '<': {
         test: function(a, b) { return a < b; },
         make: function(c) { return this.make('<', c); }
     },
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     '<=': {
         test: function(a, b) { return a <= b; },
@@ -106,7 +106,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     '=': {
         test: function(a, b) { return a === b; },
@@ -114,7 +114,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     '>=': {
         test: function(a, b) { return a >= b; },
@@ -122,7 +122,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     '>': {
         test: function(a, b) { return a > b; },
@@ -130,7 +130,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     '<>': {
         test: function(a, b) { return a !== b; },
@@ -138,7 +138,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     LIKE: {
         test: function(a, b) { return regExpLIKE.cached(b, true).test(a); },
@@ -147,7 +147,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     'NOT LIKE': {
         test: function(a, b) { return !regExpLIKE.cached(b, true).test(a); },
@@ -156,7 +156,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     IN: { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) >= 0; },
@@ -166,7 +166,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     'NOT IN': { // TODO: currently forcing string typing; rework calling code to respect column type
         test: function(a, b) { return inOp(a, b) < 0; },
@@ -176,7 +176,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     CONTAINS: {
         test: function(a, b) { return containsOp(a, b) >= 0; },
@@ -185,7 +185,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     'NOT CONTAINS': {
         test: function(a, b) { return containsOp(a, b) < 0; },
@@ -194,7 +194,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     BEGINS: {
         test: function(a, b) { b = toString(b); return beginsOp(a, b.length) === b; },
@@ -203,7 +203,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     'NOT BEGINS': {
         test: function(a, b) { b = toString(b); return beginsOp(a, b.length) !== b; },
@@ -212,7 +212,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     ENDS: {
         test: function(a, b) { b = toString(b); return endsOp(a, b.length) === b; },
@@ -221,7 +221,7 @@ var ops = Conditionals.prototype.ops = {
     },
 
     /** @type {relationalOperator}
-     * @memberOf Conditionals.prototype
+     * @memberOf Conditionals#
      */
     'NOT ENDS': {
         test: function(a, b) { b = toString(b); return endsOp(a, b.length) !== b; },

@@ -103,26 +103,6 @@ FilterTreeError.prototype.name = 'FilterTreeError';
  *
  * The programmer may extend the semantics of filter trees by extending the above objects.
  *
- * @property {FilterNode} [parent] - Undefined means this is the root node.
- *
- * @property {FilterNode} root - Convenience reference to the root node.
- *
- * @property {menuItem[]} schema - Column schema used by descendant leaf nodes (including this node if it is a leaf node) to render a column choice drop-down.
- *
- * @property {string} [editor] - Name of filter editor used by descendant leaf nodes (including this node if it is a leaf node).
- *
- * @property {function} [eventHandler] - Event handler for UI events. See *Events* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for more information.
- *
- * @property {menuItem[]} [treeOpMenu=Conditionals.defaultOpMenu] - Default operator menu for all descendant leaf nodes. Only used if the leaf node has no defined `opMenu` property _and_ there is no menu defined in `typeOpMenus` keyed to the column's `type`.
- *
- * @property {object} [typeOpMap] - A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
- * 1. do not have their own operator menu (`opMenu` property) of their own; and
- * 2. whose columns resolve to that type.
- *
- * The type is determined by (in priority order):
- * 1. the `type` property of the {@link FilterLeaf}; or
- * 2. the `type` property of the element in the nearest node (including the leaf node itself) that has a defined `ownSchema` or `schema` array property with an element having a matching column name.
- *
  * @property {sqlIdQtsObject} [sqlIdQts={beg:'"',end:'"'}] - Quote characters for SQL identifiers. Used for both parsing and generating SQL. Should be placed on the root node.
  *
  * @property {HTMLElement} el - The DOM element created by the `render` method to represent this node. Contains the `el`s for all child nodes (which are themselves pointed to by those nodes). This is always generated but is only in the page DOM if you put it there.
@@ -153,11 +133,16 @@ var FilterNode = Base.extend('FilterNode', {
      *
      * @param {FilterTreeOptionsObject} [options] - The node state; or an options object possibly containing `state` among other options. Although you can instantiate a filter without any options, this is generally not useful. See *Instantiating a filter* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for a practical discussion of minimum options.
      *
-     * * @memberOf FilterNode.prototype
+     * * @memberOf FilterNode#
      */
     initialize: function(options) {
         options = options || {};
 
+        /** @summary Reference to this node's parent node.
+         * @desc When this property is undefined, this node is the root node.
+         * @type {FilterNode}
+         * @memberOf FilterNode#
+         */
         var parent = this.parent = this.parent || options.parent,
             root = parent && parent.root;
 
@@ -182,6 +167,11 @@ var FilterNode = Base.extend('FilterNode', {
             };
         }
 
+        /** @summary Convenience reference to the root node.
+         * @name root
+         * @type {FilterNode}
+         * @memberOf FilterNode#
+         */
         this.root = root;
 
         this.dontPersist = {}; // hash of truthy values
@@ -190,8 +180,9 @@ var FilterNode = Base.extend('FilterNode', {
     },
 
     /** Insert each subtree into its parent node along with a "delete" button.
-     * > The root tree (which has no parent) is inserted into the DOM by the instantiating code (without a delete button).
-     * @memberOf FilterNode.prototype
+     *
+     * NOTE: The root tree (which has no parent) must be inserted into the DOM by the instantiating code (without a delete button).
+     * @memberOf FilterNode#
      */
     render: function() {
         if (this.parent) {
@@ -217,7 +208,7 @@ var FilterNode = Base.extend('FilterNode', {
      *
      * @param {FilterTreeStateObject} state
      * @param {FilterTreeSetStateOptionsObject} [options]
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode#
      */
     setState: function(state, options) {
         var oldEl = this.el;
@@ -255,7 +246,7 @@ var FilterNode = Base.extend('FilterNode', {
      *
      * @returns {FilterTreeStateObject} The unmolested `state` parameter. Throws an error if `state` is unknown or invalid syntax.
      *
-     * @memberOf FilterNode
+     * @memberOf FilterNode#
      * @inner
      */
     parseStateString: function(state, options) {
@@ -349,7 +340,7 @@ var FilterNode = Base.extend('FilterNode', {
     /** Remove both:
      * * `this` filter node from it's `parent`'s `children` collection; and
      * * `this` filter node's `el`'s container (always a `<li>` element) from its parent element.
-     * @memberOf FilterNode.prototype
+     * @memberOf FilterNode#
      */
     remove: function() {
         var avert,
@@ -395,7 +386,7 @@ var FilterNode = Base.extend('FilterNode', {
 /**
  * @summary Defines the standard options available to a node.
  * @desc The following properties bear the same names as the node options they define.
- * @type {pbject}
+ * @type {object}
  * @memberOf FilterNode
  */
 FilterNode.optionsSchema = {
@@ -405,57 +396,75 @@ FilterNode.optionsSchema = {
     cssStylesheetReferenceElement: { ignore: true },
 
     /** @summary Default column schema for column drop-downs of direct descendant leaf nodes only.
-     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+     * @memberOf FilterNode#
      * @type {string[]}
-     * @memberOf FilterNode.optionsSchema
      */
     ownSchema: { own: true },
 
-    /** @summary Default column schema for column drop-downs of all descendant leaf nodes.
-     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+    /** @summary Column schema for column drop-downs of all descendant nodes. Pertains to leaf nodes only.
+     * @memberOf FilterNode#
      * @type {menuItem[]}
-     * @memberOf FilterNode.optionsSchema
      */
     schema: {},
 
-    /** @summary Type of filter editor.
-     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+    /** @summary Filter editor for user interface.
+     * @desc Name of filter editor used by this and all descendant nodes. Pertains to leaf nodes only.
+     * @default 'Default'
+     * @memberOf FilterNode#
      * @type {string}
-     * @memberOf FilterNode.optionsSchema
      */
     editor: {},
 
     /** @summary Event handler for UI events.
-     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
-     * @type {string}
-     * @memberOf FilterNode.optionsSchema
+     * @desc See *Events* in the {@link http://joneit.github.io/filter-tree/index.html|readme} for more information.
+     * @memberOf FilterNode#
+     * @type {function}
      */
     eventHandler: {},
 
+    /** @summary Fields data type.
+     * @memberOf FilterNode#
+     * @type {string}
+     */
     type: { own: true },
 
+    /** @summary Undeleteable node.
+     * @desc Truthy means don't render a delete button next to the filter editor for this node.
+     * @memberOf FilterNode#
+     * @type {boolean}
+     */
     keep: { own: true },
 
     /** @summary Override operator list at any node.
-     * @desc > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
-     * @type {string[]}
-     * @memberOf FilterNode.optionsSchema
+     * @desc The default is applied to the root node and any other node without an operator menu.
+     * @default {@link Conditionals.defaultOpMenu}.
+     * @memberOf FilterNode#
+     * @type {menuItem[]}
      */
     opMenu: { default: Conditionals.defaultOpMenu },
 
     /** @summary Truthy considers op valid only if in menu.
-     * @desc Otherwise, op is valid if in `this.root.conditionals.ops`.
-     * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+     * @memberOf FilterNode# (despite it's position in the source code).
      * @type {boolean}
-     * @memberOf FilterNode.optionsSchema
      */
     opMustBeInMenu: {},
 
+    /** @summary Dictionary of operator menus for specific data types.
+     * @memberOf FilterNode#
+     * @type {object}
+     * @desc A hash of type names. Each member thus defined contains a specific operator menu for all descendant leaf nodes that:
+     * 1. do not have their own operator menu (`opMenu` property) of their own; and
+     * 2. whose columns resolve to that type.
+     *
+     * The type is determined by (in priority order):
+     * 1. the `type` property of the {@link FilterLeaf}; or
+     * 2. the `type` property of the element in the nearest node (including the leaf node itself) that has a defined `ownSchema` or `schema` array property with an element having a matching column name.
+     */
     typeOpMap: { rootBound: true },
 
     /** @summary Truthy will sort the column menus.
+     * @memberOf FilterNode#
      * @type {boolean}
-     * @memberOf FilterNode.optionsSchema
      */
     sortColumnMenu: {}
 };
