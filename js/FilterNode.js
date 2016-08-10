@@ -443,6 +443,14 @@ FilterNode.optionsSchema = {
      */
     opMenu: { default: Conditionals.defaultOpMenu },
 
+    /** @summary Truthy considers op valid only if in menu.
+     * @desc Otherwise, op is valid if in `this.root.conditionals.ops`.
+     * > This docs entry describes a property in the FilterNode prototype. It does not describe the optionsSchema property (despite it's position in the source code).
+     * @type {boolean}
+     * @memberOf FilterNode.optionsSchema
+     */
+    opMustBeInMenu: {},
+
     typeOpMap: { rootBound: true },
 
     /** @summary Truthy will sort the column menus.

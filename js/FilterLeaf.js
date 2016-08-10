@@ -201,15 +201,19 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                     op = ops[this.operator];
 
                 if (op) {
-                    // Operator not found in menu because may be a synonym.
-                    // Check each menu item's op object for equivalency to possible synonym's.
-                    var opMenu = getOpMenu.call(this, this.column);
-                    popMenu.walk.call(opMenu, function(opMenuItem) {
-                        var opName = opMenuItem.name || opMenuItem;
-                        if (ops[opName] === op) {
-                            value = opName;
-                        }
-                    });
+                    if (getProperty.call(this, this.column, 'opMustBeInMenu')) {
+                        // Operator not found in menu because may be a synonym.
+                        // Check each menu item's op object for equivalency to possible synonym's.
+                        var opMenu = getOpMenu.call(this, this.column);
+                        popMenu.walk.call(opMenu, function(opMenuItem) {
+                            var opName = opMenuItem.name || opMenuItem;
+                            if (ops[opName] === op) {
+                                value = opName;
+                            }
+                        });
+                    } else {
+                        value = this.operator;
+                    }
                 }
             }
 
