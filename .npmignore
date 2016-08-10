@@ -4,5 +4,6 @@
 /doc
 /jsdoc*
 /*.sh
+/html/*.html
 /gulpfile.js
 /test
