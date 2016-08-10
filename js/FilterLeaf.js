@@ -139,7 +139,20 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             break;
                         default:
                             el.value = value;
-                            if (FilterNode.setWarningClass(el) !== value) {
+                            if (el.value === '' && key === 'operator') {
+                                // Operator may be a synonym.
+                                var ops = this.root.conditionals.ops,
+                                    thisOp = ops[value],
+                                    opMenu = getOpMenu.call(this, state.column || this.column);
+                                // Check each menu item's op object for equivalency to possible synonym's op object.
+                                popMenu.walk.call(opMenu, function(opMenuItem) {
+                                    var opName = opMenuItem.name || opMenuItem;
+                                    if (ops[opName] === thisOp) {
+                                        el.value = opName;
+                                    }
+                                });
+                            }
+                            if (!FilterNode.setWarningClass(el)) {
                                 notes.push({ key: key, value: value });
                             } else if (key === 'column') {
                                 makeOpMenu.call(this, value);
@@ -196,25 +209,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             var el = this.view[elementName],
                 value = controlValue(el).trim();
 
-            if (value === '' && elementName === 'operator') {
-                var ops = this.root.conditionals.ops,
-                    op = ops[this.operator];
-
-                if (op) {
-                    if (getProperty.call(this, this.column, 'opMustBeInMenu')) {
-                        // Operator not found in menu because may be a synonym.
-                        // Check each menu item's op object for equivalency to possible synonym's.
-                        var opMenu = getOpMenu.call(this, this.column);
-                        popMenu.walk.call(opMenu, function(opMenuItem) {
-                            var opName = opMenuItem.name || opMenuItem;
-                            if (ops[opName] === op) {
-                                value = opName;
-                            }
-                        });
-                    } else {
-                        value = this.operator;
-                    }
-                }
+            if (
+                value === '' && elementName === 'operator' && // not in operator menu
+                this.root.conditionals.ops[this.operator] && // but valid in operator hash
+                !getProperty.call(this, this.column, 'opMustBeInMenu') // and is doesn't have to be in menu to be valid
+            ) {
+                value = this.operator; // use it as is then
             }
 
             if (value === '') {
