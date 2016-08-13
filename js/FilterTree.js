@@ -257,12 +257,15 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @memberOf FilterTree#
      */
     invalid: function(options) {
-        var result;
-
         options = options || {};
 
+        var result, throwWas;
+
+        throwWas = options.throw;
+        options.throw = true;
+
         try {
-            result = invalid.call(this, options);
+            invalid.call(this, options);
         } catch (err) {
             result = err;
 
@@ -271,6 +274,8 @@ var FilterTree = FilterNode.extend('FilterTree', {
                 throw err;
             }
         }
+
+        options.throw = throwWas;
 
         // Alter and/or throw when requested
         if (result) {
