@@ -115,8 +115,9 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     loadState: function(state) {
+        var value, el, i, b, selected, ops, thisOp, opMenu, notes;
         if (state) {
-            var value, el, i, b, selected, notes = [];
+            notes = [];
             for (var key in state) {
                 if (!FilterNode.optionsSchema[key]) {
                     value = this[key] = state[key];
@@ -141,16 +142,11 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                             el.value = value;
                             if (el.value === '' && key === 'operator') {
                                 // Operator may be a synonym.
-                                var ops = this.root.conditionals.ops,
-                                    thisOp = ops[value],
-                                    opMenu = getOpMenu.call(this, state.column || this.column);
+                                ops = this.root.conditionals.ops;
+                                thisOp = ops[value];
+                                opMenu = getOpMenu.call(this, state.column || this.column);
                                 // Check each menu item's op object for equivalency to possible synonym's op object.
-                                popMenu.walk.call(opMenu, function(opMenuItem) {
-                                    var opName = opMenuItem.name || opMenuItem;
-                                    if (ops[opName] === thisOp) {
-                                        el.value = opName;
-                                    }
-                                });
+                                popMenu.walk.call(opMenu, equiv);
                             }
                             if (!FilterNode.setWarningClass(el)) {
                                 notes.push({ key: key, value: value });
@@ -173,6 +169,12 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
                 });
             }
             this.notesEl = footnotes;
+        }
+        function equiv(opMenuItem) {
+            var opName = opMenuItem.name || opMenuItem;
+            if (ops[opName] === thisOp) {
+                el.value = opName;
+            }
         }
     },
 
