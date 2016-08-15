@@ -79,7 +79,7 @@ ParserSQL.prototype = {
 };
 
 function walk(t) {
-    var m, name, op, operand, bool, token, tokens = [];
+    var m, name, op, operand, editor, bool, token, tokens = [];
     var i = 0;
 
     t = t.trim();
@@ -116,7 +116,7 @@ function walk(t) {
             i = j;
         } else {
 
-            // column
+            // column:
 
             m = t.substr(i).match(this.reName);
             if (!m) {
@@ -126,7 +126,7 @@ function walk(t) {
             if (!/^[A-Z_]/i.test(t[i])) { i += 2; }
             i += name.length;
 
-            // operator
+            // operator:
 
             if (t[i] === ' ') { ++i; }
             m = t.substr(i).match(reOp);
@@ -136,6 +136,9 @@ function walk(t) {
             op = m[1].toUpperCase();
             i += op.length;
 
+            // operand:
+
+            editor = undefined;
             if (t[i] === ' ') { ++i; }
             if (m[4] && m[4].toUpperCase() === 'IN') {
                 m = t.substr(i).match(reIn);
@@ -154,19 +157,19 @@ function walk(t) {
             } else if ((m = t.substr(i).match(reFloat))) {
                 operand = m[1];
                 i += operand.length;
+            } else if ((m = t.substr(i).match(this.reName))) {
+                operand = m[2] || m[3];
+                i += operand.length;
+                editor = 'Columns';
             } else {
-                throw new ParserSqlError('Expected number or string literal.');
+                throw new ParserSqlError('Expected number or string literal or column.');
             }
 
             if (this.schema) {
-                var item = this.schema.lookup(name);
-                if (item) {
-                    name = item.name;
-                } else {
-                    throw new ParserSqlError(this.resolveAliases
-                        ? 'Expected valid column name.'
-                        : 'Expected valid column name or alias.'
-                    );
+                name = lookup.call(this, name);
+
+                if (editor) {
+                    operand = lookup.call(this, operand);
                 }
             }
 
@@ -175,6 +178,10 @@ function walk(t) {
                 operator: op,
                 operand: operand
             };
+
+            if (editor) {
+                token.editor = editor;
+            }
         }
 
         tokens.push(token);
@@ -203,6 +210,19 @@ function walk(t) {
             children: tokens
         }
     );
+}
+
+function lookup(name) {
+    var item = this.schema.lookup(name);
+
+    if (!item) {
+        throw new ParserSqlError(this.resolveAliases
+            ? 'Expected valid column name.'
+            : 'Expected valid column name or alias.'
+        );
+    }
+
+    return item.name;
 }
 
 function stripLiterals(t) {
