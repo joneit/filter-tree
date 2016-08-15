@@ -1,6 +1,7 @@
 'use strict';
 
 var reOp = /^((=|>=?|<[>=]?)|(NOT )?(LIKE|IN)\b)/i, // match[1]
+    reFloat = /^([+-]?(\d+(\.\d*)?|\d*\.\d+)(e[+-]\d+)?)[^\d]?/i,
     reLit = /^'(\d+)'/,
     reLitAnywhere = /'(\d+)'/,
     reIn = /^\((.*?)\)/,
@@ -114,6 +115,9 @@ function walk(t) {
 
             i = j;
         } else {
+
+            // column
+
             m = t.substr(i).match(this.reName);
             if (!m) {
                 throw new ParserSqlError('Expected identifier or quoted identifier.');
@@ -121,6 +125,8 @@ function walk(t) {
             name = m[2] || m[3];
             if (!/^[A-Z_]/i.test(t[i])) { i += 2; }
             i += name.length;
+
+            // operator
 
             if (t[i] === ' ') { ++i; }
             m = t.substr(i).match(reOp);
@@ -141,14 +147,15 @@ function walk(t) {
                 while ((m = operand.match(reLitAnywhere))) {
                     operand = operand.replace(reLitAnywhere, this.literals[m[1]]);
                 }
-            } else {
-                m = t.substr(i).match(reLit);
-                if (!m) {
-                    throw new ParserSqlError('Expected string literal.');
-                }
+            } else if ((m = t.substr(i).match(reLit))) {
                 operand = m[1];
                 i += operand.length + 2;
                 operand = this.literals[operand];
+            } else if ((m = t.substr(i).match(reFloat))) {
+                operand = m[1];
+                i += operand.length;
+            } else {
+                throw new ParserSqlError('Expected number or string literal.');
             }
 
             if (this.schema) {
@@ -176,7 +183,7 @@ function walk(t) {
             if (t[i] === ' ') { ++i; }
             m = t.substr(i).match(reBool);
             if (!m) {
-                throw new ParserSqlError('Expected boolean opearator.');
+                throw new ParserSqlError('Expected boolean operator.');
             }
             bool = m[1].toLowerCase();
             i += bool.length;
