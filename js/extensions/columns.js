@@ -29,7 +29,7 @@ var ColumnLeaf = {
     },
 
     makeSqlOperand: function() {
-        return this.conditionals.makeSqlIdentifier(this.operand);
+        return this.root.conditionals.makeSqlIdentifier(this.operand);
     },
 
     opMenu: [
