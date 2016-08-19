@@ -251,10 +251,13 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
     },
 
     valOrFunc: function(dataRow, columnName) {
-        var result = dataRow[columnName],
+        var result, calculator;
+        if (dataRow) {
+            result = dataRow[columnName];
             calculator = (typeof result)[0] === 'f' && result || this.calculator;
-        if (calculator) {
-            result = calculator(dataRow, columnName);
+            if (calculator) {
+                result = calculator(dataRow, columnName);
+            }
         }
         return result || result === 0 || result === false ? result : '';
     },
