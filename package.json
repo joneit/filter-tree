@@ -1,6 +1,6 @@
 {
   "name": "filter-tree",
-  "version": "0.3.38",
+  "version": "0.3.39",
   "description": "Complex table filter expressions with GUI editor.",
   "repository": {
     "type": "git",

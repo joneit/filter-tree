@@ -113,7 +113,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
         );
 
         // Add the expression editors to the "add new" drop-down
-        var addNewCtrl = this.el.querySelector(':scope>select');
+        var addNewCtrl = this.firstChildOfType('select');
         if (addNewCtrl) {
             var submenu, optgroup,
                 editors = this.editors;
@@ -174,7 +174,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @memberOf FilterTree#
      */
     render: function() {
-        var radioButton = this.el.querySelector(':scope > label > input[value=' + this.operator + ']'),
+        var radioButton = this.firstChildOfType('label > input[value=' + this.operator + ']'),
             addFilterLink = this.el.querySelector('.filter-tree-add-conditional');
 
         if (radioButton) {

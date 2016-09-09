@@ -369,6 +369,18 @@ var FilterNode = Base.extend('FilterNode', {
         }
     },
 
+    /**
+     * Work-around for `this.el.querySelector(':scope>' + selector)` because `:scope` not supported in IE11.
+     * @param {string} selector
+     */
+    firstChildOfType: function(selector) {
+        var el = this.el.querySelector(selector);
+        if (el && el.parentElement !== this.el) {
+            el = null;
+        }
+        return el;
+    },
+
     Error: FilterTreeError,
 
     templates: new Templates()
@@ -444,7 +456,7 @@ FilterNode.optionsSchema = {
     opMenu: { default: Conditionals.defaultOpMenu },
 
     /** @summary Truthy considers op valid only if in menu.
-     * @memberOf FilterNode# (despite it's position in the source code).
+     * @memberOf FilterNode#
      * @type {boolean}
      */
     opMustBeInMenu: {},
