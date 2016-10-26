@@ -448,7 +448,7 @@ var FilterTree = FilterNode.extend('FilterTree', {
      * @param {boolean} isSensitive
      * @memberOf Filtertree#.prototype
      */
-    setCaseSensitivity: function(isSensitive) {
+    set caseSensitiveData(isSensitive) {
         var toString = isSensitive ? toStringCaseSensitive : toStringCaseInsensitive;
         FilterLeaf.setToString(toString);
     }
@@ -523,7 +523,7 @@ FilterTree.extensions = {
 };
 
 // module initialization
-FilterTree.prototype.setCaseSensitivity(true);  // default is case-sensitive which is more efficient; may be reset at will
+FilterTree.prototype.caseSensitiveData = true;  // default is case-sensitive which is more efficient; may be reset at will
 
 
 module.exports = FilterTree;

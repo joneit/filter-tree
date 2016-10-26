@@ -250,20 +250,20 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return getProperty.call(this, this.column, 'calculator');
     },
 
-    valOrFunc: function(dataRow, columnName) {
+    valOrFunc: function(columnName) {
         var result, calculator;
-        if (dataRow) {
-            result = dataRow[columnName];
+        if (this) {
+            result = this[columnName];
             calculator = (typeof result)[0] === 'f' && result || this.calculator;
             if (calculator) {
-                result = calculator(dataRow, columnName);
+                result = calculator.call(this, columnName);
             }
         }
         return result || result === 0 || result === false ? result : '';
     },
 
     p: function(dataRow) {
-        return this.valOrFunc(dataRow, this.column);
+        return this.valOrFunc.call(dataRow, this.column);
     },
 
     // To be overridden when operand is a column name (see columns.js).
