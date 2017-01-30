@@ -250,20 +250,20 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
         return getProperty.call(this, this.column, 'calculator');
     },
 
-    valOrFunc: function(columnName) {
-        var result, calculator;
-        if (this) {
-            result = this[columnName];
-            calculator = (typeof result)[0] === 'f' && result || this.calculator;
+    valOrFunc: function(dataRow, columnName, calculator) {
+        var result;
+        if (dataRow) {
+            result = dataRow[columnName];
+            calculator = (typeof result)[0] === 'f' ? result : calculator;
             if (calculator) {
-                result = calculator.call(this, columnName);
+                result = calculator(dataRow, columnName);
             }
         }
         return result || result === 0 || result === false ? result : '';
     },
 
     p: function(dataRow) {
-        return this.valOrFunc.call(dataRow, this.column);
+        return this.valOrFunc(dataRow, this.column, this.calculator);
     },
 
     // To be overridden when operand is a column name (see columns.js).
@@ -368,8 +368,8 @@ var FilterLeaf = FilterNode.extend('FilterLeaf', {
             // hard text when single item
             el = this.templates.get(
                 'lockedColumn',
-                option.alias || option.name || option,
-                option.name || option.alias || option
+                option.alias || option.header || option.name || option,
+                option.name || option.alias || option.header || option
             );
             result = el.querySelector('input');
         } else {

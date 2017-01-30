@@ -123,3 +123,11 @@ To use in a browser, you have two options:
 
 See the note [Regarding submodules](https://github.com/openfin/rectangular#regarding-submodules)
 for important information on cloning this repo or re-purposing its build template.
+
+## Version History
+
+#### 0.4.0
+
+Breaking changes:
+1. `header` now synonym for `alias` (schema property)
+2. Calculator calling signature changed from `calculator(columnName)` (data row object as context) to `calculator(dataRow, columnName)` (data row object as first parameter).
