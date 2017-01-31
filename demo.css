@@ -1,0 +1,270 @@
+* {
+    outline: none;
+}
+body {
+    font-family: sans-serif;
+    font-size: 9pt;
+}
+code {
+    font-weight: bold;
+    font-style: normal;
+    margin: 0 .25em;
+}
+textarea {
+    display: block;
+    margin: 9px 0;
+    width: 98%;
+    padding: 3px 6px;
+}
+label.auto {
+    float: right;
+    font-size: 8pt;
+}
+input.demoButton {
+    border: 0;
+    background-color: #999;
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 4px 10px;
+    letter-spacing: .5px;
+    font-family: monospace;
+    border: 1px transparent solid;
+    box-sizing: border-box;
+    box-shadow: 3px 3px 4px #444;
+    display: block;
+    margin: 6px 0;
+}
+input.demoButton:active {
+    background-color: #bbb;
+    color: black;
+    border: 1px #555 solid;
+}
+fieldset {
+    margin: 1.4em 0;
+    background-color: #f8f8ff;
+    padding-top: .75em;
+    border-radius: 5px;
+    box-shadow: 4px 4px 10px #aaa;
+}
+legend {
+    font-size: 10pt;
+    background-color: ivory;
+    border: 1px #555 solid;
+    padding: 3px 8px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px grey;
+}
+label {
+    white-space: nowrap;
+}
+td {
+    vertical-align: top;
+    padding: .5em;
+    width: 50%;
+}
+p.smallprint {
+    font-size: 7pt;
+    margin: -6px 0 0 0;
+}
+.false, .true {
+    font-weight: bold;
+    margin-left: .5em;
+    text-transform: uppercase;
+    font-size: large;
+}
+.false::before, .true::before {
+    content: '\2192 \A0 ';
+    font-size: larger;
+}
+.false::after {
+    color: #c00;
+    content: 'exclude';
+}
+.true::after {
+    color: #0a0;
+    content: 'include';
+}
+.invalid-filter::before {
+    font-style: italic;
+    content: '(invalid filter expression, right)';
+}
+.invalid-data::before {
+    font-style: italic;
+    content: '(syntax error in dataRow, below)';
+}
+.filter-box {
+    position: absolute;
+    left: 11px;
+    top: 39px;
+    width: 97px;
+    height: 11px;
+    background-color: transparent;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    border-left: 1px solid transparent;
+    border-right: 0;
+    font-size: 10px;
+    text-align: center;
+}
+.filter-box.filter-box-enable {
+    width: 84px;
+    background-color: lightyellow;
+    border-color: black;
+    font-weight: bold;
+}
+.filter-box.filter-box-warn {
+    color: red;
+    font-weight: bold;
+}
+.filter-box-dropdown-icon {
+    position: absolute;
+    display: none;
+    left: 98px;
+    top: 39px;
+    width: 13px;
+    height: 13px;
+    background-color: lightyellow;
+    color: black;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
+    font-size: 15px;
+    line-height: 11px;
+}
+.filter-box-dropdown-icon::after {
+    content: '\25BE';
+}
+.filter-box.filter-box-enable + .filter-box-dropdown-icon {
+    display: block;
+}
+.filter-box-dropdown {
+    position: absolute;
+    background-color: lightyellow;
+    display: none;
+    font-size: 8pt;
+    left: 11px;
+    top: 53px;
+    min-width: 101px;
+    height: 112px;
+}
+input + em {
+    font-size: smaller;
+}
+
+/* Message Box */
+
+.msg-box {
+    position: absolute;
+    display: none;
+    padding: 5px;
+    border: 2px solid black;
+    border-radius: 7px;
+    background-color: yellow;
+}
+.msg-box-title {
+    display: inline-block;
+    font-weight: bold;
+}
+.msg-box-close {
+    display: inline-block;
+    margin-top: -2px;
+    float: right;
+    width: 1.35em;
+    text-align: center;
+    background-color: transparent;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    border-radius: 99px;
+    text-align: center;
+}
+.msg-box-close:hover {
+    color: yellow;
+    background-color: red;
+    border-color: red;
+}
+.msg-box-close:active {
+    color: red;
+    background-color: transparent;
+    border-color: red;
+}
+.msg-box-close::before {
+    content: '\d7'; /* multiplication sign */
+}
+.msg-box-content {
+    border-top: 1px solid black;
+    padding-top: 3px;
+    margin-top: 2px;
+    line-height: 1.5em;
+}
+
+
+pre i {
+    color: green;
+    font-family: sans-serif;
+}
+pre i::before {
+    content: '// ';
+}
+a { color: #0095dd; text-decoration: none; }
+a:hover { text-decoration: underline; }
+a.more-info { font-size: smaller; }
+a.more-info::before { content: '(more info)'; }
+
+.tabz { z-index: 0 }
+.tabz>header+section { width: 97% }
+.tabz > p:first-child, .tabz > section > p:first-child, .tabz > section > div > p:first-child { margin-top: 0 }
+.tabz li > code { background: #e0e0e0; margin: 0 .1em; padding: 0 5px; border-radius: 4px; }
+ul {
+    padding-left: 1.5em;
+}
+.tabz ul { list-style-type: circle; font-weight: bold }
+div.more-info {
+    border: 1px #bec7ce solid;
+    border-radius: 8px;
+    padding: 0 8px .2em;
+    display: none;
+    background-color: #F0F7FF;
+    box-shadow: 2px 2px 3px #bbb;
+}
+div.more-info > p {
+    margin: .5em 0;
+}
+.tabz ul > li > ul { list-style-type: disc; font-weight: normal; }
+li { margin:.3em 0; line-height: 1.35em }
+
+/* Augmented tab styles */
+
+.tabz > header + section {
+    box-shadow: 2px 2px 3px #bbb;
+    margin-bottom: 1.5em;
+}
+
+/* column filters query builder */
+
+.tabz > section.filter-expression-syntax > div:last-child ol {
+    padding-left: 1.6em;
+}
+.tabz > section.filter-expression-syntax > textarea,
+.tabz > section.filter-expression-syntax > div:last-child textarea,
+.tabz > section.filter-expression-syntax > div:last-child input {
+    display: block;
+    width: 96%;
+    border: 1px solid black;
+    padding: .4em .7em;
+    margin: .3em 0 1em 0;
+    font-family: monospace;
+    font-size: 9pt;
+}
+.tabz > section.filter-expression-syntax > textarea {
+    height: 96%;
+}
+button.copy {
+    font-size: smaller;
+    display: block;
+    float: right;
+    margin-right: 1em;
+}
+button.copy:before {
+    content: 'COPY';
+}

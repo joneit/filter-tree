@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-conditionals.html">conditionals</a></li></ul><h3>Classes</h3><ul><li><a href="FilterLeaf.html">FilterLeaf</a></li><li><a href="FilterNode.html">FilterNode</a></li><li><a href="FilterTree.html">FilterTree</a></li><li><a href="module-conditionals-Conditionals.html">Conditionals</a></li><li><a href="ParserSQL.html">ParserSQL</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addEditor">addEditor</a></li><li><a href="global.html#cleanUpAndMoveOn">cleanUpAndMoveOn</a></li><li><a href="global.html#ColumnLeaf">ColumnLeaf</a></li><li><a href="global.html#converters">converters</a></li><li><a href="global.html#copy">copy</a></li><li><a href="global.html#copyAll">copyAll</a></li><li><a href="global.html#dateConverter">dateConverter</a></li><li><a href="global.html#editors">editors</a></li><li><a href="global.html#filterCount">filterCount</a></li><li><a href="global.html#firstChildOfType">firstChildOfType</a></li><li><a href="global.html#getOpMenu">getOpMenu</a></li><li><a href="global.html#getProperty">getProperty</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#makeOpMenu">makeOpMenu</a></li><li><a href="global.html#mixInNonstandardOptions">mixInNonstandardOptions</a></li><li><a href="global.html#mixInStandardOptions">mixInStandardOptions</a></li><li><a href="global.html#numberConverter">numberConverter</a></li><li><a href="global.html#treeOperators">treeOperators</a></li></ul>
+</nav>
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>filter-tree</h1><p>Complex table filter expressions with GUI editor</p>
+<h2>Synopsis</h2><p>To initialize and optionally load persisted state:</p>
+<pre class="prettyprint source lang-javascript"><code>var schema = ['FirstName', 'LastName', 'Date of Birth'];
+var filter = new FilterTree({
+    schema: schema,
+    state: state
+});
+document.getElementById('filter').appendChild(filter.el);</code></pre><p>To load or reload from saved state:</p>
+<pre class="prettyprint source lang-javascript"><code>filter.setState(myFilterState);</code></pre><p>where <code>myFilterState</code> can be JSON or SQL.</p>
+<p>To extract the state for saving:</p>
+<pre class="prettyprint source lang-javascript"><code>if (!filter.invalid()) {
+    // an object to hold in memory for subsequent reloading
+    myFilterStateObject = filter.getState();
+}</code></pre><p><code>.getstate()</code> can take a <code>syntax</code> option which can be <code>'object</code>' (the default), <code>`'JSON'</code>, or <code>'SQL'</code>:</p>
+<pre class="prettyprint source lang-javascript"><code>if (!filter.invalid()) {
+    // an object to hold in memory for subsequent reloading
+    myFilterStateObject = filter.getState({ syntax: 'JSON', space: 3 });
+}</code></pre><p>(<code>space</code> is forwarded to <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify">JSON.stringify</a>.)</p>
+<p>to test against data:</p>
+<pre class="prettyprint source lang-javascript"><code>var myTestData = { LastName: 'Spade', FirstName: 'Sam', 'Date of Birth': 1910 };
+filer.test(myTestData); // `true` if data consistent with filter logic</code></pre><h3>API documentation</h3><p>Thre are useful options such as column aliases. Detailed API docs can be found <a href="http://joneit.github.io/filter-tree/filter-tree.html">here</a>.</p>
+<h3>Demo</h3><p>An enhanced demo can be found <a href="http://joneit.github.io/filter-tree/demo.html">here</a>.</p>
+<h3>Events</h3><p>If the tree's UI element (<code>myTree.el</code>) is in the DOM, you can listen for the events listed below.</p>
+<p>The current version drives all these events to a single event handler. Provide your handler to the <code>options</code> hash on instantiation using the key <code>eventHandler</code>. This handler will be triggered by the UI, bound to the node object's context, and with the event object as the first and only parameter. You can test which event triggered the handler by checking <code>event.type</code>. You can access the target with <code>event.target</code>.</p>
+<h4><code>keyup</code></h4><p>Triggered with a <a href="http://developer.mozilla.org/en-US/docs/DOM/KeyboardEvent">KeyboardEvent</a> object when a <a href="https://developer.mozilla.org/en-US/docs/Web/Events/keyup">keyup</a> event fires on any textbox in any of the subtree's leaf nodes.</p>
+<h4><code>change</code></h4><p>Triggered with an <a href="http://developer.mozilla.org/en-US/docs/DOM/KeyboardEvent">Event</a> object when a <a href="https://developer.mozilla.org/en-US/docs/Web/Events/change">change</a> event fires on any element in of the subtree's leaf nodes.</p>
+<h4><code>delete</code></h4><p>This pseudo-event is triggered with pseudo event object when a user clicks a node's delete icon.</p>
+<p>The pseudo event object is a plain JavaScript object with one property, <code>type</code> (set to <code>'delete'</code>), and one method <code>preventDefault()</code> (call to avert node deletion). </p>
+<p>Note that this event has no <code>target</code> parameter. You can tell what the user is deleting by inspecting the context (which is the node object).</p>
+<h3>Extending the conditional expression object</h3><p>Other types of expressions can be implemented by extending from <code>FilterLeaf</code> and registering your extension with <code>FilterTree</code>'s <code>addEditor()</code> method. Such an implementation must be able to:</p>
+<ul>
+<li>Save (<code>getState()</code>) and load (<code>loadState()</code>) the state of the conditional.</li>
+<li>If you want to support the UI feature, you need to create the DOM objects that allow the user to edit the state of the conditional (<code>createView()</code>) and render them to the UI (<code>render()</code>).</li>
+<li>Filter a table by implementing one or more of the following:<ul>
+<li>Apply the conditional logic to local table row data (<code>test()</code>).</li>
+<li>Apply the conditional logic to a remote data-store that understands SQL by generating a <strong>SQL</strong> <em>WHERE</em> clause (<code>toSQL()</code>).</li>
+<li>Other data-stores could be supported by implementing addtional methods (such as <code>toQ()</code>, <em>etc.</em>).</li>
+</ul>
+</li>
+</ul>
+<p>An example of this can be found in src/js/extensions/columns.js</p>
+<h3>Discussion</h3><h4>Instantiating a filter</h4><p>Generally speaking, it is recommended that you always provide at least a rudimentary <code>schema</code> listing all the available columns, whether or not you provide <code>state</code>. You can instantiate a filter without any state or schema or any other options, although it will be of limited usefulness.</p>
+<p>Therefore, the specific recommendation is that you specify a filter state, schema, or both:</p>
+<ul>
+<li><code>FilterTreeStateObject</code> (for convenience, when you have no other options to specify);</li>
+<li><code>FilterTreeOptionsObject</code> with a defined <code>state</code> property; or</li>
+<li><code>FilterTreeOptionsObject</code> with a defined <code>schema</code> property.</li>
+</ul>
+<p>Without node <code>state</code>, the result is a null (empty) filter. One use case for a null filter is in support of the generated UI; an instantiated filter is required in order to render the UI, even if it is empty.</p>
+<p>Without column <code>schema</code>, the UI will be pretty much DOA because it depends on the schema to populate its column selection drop-downs. Without a schema, the drop-downs will be empty, and users will not be able to add any expressions manually. (Users do not have the option to type column names directly into the UI.)</p>
+<p>Without column <code>schema</code>, expressions (leaf nodes) and subexpressions (whole subtrees) can still be added, but only programmatically:</p>
+<ul>
+<li>By calling <code>setState(state)</code> explicitly on an existing node. This replaces the whole node.</li>
+<li>Upon instantiation of a new node by the constructor when <code>state</code> is provided. This calls <code>setState()</code>.</li>
+<li>By calling <code>add(state)</code> on an existing root or branch node. This uses the constructor to create the new node(s), adding them as child nodes to the existing node.</li>
+</ul>
+<p>If you are not using the UI, this may work fine for you. Otherwise, so the UI's drop-downs won't be empty, you should always provide at least a rudimentary <code>schema</code> listing all the available columns, whether or not you provide <code>state</code>. Doing so also allows you to specify column metadata, such as column aliases (headers), type, available operators, <em>etc.</em></p>
+<h3>CDN versions</h3><p>To use in a browser, you have two options:</p>
+<ol>
+<li>Incorporate the node module into your own browserified project.</li>
+<li>Use the browserified versions <a href="http://joneit.github.io/filter-tree/filter-tree.js"><code>filter-tree.js</code></a> or <a href="http://joneit.github.io/filter-tree/filter-tree.min.js"><code>filter-tree.min.js</code></a> available on the <em>Github Pages</em> CDN.</li>
+</ol>
+<h3>Submodules</h3><p>See the note <a href="https://github.com/openfin/rectangular#regarding-submodules">Regarding submodules</a>
+for important information on cloning this repo or re-purposing its build template.</p>
+<h2>Version History</h2><h4>0.4.0</h4><p>Breaking changes:</p>
+<ol>
+<li><code>header</code> now synonym for <code>alias</code> (schema property)</li>
+<li>Calculator calling signature changed from <code>calculator(columnName)</code> (data row object as context) to <code>calculator(dataRow, columnName)</code> (data row object as first parameter).</li>
+</ol></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    © 2017 <a href="http://www.openfin.co" target="_blank">OpenFin</a> All Rights Reserved.
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

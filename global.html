@@ -1,0 +1,5345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Global</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-conditionals.html">conditionals</a></li></ul><h3>Classes</h3><ul><li><a href="FilterLeaf.html">FilterLeaf</a></li><li><a href="FilterNode.html">FilterNode</a></li><li><a href="FilterTree.html">FilterTree</a></li><li><a href="module-conditionals-Conditionals.html">Conditionals</a></li><li><a href="ParserSQL.html">ParserSQL</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addEditor">addEditor</a></li><li><a href="global.html#cleanUpAndMoveOn">cleanUpAndMoveOn</a></li><li><a href="global.html#ColumnLeaf">ColumnLeaf</a></li><li><a href="global.html#converters">converters</a></li><li><a href="global.html#copy">copy</a></li><li><a href="global.html#copyAll">copyAll</a></li><li><a href="global.html#dateConverter">dateConverter</a></li><li><a href="global.html#editors">editors</a></li><li><a href="global.html#filterCount">filterCount</a></li><li><a href="global.html#firstChildOfType">firstChildOfType</a></li><li><a href="global.html#getOpMenu">getOpMenu</a></li><li><a href="global.html#getProperty">getProperty</a></li><li><a href="global.html#initialize">initialize</a></li><li><a href="global.html#makeOpMenu">makeOpMenu</a></li><li><a href="global.html#mixInNonstandardOptions">mixInNonstandardOptions</a></li><li><a href="global.html#mixInStandardOptions">mixInStandardOptions</a></li><li><a href="global.html#numberConverter">numberConverter</a></li><li><a href="global.html#treeOperators">treeOperators</a></li></ul>
+</nav>
+<div id="main">
+
+    <h1 class="page-title">Global</h1>
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id="ColumnLeaf"><span class="type-signature"></span>ColumnLeaf<span class="type-signature"></span></h4>
+
+
+<p class="summary"><p>Prototype additions object for extending <a href="FilterLeaf.html"><code>FilterLeaf</code></a>.</p></p>
+
+
+
+<div class="description">
+    <p>Resulting object is similar to <a href="FilterLeaf.html"><code>FilterLeaf</code></a> except:</p>
+<ol>
+<li>The <code>operand</code> property names another column rather than contains a literal.</li>
+<li>Operators are limited to equality, inequalities, and sets (IN/NOT IN). Omitted are the string and pattern scans (BEGINS/NOT BEGINS, ENDS/NOT ENDS, CONTAINS/NOT CONTAINS, and LIKE/NOT LIKE).</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>identifier</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Name of column (member of data row object) to compare against this column (member of data row object named by <code>column</code>).</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="converters"><span class="type-signature"></span>converters<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>number</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>int</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>synonym of <code>number</code></p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>float</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>synonym of <code>number</code></p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>date</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>string</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="dateConverter"><span class="type-signature"></span>dateConverter<span class="type-signature"> :<a href="global.html#converter">converter</a></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="editors"><span class="type-signature"></span>editors<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    <p>Hash of constructors for objects that extend from <a href="FilterLeaf.html"><code>FilterLeaf</code></a>, which is the <code>Default</code> member here.</p>
+<p>Add additional editors to this object (in the prototype) prior to instantiating a leaf node that refers to it. This object exists in the prototype and additions to it will affect all nodes that don't have their an &quot;own&quot; hash.</p>
+<p>If you create an &quot;own&quot; hash in your instance be sure to include the default editor, for example: <code>{ Default: FilterTree.prototype.editors.Default, ... }</code>. (One way of overriding would be to include such an object in an <code>editors</code> member of the options object passed to the constructor on instantiation. This works because all miscellaneous members are simply copied to the new instance. Not to be confused with the standard option <code>editor</code> which is a string containing a key from this hash and tells the leaf node what type to use.)</p>
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="numberConverter"><span class="type-signature"></span>numberConverter<span class="type-signature"> :<a href="global.html#converter">converter</a></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="global.html#converter">converter</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="treeOperators"><span class="type-signature"></span>treeOperators<span class="type-signature"> :object</span></h4>
+
+
+
+
+<div class="description">
+    <p>A hash of <a href="global.html#treeOperator"><code>treeOperator</code></a> objects.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id="addEditor"><span class="type-signature"></span>addEditor<span class="signature">(key<span class="signature-attributes">opt</span>, ext<span class="signature-attributes">opt</span>, BaseEditor<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {FillterLeaf}</span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>An extension is a hash of prototype overrides (methods, properties) used to extend the default editor.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'Default'
+                
+                </td>
+            
+
+            <td class="description last"><p>Nme of the new extension given in <code>ext</code> or name of an existing extension in <code>FilterTree.extensions</code>. As a constructor, should have an initial capital. If omitted, replaces the default editor (FilterLeaf).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>ext</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>An extension hash</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>BaseEditor</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">FilerLeaf</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    this.editors.Default
+                
+                </td>
+            
+
+            <td class="description last"><p>Constructor to extend from.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>A new class extended from <code>BaseEditor</code> -- which is initially <code>FilterLeaf</code> but may itself have been extended by a call to <code>.addEditor('Default', extension)</code>.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">FillterLeaf</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="cleanUpAndMoveOn"><span class="type-signature"></span>cleanUpAndMoveOn<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p><code>change</code> event handler for all form controls.
+Rebuilds the operator drop-down as needed.
+Removes error CSS class from control.
+Adds warning CSS class from control if blank; removes if not blank.
+Adds warning CSS class from control if blank; removes if not blank.
+Moves focus to next non-blank sibling control.</p>
+</div>
+
+
+
+
+
+
+
+    <h5>This:</h5>
+    <ul><li>{<a href="FilterLeaf.html">FilterLeaf</a>}</li></ul>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="copy"><span class="type-signature"></span>copy<span class="signature">(el, text<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {undefined|string}</span></h4>
+
+    
+
+
+
+<div class="description">
+    <ol>
+<li>Trim the text in the given input element</li>
+<li>select it</li>
+<li>copy it to the clipboard</li>
+<li>deselect it</li>
+<li>return it</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>el</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">HTMLElement</span>
+|
+
+<span class="param-type">HTMLTextAreaElement</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>text</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    el.value
+                
+                </td>
+            
+
+            <td class="description last"><p>Text to copy.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Trimmed text in element or undefined if unable to copy.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">undefined</span>
+|
+
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="copyAll"><span class="type-signature"></span>copyAll<span class="signature">(containingEl<span class="signature-attributes">opt</span>, prefix<span class="signature-attributes">opt</span>, separator<span class="signature-attributes">opt</span>, suffix<span class="signature-attributes">opt</span>, transformer<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>containingEl</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">HTMLElement</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    document
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>prefix</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>separator</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>suffix</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    ''
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>transformer</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    multiLineTrim
+                
+                </td>
+            
+
+            <td class="description last"><p>Function to transform each input control's text value.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="filterCount"><span class="type-signature"></span>filterCount<span class="signature">()</span><span class="type-signature"> &rarr; {number}</span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Number of filters (terminal nodes) defined in this subtree.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="firstChildOfType"><span class="type-signature"></span>firstChildOfType<span class="signature">(selector)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Work-around for <code>this.el.querySelector(':scope&gt;' + selector)</code> because <code>:scope</code> not supported in IE11.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>selector</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="getOpMenu"><span class="type-signature"></span>getOpMenu<span class="signature">(columnName)</span><span class="type-signature"> &rarr; {undefined|Array.&lt;menuItem>}</span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+    <h5>This:</h5>
+    <ul><li>{<a href="FilterLeaf.html">FilterLeaf</a>}</li></ul>
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>columnName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">undefined</span>
+|
+
+<span class="param-type">Array.&lt;menuItem></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="getProperty"><span class="type-signature"></span>getProperty<span class="signature">(columnName, propertyName, mixin<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {object}</span></h4>
+
+    
+    <p class="summary"><p>Get the node property.</p></p>
+    
+
+
+
+<div class="description">
+    <p>Priority ladder:</p>
+<ol>
+<li>Schema property.</li>
+<li>Mixin (if given).</li>
+<li>Node property is final priority.</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+    <h5>This:</h5>
+    <ul><li>{<a href="FilterLeaf.html">FilterLeaf</a>}</li></ul>
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>columnName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>propertyName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>mixin</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+|
+
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Optional function or value if schema property undefined. If function, called in context with <code>propertyName</code> and <code>columnName</code>.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+
+    
+    <p class="summary"><p>Create a new node or subtree.</p></p>
+    
+
+
+
+<div class="description">
+    <p>Typically used by the application layer to create the entire filter tree; and internally, recursively, to create each node including both subtrees and leaves.</p>
+<p><strong>Node properties and options:</strong> Nodes are instantiated with:</p>
+<ol>
+<li>Certain <strong>required properties</strong> which differ for subtrees and leaves.</li>
+<li>Arbitrary <strong>non-standard option properties</strong> are defined on the <code>options</code> object (so long as their names do not conflict with any standard options) and never persist.</li>
+<li>Certain <strong>standard options properties</strong> as defined in the <code>optionsSchema</code> hash, come from various sources, as prioritized as follows:<ol>
+<li><code>options</code> object; does not persist</li>
+<li><code>state</code>; object; persists</li>
+<li><code>parent</code> object; persists</li>
+<li><code>default</code> object; does not persist</li>
+</ol>
+</li>
+</ol>
+<p>Notes:</p>
+<ol>
+<li>&quot;Persists&quot; means output by <a href="FilterTree.html#getState"><code>getState()</code></a>.</li>
+<li>The <code>parent</code> object is generated internally for subtrees. It allows standard options to inherit from the parent node.</li>
+<li>The <code>default</code> object comes from the <code>default</code> property, if any, of the <code>schema object</code> for the standard option in question. Note that once defined, subtrees will then inherit this value.</li>
+<li>If not defined by any of the above, the standard option remains undefined on the node.</li>
+</ol>
+<p><strong>Query Builder UI support:</strong> If your app wants to make use of the generated UI, you are responsible for inserting the top-level <code>.el</code> into the DOM. (Otherwise just ignore it.)</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#FilterTreeOptionsObject">FilterTreeOptionsObject</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The node state; or an options object possibly containing <code>state</code> among other options. Although you can instantiate a filter without any options, this is generally not useful. See <em>Instantiating a filter</em> in the <a href="http://joneit.github.io/filter-tree/index.html">readme</a> for a practical discussion of minimum options.</p>
+<ul>
+<li>@memberOf FilterNode#</li>
+</ul></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="makeOpMenu"><span class="type-signature"></span>makeOpMenu<span class="signature">(columnName)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+    <h5>This:</h5>
+    <ul><li>{<a href="FilterLeaf.html">FilterLeaf</a>}</li></ul>
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>columnName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="mixInNonstandardOptions"><span class="type-signature"></span>mixInNonstandardOptions<span class="signature">(options)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="mixInStandardOptions"><span class="type-signature"></span>mixInStandardOptions<span class="signature">(state, options)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Create each standard option from when found on the <code>options</code> or <code>state</code> objects, respectively; or if not an &quot;own&quot; option, on the <code>parent</code> object or from the options schema default (if any)</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>state</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Type Definitions</h3>
+
+        
+                
+<h4 class="name" id="converter">converter</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>toType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Returns input value converted to type. Fails silently.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>failed</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Tests input value against type, returning <code>false if type or</code>true` if not type.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="filterLeafViewObject">filterLeafViewObject</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>column</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">HTMLElement</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A drop-down with options from the <code>FilterLeaf</code> instance's schema. Value is the name of the column being tested (i.e., the column to which this conditional expression applies).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>operator</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A drop-down with options from <code>columnOpMenu</code>, <code>typeOpMap</code>, or <code>treeOpMenu</code>. Value is the string representation of the operator.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>operand</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>An input element, such as a drop-down or a text box.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="FilterTreeGetStateOptionsObject">FilterTreeGetStateOptionsObject</h4>
+
+
+<p class="summary"><p>Object containing options for producing a state object.</p></p>
+
+
+
+<div class="description">
+    <p>State is commonly used for two purposes:</p>
+<ol>
+<li>To persist the filter state so that it can be reloaded later.</li>
+<li>To send a query to a database engine.</li>
+</ol>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>syntax</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'object'
+                
+                </td>
+            
+
+            <td class="description last"><p>A case-sensitive string indicating the expected type and format of a state object to be generated from a filter tree. One of:</p>
+<ul>
+<li><code>'object'</code> (default) A raw state object produced by walking the tree using <code><a href="https://www.npmjs.com/package/unstrungify">unstrungify()</a></code>, respecting <code>JSON.stringify()</code>'s &quot;<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON()_behavior">toJSON() behavior</a>,&quot; and returning a plain object suitable for resubmitting to <a href="FilterNode.html#setState"><code>setState</code></a>. This is an &quot;essential&quot; version of the actual node objects in the tree.</li>
+<li><code>'JSON'</code> - A stringified state object produced by walking the tree using <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global%5C_Objects/JSON/stringify#toJSON()%5C_behavior">JSON.stringify()</a></code>, returning a JSON string by calling <code>toJSON</code> at every node. This is a string representation of the same &quot;essential&quot; object as that produced by the <code>'object'</code> option, but &quot;stringified&quot; and therefore suitable for text-based storage media.</li>
+<li><code>'SQL'</code> - The subexpression in SQL conditional syntax produced by walking the tree and returning a SQL <a href="https://msdn.microsoft.com/en-us/library/ms173545.aspx">search condition expression</a>. Suitable for use in the WHERE clause of a SQL <code>SELECT</code> statement used to query a database for a filtered result set.</li>
+</ul></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="FilterTreeOptionsObject">FilterTreeOptionsObject</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>schema</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;menuItem></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>A default list of column names for field drop-downs of all descendant terminal nodes. Overrides <code>options.state.schema</code> (see). May be defined for any node and pertains to all descendants of that node (including terminal nodes). If omitted (and no <code>ownSchema</code>), will use the nearest ancestor <code>schema</code> definition. However, descendants with their own definition of <code>types</code> will override any ancestor definition.</p>
+<blockquote>
+<p>Typically only used by the caller for the top-level (root) tree.</p>
+</blockquote></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>ownSchema</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;menuItem></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>A default list of column names for field drop-downs of immediate descendant terminal nodes <em>only</em>. Overrides <code>options.state.ownSchema</code> (see).</p>
+<p>Although both <code>options.schema</code> and <code>options.ownSchema</code> are notated as optional herein, by the time a terminal node tries to render a schema drop-down, a <code>schema</code> list should be defined through (in order of priority):</p>
+<ul>
+<li>Terminal node's own <code>options.schema</code> (or <code>options.state.schema</code>) definition.</li>
+<li>Terminal node's parent node's <code>option.ownSchema</code> (or <code>option.state.nodesFields</code>) definition.</li>
+<li>Terminal node's parent (or any ancestor) node's <code>options.schema</code> (or <code>options.state.schema</code>) definition.</li>
+</ul></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>state</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#FilterTreeStateObject">FilterTreeStateObject</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>A data structure that describes a tree, subtree, or leaf (terminal node). If undefined, loads an empty filter, which is a <code>FilterTree</code> node consisting the default <code>operator</code> value (<code>'op-and'</code>).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>editor</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'Default'
+                
+                </td>
+            
+
+            <td class="description last"><p>The name of the conditional expression's UI &quot;editor.&quot; This name must be registered in the parent node's <code>editors</code> hash, where it maps to a leaf constructor (<code>FilterLeaf</code> or a descendant thereof). (Use <code>FilterTree#addEditor</code> to register new editors.)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>parent</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="FilterTree.html">FilterTree</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>Used internally to insert element when creating nested subtrees. The only time it may be (and must be) omitted is when creating the root node.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cssStylesheetReferenceElement</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">HTMLElement</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>passed to cssInsert</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="FilterTreeSetStateOptionsObject">FilterTreeSetStateOptionsObject</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>syntax</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'auto'
+                
+                </td>
+            
+
+            <td class="description last"><p>Specify parser to use on <code>state</code>. One of:</p>
+<ul>
+<li><code>'auto'</code> - Auto-detect; see <a href="FilterNode.html#parseStateString"><code>FilterNode#parseStateString</code></a> for algorithm.</li>
+<li><code>'object'</code> - A raw state object such as that produced by the <a href="FilterTree.html#getState"><code>getState()</code></a> method.</li>
+<li><code>'JSON'</code> - A JSON string version of a state object such as that produced by the <a href="FilterTree.html#getState"><code>getState()</code></a> method.</li>
+<li><code>'SQL'</code> - A SQL <a href="https://msdn.microsoft.com/en-us/library/ms173545.aspx">search condition expression</a> string.</li>
+</ul></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="FilterTreeStateObject">FilterTreeStateObject</h4>
+
+
+<p class="summary"><p>State with which to create a new node or replace an existing node.</p></p>
+
+
+
+<div class="description">
+    <p>A string or plain object that describes a filter-tree node. If a string, it is parsed into an object by <code>FilterNode~parseStateString</code>. (See, for available overloads.)</p>
+<p>The resulting object may be a flat object that describes a terminal node or a childless root or branch node; or may be a hierarchical object to define an entire tree or subtree.</p>
+<p>In any case, the resulting object may have any of the following properties:</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+|
+
+<span class="param-type">string</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>schema</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;menuItem></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>See <code>schema</code> property of <a href="global.html#FilterTreeOptionsObject"><code>FilterTreeOptionsObject</code></a>.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>editor</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    'Default'
+                
+                </td>
+            
+
+            <td class="description last"><p>See <code>editor</code> property of <a href="global.html#FilterTreeOptionsObject"><code>FilterTreeOptionsObject</code></a>.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>misc</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last"><p>Other miscellaneous properties will be copied directly to the new <code>FitlerNode</code> object. (The name &quot;misc&quot; here is just a stand-in; there is no specific property called &quot;misc&quot;.)</p>
+<ul>
+<li>May describe a non-terminal node with properties:<ul>
+<li><code>schema</code> - Overridden on instantiation by <code>options.schema</code>. If both unspecified, uses parent's definition.</li>
+<li><code>operator</code> - One of <a href="global.html#treeOperators"><code>treeOperators</code></a>.</li>
+<li><code>children</code> -  Array containing additional terminal and non-terminal nodes.</li>
+</ul>
+</li>
+</ul>
+<p>The constructor auto-detects <code>state</code>'s type:</p>
+<ul>
+<li>JSON string to be parsed by <code>JSON.parse()</code> into a plain object</li>
+<li>SQL WHERE clause string to be parsed into a plain object</li>
+<li>CSS selector of an Element whose <code>value</code> contains one of the above</li>
+<li>plain object</li>
+</ul></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="FilterTreeValidationOptionsObject">FilterTreeValidationOptionsObject</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>throw</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last"><p>Throw (do not catch) <code>FilterTreeError</code>s.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>alert</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last"><p>Announce error via window.alert() before returning.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>focus</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    false
+                
+                </td>
+            
+
+            <td class="description last"><p>Place the focus on the offending control and give it error color.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="operationReducer"><span class="type-signature"></span>operationReducer<span class="signature">(p, q)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>p</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>q</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>The result of applying the operator to the two parameters.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+            
+                
+<h4 class="name" id="optionsSchemaObject">optionsSchemaObject</h4>
+
+
+<p class="summary"><p>Standard option schema</p></p>
+
+
+
+<div class="description">
+    <p>Standard options are automatically added to nodes. Data sources for standard options include <code>options</code>, <code>state</code>, <code>parent</code> and <code>default</code> (in that order). Describes standard options through various properties:</p>
+</div>
+
+
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>ignore</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Do not automatically add to nodes (processed elsewhere).</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>own</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Do not automatically add from <code>parent</code> or <code>default</code>.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>rootBound</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Automatically add to root node only.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>default</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">*</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>This is the default data source when all other strategies fail.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="relationalOperator">relationalOperator</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>test</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#relationalTest">relationalTest</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>make</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#relationalSyntax">relationalSyntax</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="relationalSyntax"><span class="type-signature"></span>relationalSyntax<span class="signature">(a, b)</span><span class="type-signature"> &rarr; {string}</span></h4>
+
+    
+    <p class="summary"><p>Generates human-readable string syntax from conditionals.</p></p>
+    
+
+
+
+<div class="description">
+    <p>The type of the parameters will always be homogeneous and is determined by FilterLeaf's typing algorithm, which attempts to convert the data in it's natural string form to the type sepcified by the field's type, if defined. If both sides cannot be converted, it falls back to strings.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>a</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">number</span>
+|
+
+<span class="param-type">Date</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Left side of dyadic conditional expression.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>b</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">number</span>
+|
+
+<span class="param-type">Date</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Right side of dyadic conditional expression.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Syntax for that expressions a specific relationship between <code>a</code> and <code>b</code>.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="relationalTest"><span class="type-signature"></span>relationalTest<span class="signature">(a, b)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>a</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">number</span>
+|
+
+<span class="param-type">Date</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Left side of dyadic conditional expression.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>b</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">number</span>
+|
+
+<span class="param-type">Date</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Right side of dyadic conditional expression.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>The result of comparing <code>a</code> and <code>b</code>.</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+            
+                
+<h4 class="name" id="sqlIdQtsObject">sqlIdQtsObject</h4>
+
+
+
+
+<div class="description">
+    <p>On a practical level, the useful characters are:</p>
+<ul>
+<li>SQL-92 standard: &quot;double quotes&quot;</li>
+<li>SQL Server: &quot;double quotes&quot; or [square brackets]</li>
+<li>mySQL: `tick marks`</li>
+</ul>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>beg</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The open quote character.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>end</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The close quote character.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="treeOperator">treeOperator</h4>
+
+
+
+
+<div class="description">
+    <p>Each <code>treeOperator</code> object describes two things:</p>
+<ol>
+<li>How to take the test results of <em>n</em> child nodes by applying the operator to all the results to &quot;reduce&quot; it down to a single result.</li>
+<li>How to generate SQL WHERE clause syntax that applies the operator to <em>n</em> child nodes.</li>
+</ol>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">obejct</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>reduce</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#operationReducer">operationReducer</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>seed</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>-</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>abort</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>-</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>negate</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>-</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>SQL.op</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>-</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>SQL.beg</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>-</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>SQL.end</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>-</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    © 2017 <a href="http://www.openfin.co" target="_blank">OpenFin</a> All Rights Reserved.
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

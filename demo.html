@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>filter-tree test harness</title>
+    <link rel="stylesheet" href="demo.css"/>
+    <script srcx="//joneit.github.io/tabz/tabz.js" src="lib/tabz.js"></script>
+    <script src="lib/filter-tree.js"></script>
+    <script src="demo.js"></script>
+</head>
+
+<body>
+
+<table style="width:100%"><tr><td>
+
+    <fieldset id="opMenu">
+        <legend>
+            Initialization <code>options</code>
+        </legend>
+
+        <input type="button" class="demoButton" style="display:block;margin-bottom:.5em" value="var filterTree = new FilterTree(options);" title="Creates a new filter tree object (using the options below) bound to a new filter tree UI element. This demo replaces the existing UI element with the new one." onclick="harness.initialize()" />
+
+        <a class="more-info" href="javascript:void(0)" style="display:block; margin:-30px 0 25px; text-align:right" onclick="harness.moreinfo(this.nextElementSibling)"></a>
+        <div class="more-info" style="font-size:9pt; margin: .5em 0;">
+            <p>
+                Typically defined on the root of the filter tree, the column <code>schema</code> defines the columns available to all descending conditionals in the tree. At a minimum each entry in the list defines a column name. This is a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs"><code>menuItem</code></a> object, which means it could simply be a string. To organize columns into groups (shown as an optgroup in column drop-downs), this can also be an array of such objects (or strings). Specifying a string is very limiting; specifying an object allows defining the following additional properties on the column:
+            </p>
+            <ol>
+                <li><code>alias</code> A string used for display purposes in the UI instead of the raw column name.</li>
+                <li><code>type</code> The type of the column data for collation purposes. That is, the filtering algorithm attempts to convert the data to this type before comparing. If conversion fails on any row, it falls back to string comparison (for that row only).</li>
+                <li><code>opMenu</code> Operator list (see below).</li>
+            </ol>
+            <p style="font-size:9pt; margin:0">
+                Each terminal node in the filter tree (<i>i.e.,</i> each conditional expression) requires a list of operators to display in it's operator drop-down. This list can come from several sources. In priority order, these sources are:
+            </p>
+            <ol>
+                <li>The <code>opMenu</code> property, if defined on the column* in the node's column <code>schema</code> array.</li>
+                <li>The node's <code>typeOpMap</code> hash, if defined. This would be the property in <code>typeOpMap</code> named for the <code>type</code> property if defined on the column.*
+                <li>The node's <code>opMenu</code> array, if defined.</li>
+                <li>The default operator menu, as defined in <code><a href="http://joneit.github.io/filter-tree/module-conditionals.html#/.defaultOpMenu" target="jsdocs">conditionals.defaultOpMenu</a></code>.</li>
+            </ol>
+            <small>
+                * The phrase <i>the column</i> as used above refers to the element in the node's column <code>schema</code> array named for the currently selected column.
+            </small>
+        </div>
+
+        <label><input type="radio" name="opMenu" value="schema" checked /><code>options.schema</code></label>
+        &mdash; a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> array for columns<br>
+
+        <label><input type="radio" name="opMenu" value="typeOpMap" /><code>options.typeOpMap</code></label>
+        &mdash; a hash of <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> arrays for various types<br>
+
+        <label><input type="radio" name="opMenu" value="treeOpMenu" /><code>options.opMenu</code></label>
+        &mdash; a <a href="http://joneit.github.io/pop-menu/global.html#menuItem" target="jsdocs">menuItem</a> array for operators<br>
+
+        <label><input type="radio" name="opMenu" value="state" /><code>options.state</code></label>
+
+        <div id="section-schema">
+            <textarea id="schema" rows="16">[
+    {
+        label: 'Names',
+        submenu: [
+            { name: 'LastName', alias: 'Last Name', opMenu: [ "<", "=", ">" ] },
+            { name: 'FirstName', alias: 'First Name', opMenu: [ "group(inequalities)" ] }
+        ]
+    },
+    'BirthState',
+    { name: 'DOB', alias: 'Date Of Birth', type: 'date' },
+    { name: 'Age', type: 'number' }
+]</textarea>
+            <p class="smallprint">Format: JavaScript object literal syntax</p>
+        </div>
+
+        <div id="section-typeOpMap" style="display:none">
+            <textarea id="typeOpMap" rows="16">{
+    date: [
+        "group(equality)",
+        { label: "More or less", submenu: [ "<", ">" ] }
+    ]
+}</textarea>
+                <p class="smallprint">Format: JavaScript array literal syntax</p>
+        </div>
+
+        <div id="section-treeOpMenu" style="display:none">
+            <textarea id="treeOpMenu" rows="16"></textarea>
+            <p class="smallprint">Format: JavaScript array literal syntax<br/>
+                Defaults to a standard menu (when empty).</p>
+        </div>
+
+        <div id="section-state" style="display:none">
+            <textarea id="state" rows="16">{
+    "operator": "op-and",
+    "children": [
+        {
+            "persist": true,
+            "operator": "op-or",
+            "children": [
+                {
+                    "column": "DOB",
+                    "operator": "<",
+                    "operand": "1/1/1950"
+                },
+                {
+                    "column": "Age",
+                    "operator": "=",
+                    "operand": "69"
+                }
+            ]
+        }, {
+            "type": "columnFilters",
+            "persist": true,
+            "operator": "op-and",
+            "children": [
+                {
+                    "type": "columnFilter",
+                    "operator": "op-and",
+                    "children": [
+                        {
+                            "column": "BirthState",
+                            "operator": "=",
+                            "operand": "NY"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}</textarea>
+            <p class="smallprint">
+                Format: strict <a href="http://www.json.org/" target="json_org">JSON syntax</a> (with all property names and strings in double-quotes)
+            </p>
+
+            <label style="float:right; font-size:10pt"
+                   title="Automatically regenerate the JSON on any manual change to the UI.">
+                <input type="checkbox" id="autoget" onclick="if(this.checked)harness.toJSON()"/>Auto
+            </label>
+
+            <input type="button" class="demoButton" value="state = filterTree.getState({syntax:'JSON'},{space:3});" onclick="harness.toJSON()"
+                   title="SERIALIZE THE UI STATE
+Generate JSON describing the filter expression in the UI."/>
+
+            <input type="button" class="demoButton" value="filterTree.setState(state);" onclick="harness.setState('#state')" title="RESET THE UI STATE TO MATCH THIS
+Regenerate the filter tree UI element based on the filter expression described by the JSON. Replace the old element with this new one." />
+        </div>
+    </fieldset>
+
+    <fieldset>
+        <legend>SQL <code>WHERE</code> clause describing filter expression</legend>
+
+        <label class="auto" style="margin-top:9px;"
+               title="SERIALIZE THE UI STATE INTO THIS
+Automatically regenerate the SQL on any manual change to the UI.">
+            <input type="checkbox" id="autoGetWhere" checked onclick="if(this.checked)harness.getSqlWhereClause()"/>Auto
+        </label>
+        <input type="button" class="demoButton" value="WHERE = filterTree.getSqlWhereClause();" onclick="harness.getSqlWhereClause(true)" />
+
+        <textarea id="where-data" rows="3" onkeyup="if(document.getElementById('autoSetWhere').checked)harness.setState('#where-data')"></textarea>
+
+        <label class="auto" style="margin-top:6px;"
+               title="Automatically regenerate the SQL on any manual change to the UI.">
+            <input type="checkbox" id="autoSetWhere" checked onclick="if(this.checked)harness.setState('#where-data')"/>Auto
+        </label>
+        <input type="button" class="demoButton" value="filterTree.setState(WHERE);"
+               onclick="harness.setState('#where-data')"
+               title="SERIALIZE THE UI STATE INTO THIS
+Regenerate the filter tree UI element based on the filter expression described by the WHERE clause text. Replace the old element with this new one." />
+    </fieldset>
+
+    <fieldset>
+        <legend>Test the filter expression against this <code>dataRow</code></legend>
+
+        <label class="auto" style="margin-top:9px;" title="Automatically retest this data row against the filter expression in the UI on any manual change to same.">
+            <input type="checkbox" id="autotest" checked onclick="if(this.checked)harness.test()"/>Auto
+        </label>
+
+        <input type="button" class="demoButton" style="display:inline" value="test(dataRow);" onclick="harness.test(true)" />
+        <span id="test-result"></span>
+
+        <textarea id="dataRow" rows="6">{
+    LastName: 'Clinton',
+    DOB: '1/19/1946',
+    Age: 69
+}</textarea>
+    <p class="smallprint">Format: JavaScript object literal syntax</p>
+    </fieldset>
+
+</td><td style="padding:1em;">
+
+    <div style="width:216px; height:64px; display: inline-block; position:relative; background-image:url(filters.png); background-size:100%; background-repeat: no-repeat; z-index:5">
+        <input name="LastName" class="filter-box" readonly autocomplete="off" /><div class="filter-box-dropdown-icon"></div>
+        <select class="filter-box-dropdown" size="8"></select>
+        <input name="BirthState" class="filter-box" style="left:111px" readonly autocomplete="off" /><div class="filter-box-dropdown-icon" style="left:195px"></div>
+        <select class="filter-box-dropdown" size="8" style="left:111px"></select>
+    </div>
+
+    <div style="display: inline-block; font-size: small; margin: 0 1em .5em 1em; color: red">
+        <em>click<br>here!<br></em>
+        <span style="font-size: x-large; font-weight: bold;">&#x2190;</span>
+    </div>
+
+    <div style="display: inline-block; white-space: nowrap; text-align: center; background-color:white; border:1px solid grey;padding-bottom:2px; line-height: 1em">
+        <div style="margin-bottom: 3px; padding-bottom: 3px; padding-top:2px; background-color:grey; color:white; font-weight:bold">examples:</div>
+        <code style="font-size: 7pt; font-weight: normal">
+            50<br/>
+            < 50<br/>
+            &nbsp;>=A and <=L&nbsp;<br/>
+        </code>
+    </div>
+
+    <p id="properties">
+        <strong>Filter cell parsing options:</strong>
+        Recognize column names by
+        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_NAME" checked>name</label>
+        <label><input type="checkbox" class="property" id="AUTO_COLUMN_LOOKUP_BY_ALIAS" checked>alias</label>
+        <span style="white-space: nowrap">(<label><input type="checkbox" class="property" id="CASE_SENSITIVE_COLUMN_NAMES">case-sensitive</label>)</span>
+    </p>
+
+    <div class="tabz">
+
+        <input type="button" class="demoButton" value="validate" onclick="harness.invalid({alert:true,focus:true})" style="float:right" />
+
+        <p>
+            The Hypergrid filter tree has two main branches (or <i>subtrees</i>),<br>
+            one for the table filters and one for the column filters.
+
+            <a class="more-info" href="javascript:void(0)" onclick="harness.moreinfo(this.parentElement.nextElementSibling)"></a>
+
+            <div class="more-info">
+                <p>
+                    These filter subexpressions are both required (<code>AND</code>&rsquo;d together), resulting in a subset of <em>qualified rows</em> which have passed through both filters.
+                    It's called a <dfn>tree</dfn> because it contains both <dfn>branches</dfn> and <dfn>leaves</dfn>.
+                    The leaves represent <dfn>conditional expressions</dfn> (or simply <dfn>conditionals</dfn>).
+                    The branches, also known as <dfn>subtrees</dfn>, contain leaves and/or other branches and represent subexpressions that group conditionals together.
+                    Grouped conditionals are evaluated together, before conditionals outside the group.
+                </p>
+            </div>
+        </p>
+
+        <header class="tabz-bg2">
+            Table filter
+        </header>
+
+        <section class="tabz-bg2" style="min-height:987px">
+
+            <p>The table filter can be viewed in the Query Builder or as SQL WHERE clause syntax. Both interfaces manipulate the same underlying filter data structure.</p>
+
+            <div class="tabz" style="margin-top:1em">
+                <header id="tabTableFilterQuery" class="tabz-bg2">
+                    Query Builder
+                </header>
+
+                <section class="tabz-bg2" style="min-height:887px">
+                </section>
+
+                <header id="tabTableFilterSql" class="tabz-bg2">
+                    SQL syntax
+                </header>
+
+                <section class="filter-expression-syntax tabz-bg2" style="min-height:887px">
+                    <div>
+                        <p>
+                            SQL WHERE clause syntax with certain restrictions.
+                            <a class="more-info" href="javascript:void(0)" onclick="harness.moreinfo(this.parentElement.nextElementSibling)"></a>
+                        </p>
+                        <div class="more-info">
+                            <ul>
+                                <li>
+                                    Simple expressions
+                                    <ul>
+                                        <li>All simple expressions must be of the form <i>column operator literal</i> or <i>column operator identifier</i>. That is, the left side must refer to a column (may not be a literal).</li>
+
+                                        <li>Column names may be quoted with the currently set quote characters (typically double-quotes). If unquoted, they must consist of classic identifier syntax (alphanumerics and underscore, but not beginning with a numeral).</li>
+
+                                        <li>All literals must be quoted strings (using single quotes). (In a future release we expect to support unquoted numeric syntax for columns explicitly typed as numeric.)</li>
+                                    </ul>
+                                </li>
+
+                                <li>
+                                    Compound expressions
+                                    <ul>
+                                        <li>Compound expressions are formed by connecting simple expressions with the logical operators <code>AND</code> or <code>OR</code>.</li>
+
+                                        <li>However, all logical operators at each level in a complex expression (each parenthesized subexpression) must be homogeneous, <i>i.e.,</i> either <code>AND</code> or <code>OR</code> but not a mixture of the two. In other words, there is no implicit operator precedence; grouping of expressions must always be explicitly stated with parentheses.</li>
+
+                                        <li>The unary logical operator <code>NOT</code> is supoorted before parentheses only. While the Query Builder and the Column Filter allow they syntax <code>&hellip; NOT <i>operator</i> &hellip;</code> (where <code><i>operator</i></code> is <code>IN</code>, <code>LIKE</code>, <i>etc.</i>), these must be expressed here with parenthethes: <code>NOT (&hellip; <i>operator</i> &hellip;)</code>.</li>
+
+                                        <li>While the Query Builder and Column Filter syntax support the pseudo-operators <code>NOR</code> and <code>NAND</code>, in SQL these must be expressed as <code>NOT (&hellip; OR &hellip;)</code> and <code>NOT (&hellip; AND &hellip;)</code>, respectively.</li>
+
+                                        <li>The Query Builder and Column Filter syntax also support the pseudo-operators <code>STARTS abc</code>, <code>ENDS xyz</code>, and <code>CONTAINS def</code>. These are expressed in SQL by <code>LIKE 'abc%'</code>, <code>LIKE '%xyz'</code>, and <code>LIKE '%def%'</code>, respectively.</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <textarea>abc</textarea>
+                </section>
+            </div> <!-- table filter inner tabs -->
+        </section>
+
+        <header class="tabz-bg1">
+            Column filters
+        </header>
+
+        <section class="tabz-bg1" style="min-height:987px">
+
+            <select id="add-column-filter-subexpression" style="float:right; margin-left: 1em;"></select>
+
+            <p style="margin-top:0">All column filters are AND&rsquo;d together. Each grid row is first qualified by the table filter and then successively qualified by each column filter subexpression.</p>
+
+            <div class="tabz" style="margin-top:1em">
+
+                <header id="tabColumnFilterQuery" class="tabz-bg1 default-tab">
+                    Query Builder
+                </header>
+
+                <section class="tabz-bg1" style="min-height:887px">
+                </section>
+
+                <header id="tabColumnFiltersSql" class="tabz-bg1">
+                    SQL syntax
+                </header>
+
+                <section class="filter-expression-syntax tabz-bg1" style="min-height:887px">
+                    <div>
+                        <p>
+                            <span></span>
+                            <button type="button" class="copy" title="The state of the column filters subtree expressed in SQL syntax (all the column filter subexpressions shown below AND&rsquo;d together).">
+                                ALL
+                            </button>
+                        </p>
+                        <ol></ol>
+                    </div>
+                </section>
+
+                <header id="tabColumnFiltersSyntax" class="tabz-bg0">
+                    Column Filter syntax
+                </header>
+
+                <section class="filter-expression-syntax tabz-bg6" style="min-height:887px">
+                    <p>
+                        Column filters use a simplified, compact syntax, intended to keep things short and simple and self-evident. The downside of course it is not as flexible or concise as using the Query Builder or SQL syntax.
+                        <a class="more-info" href="javascript:void(0)" onclick="harness.moreinfo(this.parentElement.nextElementSibling)"></a>
+                    </p>
+                    <div class="more-info">
+                        <ul>
+                            <li>
+                                Simple expressions
+                                <ul>
+                                    <li>All simple expressions take the form <i>operator literal</i> or <i>operator identifier</i>. The (left side) column is always implied and is the same for all simple expressions in a compound expression. This is because column filters are always tied to a known column.</li>
+
+                                    <li>If the operator is an equals sign (=), it may be omitted.</li>
+
+                                    <li>Besides operators, no other punctuation is permitted, meaning that no quotation marks and no parentheses.</li>
+
+                                    <li>If a literal exactly matches a column name or alias, the operand is not taken literally and instead refers to the value in that column. (There are properties to control what constitutes such a match: Column name, alias, or either; and the case-sensitivity of the match.)</li>
+
+                                    <li>As literals are unquoted, any operator symbol or operator word (including logical operators for compound expressions) terminates a literal.</li>
+
+                                    <li>An important corollary to the above features is that operators may not appear in literals.</li>
+                                </ul>
+                            </li>
+
+                            <li>
+                                Compound expressions
+                                <ul>
+                                    <li>Compound expressions are formed by connecting simple expressions with the logical operators <code>AND</code>, <code>OR</code>, <code>NOR</code>, or <code>NAND</code> ("not and").</li>
+
+                                    <li>However, all logical operators used in a compound column filter expression must be homogeneous. You may not mix the above logical operators in a single column. (If you need to do this, create a table filter expression instead.)</li>
+                                </ul>
+                            </li>
+
+                            <li>
+                                Hidden logic
+                                <ul>
+                                    <li>If the column is also referenced in a table filter expression (on the left side of a simple expression), the column filter is flagged in its grid cell with a special star character. This is just a flag; it is not part of the syntax. <span style="color:red; font-style:italic">Not yet implemented.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <p><span></span></p>
+                        <ol></ol>
+                    </div>
+                </section>
+            </div> <!-- column filters inner tabs -->
+        </section>
+    </div> <!-- outer tabs -->
+
+    <div class="msg-box">
+        <div class="msg-box-title">Column filter cell syntax error</div>
+        <div class="msg-box-close"></div>
+        <div class="msg-box-content"></div>
+    </div>
+
+</td></tr></table>
+
+</body>
+
+</html>
